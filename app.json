@@ -2,10 +2,20 @@
   "expo": {
     "name": "DraBornGarage",
     "slug": "draborngarage",
-    "version": "0.1.0",
+    "scheme": "draborngarage",
+    "version": "0.3.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "DraBornGarage servis QR kodlarını taramak için kameraya erişsin.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.draborneagle.draborngarage"
@@ -13,7 +23,14 @@
     "android": {
       "package": "com.draborneagle.draborngarage",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [{ "scheme": "draborngarage", "host": "claim" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     }
   }
 }
