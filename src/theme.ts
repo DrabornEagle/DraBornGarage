@@ -1,0 +1,41 @@
+export const darkPalette = {
+  background: '#070A12',
+  surface: '#111827',
+  surfaceSoft: '#172033',
+  card: 'rgba(17, 24, 39, 0.82)',
+  cardStrong: 'rgba(23, 32, 51, 0.96)',
+  text: '#F8FAFC',
+  textMuted: '#9AA8BC',
+  textSoft: '#CBD5E1',
+  border: 'rgba(148, 163, 184, 0.16)',
+  primary: '#7C5CFF',
+  primary2: '#5B8CFF',
+  cyan: '#20D9D2',
+  green: '#41D99B',
+  orange: '#FFB14A',
+  red: '#FF6B7A',
+  black: '#020617',
+  white: '#FFFFFF',
+};
+
+export const lightPalette = {
+  background: '#F4F7FC',
+  surface: '#FFFFFF',
+  surfaceSoft: '#EEF2FF',
+  card: 'rgba(255, 255, 255, 0.9)',
+  cardStrong: 'rgba(255, 255, 255, 0.98)',
+  text: '#101625',
+  textMuted: '#627085',
+  textSoft: '#334155',
+  border: 'rgba(71, 85, 105, 0.14)',
+  primary: '#6647F5',
+  primary2: '#3D7BFF',
+  cyan: '#0CB7B2',
+  green: '#16A36E',
+  orange: '#E88416',
+  red: '#E6485B',
+  black: '#020617',
+  white: '#FFFFFF',
+};
+
+export type Palette = typeof darkPalette;
