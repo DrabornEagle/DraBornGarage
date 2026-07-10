@@ -5,12 +5,13 @@ import { AppShell } from './AppShell';
 import { PremiumBackground } from './components/PremiumBackground';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
+import { CustomerShell } from './customer/CustomerShell';
 import { AuthScreen } from './screens/AuthScreen';
 import { WorkshopSetupScreen } from './screens/WorkshopSetupScreen';
 
 export function AppRoot() {
   const { colors } = useTheme();
-  const { loading, session, workshop, membership } = useAuth();
+  const { loading, session, profile, workshop, membership } = useAuth();
 
   if (loading) {
     return (
@@ -25,6 +26,7 @@ export function AppRoot() {
   }
 
   if (!session) return <AuthScreen />;
+  if (profile?.account_mode === 'customer') return <CustomerShell />;
   if (!workshop || !membership) return <WorkshopSetupScreen />;
   return <AppShell />;
 }
