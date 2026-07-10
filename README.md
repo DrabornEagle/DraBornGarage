@@ -37,6 +37,6 @@ npm run test:bundle
 
 - [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md)
 - [`docs/ROADMAP.md`](docs/ROADMAP.md)
-- [`supabase/migrations/20260710170000_init_v0_1.sql`](supabase/migrations/20260710170000_init_v0_1.sql)
+- [`supabase/migrations`](supabase/migrations) — tekrar kurulabilir şema, iş mantığı, RLS ve optimizasyonlar
 
 APK/AAB üretimi v1.0 aşamasına planlanmıştır.
