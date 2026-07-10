@@ -11,7 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 
 export function WorkshopSetupScreen() {
   const { colors } = useTheme();
-  const { profile, createWorkshop, joinWorkshop, signOut } = useAuth();
+  const { profile, createWorkshop, joinWorkshop, setAccountMode, signOut } = useAuth();
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,21 +28,26 @@ export function WorkshopSetupScreen() {
     if (error) Alert.alert('İşlem tamamlanamadı', error);
   };
 
+  const continueAsCustomer = async () => {
+    setLoading(true);
+    const error = await setAccountMode('customer');
+    setLoading(false);
+    if (error) Alert.alert('Müşteri paneli açılamadı', error);
+  };
+
   return (
     <PremiumBackground>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.topRow}>
             <View>
               <Text style={[styles.hello, { color: colors.primary }]}>HOŞ GELDİN</Text>
-              <Text style={[styles.title, { color: colors.text }]}>{profile?.full_name || 'Usta'}</Text>
+              <Text style={[styles.title, { color: colors.text }]}>{profile?.full_name || 'Kullanıcı'}</Text>
             </View>
-            <AnimatedPressable onPress={signOut} style={[styles.logout, { backgroundColor: colors.cardStrong, borderColor: colors.border }]}> 
-              <Ionicons name="log-out-outline" size={21} color={colors.textMuted} />
-            </AnimatedPressable>
+            <AnimatedPressable onPress={signOut} style={[styles.logout, { backgroundColor: colors.cardStrong, borderColor: colors.border }]}><Ionicons name="log-out-outline" size={21} color={colors.textMuted} /></AnimatedPressable>
           </View>
 
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Yeni bir motosiklet/oto servisi oluştur veya sana gönderilen rol bazlı davet koduyla mevcut işletmeye katıl.</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Bir işletme oluştur, rol bazlı davet koduyla ekibe katıl veya motorunu takip etmek için müşteri paneline geç.</Text>
 
           <View style={styles.choiceRow}>
             <ChoiceCard active={mode === 'create'} icon="business" title="İşletme oluştur" text="İşletme Sahibi + Usta olarak başla, ekibini sonra davet et." onPress={() => setMode('create')} />
@@ -65,6 +70,12 @@ export function WorkshopSetupScreen() {
               </>
             )}
           </GlassCard>
+
+          <AnimatedPressable onPress={continueAsCustomer} style={[styles.customerButton, { backgroundColor: `${colors.cyan}12`, borderColor: `${colors.cyan}42` }]}> 
+            <View style={[styles.customerIcon, { backgroundColor: `${colors.cyan}18` }]}><Ionicons name="bicycle" size={25} color={colors.cyan} /></View>
+            <View style={styles.customerCopy}><Text style={[styles.customerTitle, { color: colors.text }]}>Müşteri olarak devam et</Text><Text style={[styles.customerText, { color: colors.textMuted }]}>Plaka, telefon, servis kodu, QR veya usta onayıyla motorunu hesabına bağla.</Text></View>
+            <Ionicons name="chevron-forward" size={21} color={colors.cyan} />
+          </AnimatedPressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </PremiumBackground>
@@ -96,4 +107,9 @@ const styles = StyleSheet.create({
   choiceText: { fontSize: 12, lineHeight: 17 },
   form: { gap: 16 },
   help: { fontSize: 13, lineHeight: 19 },
+  customerButton: { minHeight: 88, borderWidth: 1, borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  customerIcon: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  customerCopy: { flex: 1, minWidth: 0 },
+  customerTitle: { fontSize: 15, fontWeight: '900' },
+  customerText: { fontSize: 11, lineHeight: 17, marginTop: 4 },
 });
