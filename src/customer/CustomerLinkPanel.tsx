@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Modal, StyleSheet, Text, View } from 'react-native';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
@@ -16,7 +17,7 @@ type LinkMethod = 'phone' | 'tracking' | 'qr' | 'approval';
 const methodLabels: Record<LinkMethod, { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap }> = {
   phone: { title: 'Plaka + Telefon', subtitle: 'İşletmedeki telefon kaydıyla anında eşleştir.', icon: 'call' },
   tracking: { title: 'Servis Takip Kodu', subtitle: 'Ustanın verdiği 8 haneli kodla bağlan.', icon: 'key' },
-  qr: { title: 'QR Bağlantısı', subtitle: 'QR içindeki güvenli bağlantıyı kullan.', icon: 'qr-code' },
+  qr: { title: 'QR Kodunu Tara', subtitle: 'Kamerayla servis QR kodunu okut.', icon: 'qr-code' },
   approval: { title: 'Usta Onayı', subtitle: 'Plakayı gönder; işletme onaylasın.', icon: 'shield-checkmark' },
 };
 
@@ -29,6 +30,7 @@ function extractToken(value: string) {
 export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
   const { colors } = useTheme();
   const { profile, refreshWorkspace } = useAuth();
+  const [permission, requestPermission] = useCameraPermissions();
   const [method, setMethod] = useState<LinkMethod>('phone');
   const [plate, setPlate] = useState('');
   const [phone, setPhone] = useState(profile?.phone ?? '');
@@ -36,6 +38,8 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
   const [qrValue, setQrValue] = useState('');
   const [claims, setClaims] = useState<CustomerClaim[]>([]);
   const [loading, setLoading] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [scannerLocked, setScannerLocked] = useState(false);
 
   const loadClaims = useCallback(async () => {
     const { data } = await supabase.rpc('customer_get_claims');
@@ -50,7 +54,7 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
       const token = extractToken(url);
       if (token.length === 36) {
         setMethod('qr');
-        setQrValue(token);
+        setQrValue(url);
       }
     };
     Linking.getInitialURL().then(handleUrl);
@@ -65,6 +69,38 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
     await loadClaims();
     onLinked?.();
     Alert.alert('Eşleştirme tamamlandı', message);
+  };
+
+  const openScanner = async () => {
+    let granted = permission?.granted ?? false;
+    if (!granted) {
+      const result = await requestPermission();
+      granted = result.granted;
+    }
+    if (!granted) {
+      Alert.alert('Kamera izni gerekli', 'Servis QR kodunu taramak için DraBornGarage uygulamasına kamera izni vermen gerekiyor.');
+      return;
+    }
+    setScannerLocked(false);
+    setScannerVisible(true);
+  };
+
+  const handleBarcodeScanned = ({ data }: { data: string }) => {
+    if (scannerLocked) return;
+    const token = extractToken(data);
+    if (token.length !== 36) {
+      setScannerLocked(true);
+      Alert.alert('Geçersiz QR', 'Bu QR kodu DraBornGarage servis bağlantısı içermiyor.', [
+        { text: 'Tekrar Tara', onPress: () => setScannerLocked(false) },
+        { text: 'Kapat', style: 'cancel', onPress: () => setScannerVisible(false) },
+      ]);
+      return;
+    }
+    setScannerLocked(true);
+    setMethod('qr');
+    setQrValue(data);
+    setScannerVisible(false);
+    setTimeout(() => setScannerLocked(false), 700);
   };
 
   const submit = async () => {
@@ -128,7 +164,16 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
         {method !== 'qr' && <FormField label="Plaka" value={plate} onChangeText={(value) => setPlate(value.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" />}
         {method === 'phone' && <FormField label="İşletmede kayıtlı telefon" value={phone} onChangeText={setPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" />}
         {method === 'tracking' && <FormField label="8 haneli servis takip kodu" value={trackingCode} onChangeText={(value) => setTrackingCode(value.toUpperCase())} placeholder="A1B2C3D4" autoCapitalize="characters" />}
-        {method === 'qr' && <FormField label="QR bağlantısı veya token" value={qrValue} onChangeText={setQrValue} placeholder="draborngarage://claim?token=..." multiline />}
+        {method === 'qr' && (
+          <>
+            <AnimatedPressable onPress={openScanner} style={[styles.scanButton, { backgroundColor: `${colors.cyan}13`, borderColor: `${colors.cyan}45` }]}> 
+              <View style={[styles.scanIcon, { backgroundColor: `${colors.cyan}1A` }]}><Ionicons name="scan" size={25} color={colors.cyan} /></View>
+              <View style={styles.copy}><Text style={[styles.scanTitle, { color: colors.text }]}>Kamerayla QR Tara</Text><Text style={[styles.scanText, { color: colors.textMuted }]}>Ustanın ekranındaki veya gönderdiği servis QR kodunu okut.</Text></View>
+              <Ionicons name="chevron-forward" size={21} color={colors.cyan} />
+            </AnimatedPressable>
+            <FormField label="QR bağlantısı veya token" value={qrValue} onChangeText={setQrValue} placeholder="Tarama sonucu otomatik dolar" multiline />
+          </>
+        )}
         {method === 'approval' && <FormField label="Telefon (opsiyonel)" value={phone} onChangeText={setPhone} placeholder="Ustanın seni tanımasına yardımcı olur" keyboardType="phone-pad" />}
         <PrimaryButton
           title={method === 'approval' ? 'Usta Onayı İste' : 'Motorumu Güvenle Eşleştir'}
@@ -148,6 +193,33 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
           ))}
         </GlassCard>
       )}
+
+      <Modal visible={scannerVisible} animationType="slide" transparent onRequestClose={() => setScannerVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.scannerCard, { backgroundColor: colors.cardStrong, borderColor: colors.border }]}> 
+            <View style={styles.scannerHeader}>
+              <View><Text style={[styles.scannerTitle, { color: colors.text }]}>Servis QR Kodunu Tara</Text><Text style={[styles.scannerSubtitle, { color: colors.textMuted }]}>QR kodu çerçevenin içine getir.</Text></View>
+              <AnimatedPressable onPress={() => setScannerVisible(false)} style={[styles.closeButton, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}><Ionicons name="close" size={22} color={colors.text} /></AnimatedPressable>
+            </View>
+            <View style={styles.cameraFrame}>
+              <CameraView
+                style={StyleSheet.absoluteFill}
+                facing="back"
+                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                onBarcodeScanned={scannerLocked ? undefined : handleBarcodeScanned}
+              />
+              <View pointerEvents="none" style={styles.scanOverlay}>
+                <View style={[styles.scanCorner, styles.cornerTopLeft, { borderColor: colors.cyan }]} />
+                <View style={[styles.scanCorner, styles.cornerTopRight, { borderColor: colors.cyan }]} />
+                <View style={[styles.scanCorner, styles.cornerBottomLeft, { borderColor: colors.cyan }]} />
+                <View style={[styles.scanCorner, styles.cornerBottomRight, { borderColor: colors.cyan }]} />
+                <View style={[styles.scanLine, { backgroundColor: colors.cyan }]} />
+              </View>
+            </View>
+            <View style={[styles.scannerHint, { backgroundColor: `${colors.orange}0E`, borderColor: `${colors.orange}30` }]}><Ionicons name="information-circle" size={18} color={colors.orange} /><Text style={[styles.scannerHintText, { color: colors.textMuted }]}>Yalnız DraBornGarage tarafından oluşturulan servis QR kodları kabul edilir.</Text></View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -164,6 +236,10 @@ const styles = StyleSheet.create({
   methodTitle: { fontSize: 13, fontWeight: '900' },
   methodSubtitle: { fontSize: 10, lineHeight: 14 },
   form: { gap: 13 },
+  scanButton: { minHeight: 78, borderWidth: 1, borderRadius: 18, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  scanIcon: { width: 47, height: 47, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  scanTitle: { fontSize: 14, fontWeight: '900' },
+  scanText: { fontSize: 10, lineHeight: 15, marginTop: 3 },
   pendingCard: { gap: 8 },
   pendingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pendingTitle: { fontSize: 16, fontWeight: '900' },
@@ -172,4 +248,20 @@ const styles = StyleSheet.create({
   pendingMeta: { fontSize: 10, marginTop: 4 },
   pendingPill: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
   pendingPillText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', justifyContent: 'flex-end' },
+  scannerCard: { borderWidth: 1, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 18, paddingBottom: 34, gap: 15 },
+  scannerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  scannerTitle: { fontSize: 20, fontWeight: '900' },
+  scannerSubtitle: { fontSize: 11, marginTop: 4 },
+  closeButton: { width: 43, height: 43, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  cameraFrame: { height: 360, borderRadius: 24, overflow: 'hidden', backgroundColor: '#000' },
+  scanOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  scanCorner: { position: 'absolute', width: 52, height: 52 },
+  cornerTopLeft: { top: 42, left: 42, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 16 },
+  cornerTopRight: { top: 42, right: 42, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 16 },
+  cornerBottomLeft: { bottom: 42, left: 42, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 16 },
+  cornerBottomRight: { bottom: 42, right: 42, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 16 },
+  scanLine: { width: '68%', height: 2, shadowColor: '#20D9D2', shadowOpacity: 0.9, shadowRadius: 8 },
+  scannerHint: { minHeight: 52, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  scannerHintText: { flex: 1, fontSize: 10.5, lineHeight: 16 },
 });
