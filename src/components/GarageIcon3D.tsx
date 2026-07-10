@@ -5,12 +5,16 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
 type GarageIcon3DProps = {
-  name: keyof typeof MaterialCommunityIcons.glyphMap;
+  name: string;
   size?: number;
   iconSize?: number;
   accent?: string;
   accent2?: string;
   animated?: boolean;
+};
+
+const ICON_ALIASES: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  'shield-clock': 'shield-lock',
 };
 
 export function GarageIcon3D({
@@ -25,6 +29,7 @@ export function GarageIcon3D({
   const float = useRef(new Animated.Value(0)).current;
   const first = accent ?? colors.orange;
   const second = accent2 ?? colors.primary2;
+  const iconName = ICON_ALIASES[name] ?? (name as keyof typeof MaterialCommunityIcons.glyphMap);
 
   useEffect(() => {
     if (!animated) return;
@@ -77,7 +82,7 @@ export function GarageIcon3D({
         ]}
       >
         <View style={[styles.highlight, { backgroundColor: `${colors.white}2B` }]} />
-        <MaterialCommunityIcons name={name} size={iconSize} color="#FFFFFF" />
+        <MaterialCommunityIcons name={iconName} size={iconSize} color="#FFFFFF" />
         <View style={styles.bolts}>
           <View style={[styles.bolt, { backgroundColor: `${colors.white}A8` }]} />
           <View style={[styles.bolt, { backgroundColor: `${colors.white}66` }]} />
