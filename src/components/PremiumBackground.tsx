@@ -77,10 +77,10 @@ export function PremiumBackground({ children }: { children: React.ReactNode }) {
 
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: resolvedMode === 'dark' ? 0.18 : 0.1 }]}>
         {HORIZONTAL_GRID.map((_, index) => (
-          <View key={`h-${index}`} style={[styles.gridHorizontal, { top: `${index * 11}%`, backgroundColor: colors.textMuted }]} />
+          <View key={`h-${index}`} style={[styles.gridHorizontal, { top: index * (height / 9), backgroundColor: colors.textMuted }]} />
         ))}
         {VERTICAL_GRID.map((_, index) => (
-          <View key={`v-${index}`} style={[styles.gridVertical, { left: `${index * 17}%`, backgroundColor: colors.textMuted }]} />
+          <View key={`v-${index}`} style={[styles.gridVertical, { left: index * (width / 6), backgroundColor: colors.textMuted }]} />
         ))}
       </View>
 
