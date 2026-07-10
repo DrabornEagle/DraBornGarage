@@ -1,26 +1,39 @@
 # DraBornGarage
 
-Motosiklet servisleri için modern, rol tabanlı işletme ve usta yönetim uygulaması.
+Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis yönetim platformu.
 
-## v0.1 kapsamı
+## Ana ürün kararı
 
-- İşletme sahibi ve usta hesapları
-- Aynı işletmede birden fazla ortak işletme sahibi
-- Her usta için yalnız kendi işlerini ve kaydedilen işlem tutarlarını gösteren özel panel
-- Müşteri ve motosiklet yönetimi
-- Servis kabulü ve iş emri yaşam döngüsü
-- Yapılan işlemler, kullanılan parçalar ve tahsilatlar
-- İşletme toplamları ve usta bazlı detaylar
-- Supabase Auth, PostgreSQL ve Row Level Security
-- Expo SDK 54 / Expo Go
+Şu anda yalnızca **DraBornGarage** geliştirilmektedir. DraBornStyle, DraBornRepair, DraBornWash ve DraBornClinic bu yol haritasında yer almaz. Öncelik mobil uygulamanın v1.0’a kadar tamamlanması ve Google Play’e hazırlanmasıdır.
 
-> Usta bazlı tutarlar maaş, komisyon, net kâr veya ortaklık payı değildir. Sistem yalnızca servis kayıtlarına girilen işlem tutarlarını toplar.
+## v0.1 — Çok İşletmeli Çekirdek
+
+- `Admin` paneli; Super Admin adı kullanılmaz
+- Birden fazla işletme ve işletmeler arasında güvenli seçim
+- İşletme ekleme, düzenleme, aktif/pasif yapma
+- İşletme Sahibi
+- İşletme Sahibi + Usta
+- Usta
+- Finansal verileri göremeyen kısıtlı Çırak Paneli
+- Personel daveti, rol değişimi ve pasifleştirme
+- Plakayla tekrar gelen müşteri/motor bulma
+- Hızlı Servis, Bırakılan Motor ve Randevulu Servis veri tipi
+- Günlük atölye sırası
+- Ayrıntılı servis durumları
+- Net fiyat ve tahmini fiyat
+- Tamire başlamadan önce zorunlu ücret kontrolü
+- Nakit ve IBAN tahsilatı
+- Yapılan işlemler ve kullanılan parçalar
+- İşletme bazlı Supabase RLS
+- Geçici, güvenli ve silinebilir tam v0.1 demo paketi
+
+> Usta bazlı tutarlar maaş, komisyon, prim, net kâr veya ortaklık payı değildir. Sistem yalnızca hangi ustanın hangi işlem için ne kadar tutar kaydettiğini tutar.
 
 ## Çalıştırma
 
 ```bash
 cp .env.example .env
-npm install
+npm install --no-audit --no-fund
 npx expo start -c --go
 ```
 
@@ -35,8 +48,9 @@ npm run test:bundle
 
 ## Proje belgeleri
 
-- [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md)
-- [`docs/ROADMAP.md`](docs/ROADMAP.md)
-- [`supabase/migrations`](supabase/migrations) — tekrar kurulabilir şema, iş mantığı, RLS ve optimizasyonlar
+- [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md) — tamamlanan ve cihazda test edilecek v0.1 maddeleri
+- [`docs/DEMO_TEST.md`](docs/DEMO_TEST.md) — tam v0.1 demo test akışı
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — yalnız v0.1–v1.0 onaylı mobil plan
+- [`supabase/migrations`](supabase/migrations) — tekrar kurulabilir şema, RPC, RLS ve demo migration’ları
 
-APK/AAB üretimi v1.0 aşamasına planlanmıştır.
+APK/AAB üretimi v1.0 aşamasındadır. Tam web sürümü v1.0 sonrasında yalnızca opsiyonel olarak değerlendirilecektir.
