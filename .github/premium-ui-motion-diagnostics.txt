@@ -1,0 +1,1 @@
+Rerun premium UI validation and upload TypeScript diagnostics.
