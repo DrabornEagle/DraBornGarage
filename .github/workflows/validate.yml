@@ -1,0 +1,33 @@
+name: Validate DraBornGarage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: https://xpdiwyxnnrmyvpcqwuyb.supabase.co
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG
+        run: npm run test:bundle
