@@ -1,12 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
-import { AnimatedEntrance, PremiumGlowCard, PulseDot } from '../components/PremiumMotion';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { StatusPill } from '../components/StatusPill';
@@ -97,8 +95,6 @@ export function CustomersScreen() {
   }, [customers, motorcycles, query]);
 
   const pendingClaims = claims.filter((item) => item.status === 'pending');
-  const activeOrders = workOrders.filter((item) => !['ready', 'completed', 'delivered', 'cancelled'].includes(item.status));
-  const totalOutstanding = workOrders.reduce((sum, item) => sum + Math.max(0, Number(item.total_amount) - Number(item.amount_received)), 0);
 
   const addCustomer = async () => {
     if (!workshop || !name.trim()) return Alert.alert('Müşteri adı gerekli');
@@ -171,128 +167,77 @@ export function CustomersScreen() {
         onAction={tab === 'customers' ? () => setShowNew((value) => !value) : undefined}
       />
 
-      <PremiumGlowCard accent={colors.cyan} accent2={colors.primary} delay={40} live>
-        <View style={styles.overviewTop}>
-          <View style={styles.copy}>
-            <View style={styles.overviewLive}><PulseDot color={colors.cyan} size={6} /><Text style={[styles.overviewEyebrow, { color: colors.cyan }]}>CANLI MÜŞTERİ MERKEZİ</Text></View>
-            <Text style={[styles.overviewTitle, { color: colors.text }]}>{customers.length} müşteri • {motorcycles.length} motor</Text>
-            <Text style={[styles.overviewText, { color: colors.textMuted }]}>Aktif servisleri, borçları ve hesap eşleşmelerini tek yerden izle.</Text>
-          </View>
-          <LinearGradient colors={[colors.cyan, colors.primary]} style={styles.overviewIcon}><Ionicons name="people" size={28} color="#fff" /></LinearGradient>
-        </View>
-        <View style={styles.overviewMetrics}>
-          <CustomerMetric label="AKTİF SERVİS" value={String(activeOrders.length)} icon="construct" accent={colors.orange} />
-          <CustomerMetric label="BEKLEYEN ONAY" value={String(pendingClaims.length)} icon="shield-checkmark" accent={colors.primary2} />
-          <CustomerMetric label="AÇIK BAKİYE" value={money(totalOutstanding)} icon="wallet" accent={totalOutstanding > 0 ? colors.red : colors.green} compact />
-        </View>
-      </PremiumGlowCard>
-
-      <AnimatedEntrance delay={85}>
-        <View style={[styles.tabs, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}> 
-          <AnimatedPressable onPress={() => setTab('customers')} style={[styles.tabButton, { borderColor: tab === 'customers' ? `${colors.cyan}72` : 'transparent' }]}> 
-            {tab === 'customers' && <LinearGradient colors={[`${colors.cyan}30`, `${colors.primary}20`]} style={StyleSheet.absoluteFill} />}
-            <View style={[styles.tabIcon, { backgroundColor: `${colors.cyan}16` }]}><Ionicons name="people" size={19} color={tab === 'customers' ? colors.cyan : colors.textMuted} /></View>
-            <View style={styles.tabCopy}><Text style={[styles.tabTitle, { color: tab === 'customers' ? colors.text : colors.textMuted }]}>Müşteriler</Text><Text style={[styles.tabHint, { color: tab === 'customers' ? colors.cyan : colors.textMuted }]}>{customers.length} kayıtlı kişi</Text></View>
-            {tab === 'customers' && <Ionicons name="checkmark-circle" size={19} color={colors.cyan} />}
-          </AnimatedPressable>
-          <AnimatedPressable onPress={() => setTab('claims')} style={[styles.tabButton, { borderColor: tab === 'claims' ? `${colors.orange}72` : 'transparent' }]}> 
-            {tab === 'claims' && <LinearGradient colors={[`${colors.orange}30`, `${colors.red}16`]} style={StyleSheet.absoluteFill} />}
-            <View style={[styles.tabIcon, { backgroundColor: `${colors.orange}16` }]}><Ionicons name="shield-checkmark" size={19} color={tab === 'claims' ? colors.orange : colors.textMuted} /></View>
-            <View style={styles.tabCopy}><Text style={[styles.tabTitle, { color: tab === 'claims' ? colors.text : colors.textMuted }]}>Eşleşmeler</Text><Text style={[styles.tabHint, { color: tab === 'claims' ? colors.orange : colors.textMuted }]}>{pendingClaims.length} onay bekliyor</Text></View>
-            {pendingClaims.length > 0 && <View style={[styles.badge, { backgroundColor: colors.red }]}><Text style={styles.badgeText}>{pendingClaims.length}</Text></View>}
-          </AnimatedPressable>
-        </View>
-      </AnimatedEntrance>
+      <View style={[styles.tabs, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}> 
+        <AnimatedPressable onPress={() => setTab('customers')} style={[styles.tabButton, tab === 'customers' && { backgroundColor: colors.cardStrong, borderColor: `${colors.primary}60` }]}><Ionicons name="people" size={18} color={tab === 'customers' ? colors.primary : colors.textMuted} /><Text style={[styles.tabText, { color: tab === 'customers' ? colors.text : colors.textMuted }]}>Müşteriler</Text></AnimatedPressable>
+        <AnimatedPressable onPress={() => setTab('claims')} style={[styles.tabButton, tab === 'claims' && { backgroundColor: colors.cardStrong, borderColor: `${colors.orange}60` }]}><Ionicons name="shield-checkmark" size={18} color={tab === 'claims' ? colors.orange : colors.textMuted} /><Text style={[styles.tabText, { color: tab === 'claims' ? colors.text : colors.textMuted }]}>Eşleşme Talepleri</Text>{pendingClaims.length > 0 && <View style={[styles.badge, { backgroundColor: colors.red }]}><Text style={styles.badgeText}>{pendingClaims.length}</Text></View>}</AnimatedPressable>
+      </View>
 
       {tab === 'customers' ? (
         <>
-          <AnimatedEntrance delay={120}>
-            <View style={[styles.search, { backgroundColor: colors.card, borderColor: query ? `${colors.cyan}65` : colors.border, shadowColor: colors.cyan }]}> 
-              <View style={[styles.searchIcon, { backgroundColor: `${colors.cyan}15` }]}><Ionicons name="search" size={20} color={colors.cyan} /></View>
-              <TextInput value={query} onChangeText={setQuery} placeholder="Ad, telefon, marka veya plaka ara" placeholderTextColor={colors.textMuted} style={[styles.searchInput, { color: colors.text }]} />
-              {!!query && <AnimatedPressable onPress={() => setQuery('')} style={[styles.clearSearch, { backgroundColor: colors.surfaceSoft }]}><Ionicons name="close" size={17} color={colors.textMuted} /></AnimatedPressable>}
-            </View>
-          </AnimatedEntrance>
+          <View style={[styles.search, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+            <Ionicons name="search" size={20} color={colors.textMuted} />
+            <TextInput value={query} onChangeText={setQuery} placeholder="Ad, telefon, marka veya plaka ara" placeholderTextColor={colors.textMuted} style={[styles.searchInput, { color: colors.text }]} />
+          </View>
 
           {showNew && (
-            <AnimatedEntrance delay={40}>
-              <PremiumGlowCard accent={colors.primary} accent2={colors.cyan} live>
-                <View style={styles.formHeader}><View style={[styles.formIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="person-add" size={23} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>Yeni müşteri oluştur</Text><Text style={[styles.formText, { color: colors.textMuted }]}>Telefon ve özel not daha sonra düzenlenebilir.</Text></View></View>
-                <View style={styles.form}><FormField label="Ad Soyad" value={name} onChangeText={setName} placeholder="Müşteri adı" /><FormField label="Telefon" value={phone} onChangeText={setPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" /><FormField label="Not" value={note} onChangeText={setNote} placeholder="Özel müşteri notu" multiline /><PrimaryButton title="Müşteriyi Kaydet" onPress={addCustomer} loading={saving} /></View>
-              </PremiumGlowCard>
-            </AnimatedEntrance>
+            <GlassCard style={styles.form}>
+              <Text style={[styles.formTitle, { color: colors.text }]}>Yeni müşteri</Text>
+              <FormField label="Ad Soyad" value={name} onChangeText={setName} placeholder="Müşteri adı" />
+              <FormField label="Telefon" value={phone} onChangeText={setPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" />
+              <FormField label="Not" value={note} onChangeText={setNote} placeholder="Özel müşteri notu" multiline />
+              <PrimaryButton title="Müşteriyi Kaydet" onPress={addCustomer} loading={saving} />
+            </GlassCard>
           )}
 
           <View style={styles.list}>
             {visible.length === 0 ? (
-              <PremiumGlowCard accent={colors.primary2} accent2={colors.cyan} delay={170}>
-                <View style={styles.empty}><Ionicons name="people-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Müşteri bulunamadı</Text><Text style={[styles.emptyText, { color: colors.textMuted }]}>Arama filtresini temizle veya yeni müşteri ekle.</Text></View>
-              </PremiumGlowCard>
-            ) : visible.map((customer, index) => {
+              <GlassCard style={styles.empty}><Ionicons name="people-outline" size={38} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Müşteri bulunamadı</Text><Text style={[styles.emptyText, { color: colors.textMuted }]}>Arama filtresini temizle veya yeni müşteri ekle.</Text></GlassCard>
+            ) : visible.map((customer) => {
               const bikes = motorcycles.filter((bike) => bike.customer_id === customer.id);
               const customerOrders = workOrders.filter((order) => order.customer_id === customer.id);
               const expanded = selected === customer.id;
               const outstanding = customerOrders.reduce((sum, item) => sum + Math.max(0, Number(item.total_amount) - Number(item.amount_received)), 0);
-              const latestOrder = customerOrders[0];
-              const accent = outstanding > 0 ? colors.orange : latestOrder && !['delivered', 'cancelled'].includes(latestOrder.status) ? colors.cyan : colors.green;
               return (
-                <AnimatedEntrance key={customer.id} delay={160 + Math.min(index, 8) * 45}>
-                  <View style={[styles.customerCard, { backgroundColor: colors.card, borderColor: `${accent}45`, shadowColor: accent }]}> 
-                    <LinearGradient colors={[accent, `${accent}18`]} style={styles.customerRail} />
-                    <AnimatedPressable onPress={() => { setSelected(expanded ? null : customer.id); setShowBike(false); setAccessBikeId(null); setAccess(null); }} style={styles.customerTop}>
-                      <LinearGradient colors={[`${accent}70`, `${colors.primary}70`]} style={styles.avatar}><Text style={styles.avatarText}>{customer.full_name.charAt(0).toUpperCase()}</Text></LinearGradient>
-                      <View style={styles.customerCopy}>
-                        <View style={styles.customerNameRow}><Text style={[styles.customerName, { color: colors.text }]}>{customer.full_name}</Text>{latestOrder && !['delivered', 'cancelled'].includes(latestOrder.status) && <PulseDot color={accent} size={5} />}</View>
-                        <Text style={[styles.customerMeta, { color: colors.textMuted }]}>{customer.phone || 'Telefon yok'}</Text>
-                        <View style={styles.customerChips}><InfoChip icon="bicycle" text={`${bikes.length} motor`} accent={colors.cyan} /><InfoChip icon="construct" text={`${customerOrders.length} servis`} accent={colors.primary2} /></View>
-                      </View>
-                      <View style={styles.customerRight}>
-                        {outstanding > 0 ? <View style={[styles.debtPill, { backgroundColor: `${colors.orange}16`, borderColor: `${colors.orange}38` }]}><Text style={[styles.debtLabel, { color: colors.orange }]}>AÇIK</Text><Text style={[styles.debt, { color: colors.orange }]}>{money(outstanding)}</Text></View> : <View style={[styles.clearPill, { backgroundColor: `${colors.green}14` }]}><Ionicons name="checkmark-circle" size={16} color={colors.green} /><Text style={[styles.clearText, { color: colors.green }]}>Temiz</Text></View>}
-                        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={21} color={accent} />
-                      </View>
-                    </AnimatedPressable>
-
-                    {expanded && (
-                      <AnimatedEntrance delay={0} distance={10}>
-                        <View style={[styles.expanded, { borderTopColor: `${accent}35` }]}> 
-                          <View style={styles.expandedHeader}><View><Text style={[styles.expandedTitle, { color: colors.text }]}>Müşteri Garajı</Text><Text style={[styles.expandedSubtitle, { color: colors.textMuted }]}>Motorlar, son servis ve erişim kodları.</Text></View>{latestOrder && <StatusPill status={latestOrder.status} />}</View>
-                          {bikes.length === 0 ? <Text style={[styles.noBike, { color: colors.textMuted }]}>Bu müşteriye ait motosiklet kaydı yok.</Text> : bikes.map((bike) => {
-                            const bikeOrders = customerOrders.filter((order) => order.motorcycle_id === bike.id);
-                            const latest = bikeOrders[0];
-                            return (
-                              <View key={bike.id} style={[styles.bikeBlock, { backgroundColor: colors.surfaceSoft, borderColor: `${colors.cyan}30` }]}> 
-                                <View style={styles.bikeRow}>
-                                  <LinearGradient colors={[`${colors.cyan}32`, `${colors.primary2}25`]} style={styles.bikeIcon}><Ionicons name="bicycle" size={24} color={colors.cyan} /></LinearGradient>
-                                  <View style={styles.customerCopy}><Text style={[styles.bikeTitle, { color: colors.text }]}>{bike.brand} {bike.model}</Text><Text style={[styles.customerMeta, { color: colors.textMuted }]}>{bike.plate || 'Plaka yok'}{bike.odometer ? ` • ${bike.odometer.toLocaleString('tr-TR')} km` : ''} • {bikeOrders.length} servis</Text>{latest && <Text style={[styles.lastService, { color: colors.textMuted }]}>Son işlem: {latest.complaint} • {shortDate(latest.arrived_at)}</Text>}</View>
-                                  {latest && <StatusPill status={latest.status} />}
-                                </View>
-                                <AnimatedPressable onPress={() => openAccess(bike.id)} style={[styles.accessButton, { borderColor: `${colors.cyan}48`, backgroundColor: `${colors.cyan}0E` }]}><Ionicons name="qr-code" size={19} color={colors.cyan} /><Text style={[styles.accessButtonText, { color: colors.cyan }]}>{accessBikeId === bike.id ? 'Erişim Kartını Kapat' : 'Takip Kodu ve QR Oluştur'}</Text><Ionicons name={accessBikeId === bike.id ? 'chevron-up' : 'chevron-forward'} size={17} color={colors.cyan} /></AnimatedPressable>
-                                {accessBikeId === bike.id && access && (
-                                  <AnimatedEntrance delay={0} distance={8}>
-                                    <PremiumGlowCard accent={colors.cyan} accent2={colors.primary} live>
-                                      <View style={styles.accessPanel}> 
-                                        <View style={styles.qrWrap}><QRCode value={access.qr_payload} size={142} backgroundColor="#FFFFFF" color="#111827" /></View>
-                                        <View style={styles.accessCopy}><Text style={[styles.accessLabel, { color: colors.cyan }]}>SERVİS TAKİP KODU</Text><Text style={[styles.accessCode, { color: colors.text }]}>{access.tracking_code}</Text><Text style={[styles.accessHint, { color: colors.textMuted }]}>Müşteri kodu girebilir veya QR bağlantısını kamerayla tarayabilir.</Text><PrimaryButton title="Kodu ve QR Bağlantısını Paylaş" onPress={() => shareAccess(bike)} secondary /></View>
-                                      </View>
-                                    </PremiumGlowCard>
-                                  </AnimatedEntrance>
-                                )}
+                <GlassCard key={customer.id} style={styles.customerCard}>
+                  <AnimatedPressable onPress={() => { setSelected(expanded ? null : customer.id); setShowBike(false); setAccessBikeId(null); setAccess(null); }} style={styles.customerTop}>
+                    <View style={[styles.avatar, { backgroundColor: `${colors.primary}20` }]}><Text style={[styles.avatarText, { color: colors.primary }]}>{customer.full_name.charAt(0).toUpperCase()}</Text></View>
+                    <View style={styles.customerCopy}><Text style={[styles.customerName, { color: colors.text }]}>{customer.full_name}</Text><Text style={[styles.customerMeta, { color: colors.textMuted }]}>{customer.phone || 'Telefon yok'} • {bikes.length} motosiklet • {customerOrders.length} servis</Text></View>
+                    {outstanding > 0 && <Text style={[styles.debt, { color: colors.orange }]}>{money(outstanding)}</Text>}
+                    <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+                  </AnimatedPressable>
+                  {expanded && (
+                    <View style={[styles.expanded, { borderTopColor: colors.border }]}> 
+                      {bikes.length === 0 ? <Text style={[styles.noBike, { color: colors.textMuted }]}>Bu müşteriye ait motosiklet kaydı yok.</Text> : bikes.map((bike) => {
+                        const bikeOrders = customerOrders.filter((order) => order.motorcycle_id === bike.id);
+                        const latest = bikeOrders[0];
+                        return (
+                          <View key={bike.id} style={[styles.bikeBlock, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}> 
+                            <View style={styles.bikeRow}>
+                              <View style={[styles.bikeIcon, { backgroundColor: `${colors.primary2}18` }]}><Ionicons name="bicycle" size={22} color={colors.primary2} /></View>
+                              <View style={styles.customerCopy}><Text style={[styles.bikeTitle, { color: colors.text }]}>{bike.brand} {bike.model}</Text><Text style={[styles.customerMeta, { color: colors.textMuted }]}>{bike.plate || 'Plaka yok'}{bike.odometer ? ` • ${bike.odometer.toLocaleString('tr-TR')} km` : ''} • {bikeOrders.length} servis</Text>{latest && <Text style={[styles.lastService, { color: colors.textMuted }]}>Son: {latest.complaint} • {shortDate(latest.arrived_at)}</Text>}</View>
+                              {latest && <StatusPill status={latest.status} />}
+                            </View>
+                            <AnimatedPressable onPress={() => openAccess(bike.id)} style={[styles.accessButton, { borderColor: `${colors.cyan}40`, backgroundColor: `${colors.cyan}0D` }]}><Ionicons name="qr-code" size={18} color={colors.cyan} /><Text style={[styles.accessButtonText, { color: colors.cyan }]}>{accessBikeId === bike.id ? 'Erişim Kartını Kapat' : 'Müşteri Erişim Kodu / QR'}</Text></AnimatedPressable>
+                            {accessBikeId === bike.id && access && (
+                              <View style={[styles.accessPanel, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+                                <View style={styles.qrWrap}><QRCode value={access.qr_payload} size={142} backgroundColor="#FFFFFF" color="#111827" /></View>
+                                <View style={styles.accessCopy}><Text style={[styles.accessLabel, { color: colors.textMuted }]}>SERVİS TAKİP KODU</Text><Text style={[styles.accessCode, { color: colors.text }]}>{access.tracking_code}</Text><Text style={[styles.accessHint, { color: colors.textMuted }]}>Müşteri uygulamada bu kodu girebilir veya QR bağlantısını tarayabilir.</Text><PrimaryButton title="Kodu ve QR Bağlantısını Paylaş" onPress={() => shareAccess(bike)} secondary /></View>
                               </View>
-                            );
-                          })}
-                          <AnimatedPressable onPress={() => setShowBike((value) => !value)} style={[styles.addBikeButton, { borderColor: `${colors.primary}45`, backgroundColor: `${colors.primary}0D` }]}><Ionicons name={showBike ? 'close' : 'add-circle-outline'} size={20} color={colors.primary} /><Text style={[styles.addBikeText, { color: colors.primary }]}>{showBike ? 'Formu kapat' : 'Motosiklet ekle'}</Text></AnimatedPressable>
-                          {showBike && (
-                            <AnimatedEntrance delay={0} distance={8} style={styles.bikeForm}>
-                              <View style={styles.twoCol}><View style={styles.col}><FormField label="Marka" value={brand} onChangeText={setBrand} placeholder="Yamaha" /></View><View style={styles.col}><FormField label="Model" value={model} onChangeText={setModel} placeholder="NMAX" /></View></View>
-                              <FormField label="Plaka" value={plate} onChangeText={(value) => setPlate(value.toUpperCase())} placeholder="06 ABC 123" />
-                              <PrimaryButton title="Motosikleti Kaydet" onPress={addBike} loading={saving} secondary />
-                            </AnimatedEntrance>
-                          )}
+                            )}
+                          </View>
+                        );
+                      })}
+                      <AnimatedPressable onPress={() => setShowBike((value) => !value)} style={[styles.addBikeButton, { borderColor: colors.border }]}><Ionicons name={showBike ? 'close' : 'add-circle-outline'} size={20} color={colors.primary} /><Text style={[styles.addBikeText, { color: colors.primary }]}>{showBike ? 'Formu kapat' : 'Motosiklet ekle'}</Text></AnimatedPressable>
+                      {showBike && (
+                        <View style={styles.bikeForm}>
+                          <View style={styles.twoCol}><View style={styles.col}><FormField label="Marka" value={brand} onChangeText={setBrand} placeholder="Yamaha" /></View><View style={styles.col}><FormField label="Model" value={model} onChangeText={setModel} placeholder="NMAX" /></View></View>
+                          <FormField label="Plaka" value={plate} onChangeText={(value) => setPlate(value.toUpperCase())} placeholder="06 ABC 123" />
+                          <PrimaryButton title="Motosikleti Kaydet" onPress={addBike} loading={saving} secondary />
                         </View>
-                      </AnimatedEntrance>
-                    )}
-                  </View>
-                </AnimatedEntrance>
+                      )}
+                    </View>
+                  )}
+                </GlassCard>
               );
             })}
           </View>
@@ -300,24 +245,19 @@ export function CustomersScreen() {
       ) : (
         <View style={styles.list}>
           {claims.length === 0 ? (
-            <PremiumGlowCard accent={colors.green} accent2={colors.cyan} delay={140}>
-              <View style={styles.empty}><Ionicons name="shield-checkmark-outline" size={42} color={colors.green} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Eşleşme talebi yok</Text><Text style={[styles.emptyText, { color: colors.textMuted }]}>Müşteri usta onayı istediğinde burada görünür.</Text></View>
-            </PremiumGlowCard>
-          ) : claims.map((claim, index) => {
+            <GlassCard style={styles.empty}><Ionicons name="shield-checkmark-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Eşleşme talebi yok</Text><Text style={[styles.emptyText, { color: colors.textMuted }]}>Müşteri plaka ile usta onayı istediğinde burada görünür.</Text></GlassCard>
+          ) : claims.map((claim) => {
             const accent = claim.status === 'approved' ? colors.green : claim.status === 'pending' ? colors.orange : colors.red;
             return (
-              <AnimatedEntrance key={claim.id} delay={140 + Math.min(index, 8) * 50}>
-                <View style={[styles.claimCard, { backgroundColor: colors.card, borderColor: `${accent}48`, shadowColor: accent }]}> 
-                  <LinearGradient colors={[accent, `${accent}18`]} style={styles.claimRail} />
-                  <View style={styles.claimTop}>
-                    <View style={[styles.claimIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={claim.status === 'approved' ? 'checkmark-circle' : claim.status === 'pending' ? 'time' : 'close-circle'} size={25} color={accent} /></View>
-                    <View style={styles.customerCopy}><Text style={[styles.claimTitle, { color: colors.text }]}>{claim.claimant_name}</Text><Text style={[styles.claimMeta, { color: colors.textMuted }]}>Hesap telefonu: {claim.claimant_phone || 'Yok'} • {shortDate(claim.created_at)}</Text></View>
-                    <View style={[styles.claimStatusPill, { backgroundColor: `${accent}14`, borderColor: `${accent}38` }]}>{claim.status === 'pending' && <PulseDot color={accent} size={5} />}<Text style={[styles.claimStatus, { color: accent }]}>{claim.status === 'pending' ? 'BEKLİYOR' : claim.status === 'approved' ? 'ONAYLI' : 'REDDEDİLDİ'}</Text></View>
-                  </View>
-                  <LinearGradient colors={[`${colors.primary2}13`, `${colors.cyan}0B`]} style={[styles.claimBike, { borderColor: `${colors.primary2}30` }]}><Ionicons name="bicycle" size={24} color={colors.primary2} /><View style={styles.customerCopy}><Text style={[styles.bikeTitle, { color: colors.text }]}>{claim.brand} {claim.model} • {claim.plate}</Text><Text style={[styles.customerMeta, { color: colors.textMuted }]}>İşletme kaydı: {claim.customer_name}</Text><Text style={[styles.claimMethod, { color: colors.cyan }]}>{claimMethodLabel[claim.method]}</Text>{claim.submitted_phone && <Text style={[styles.customerMeta, { color: colors.textMuted }]}>Gönderilen telefon: {claim.submitted_phone}</Text>}</View></LinearGradient>
-                  {claim.status === 'pending' && <View style={styles.claimActions}><AnimatedPressable onPress={() => reviewClaim(claim, false)} style={[styles.rejectButton, { borderColor: `${colors.red}45`, backgroundColor: `${colors.red}0E` }]}><Ionicons name="close" size={19} color={colors.red} /><Text style={[styles.rejectText, { color: colors.red }]}>Reddet</Text></AnimatedPressable><AnimatedPressable onPress={() => reviewClaim(claim, true)} style={styles.approveButton}><LinearGradient colors={[colors.green, colors.cyan]} style={StyleSheet.absoluteFill} /><Ionicons name="checkmark" size={19} color="#fff" /><Text style={styles.approveText}>Motorla Eşleştir</Text></AnimatedPressable></View>}
+              <GlassCard key={claim.id} style={styles.claimCard}>
+                <View style={styles.claimTop}>
+                  <View style={[styles.claimIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={claim.status === 'approved' ? 'checkmark-circle' : claim.status === 'pending' ? 'time' : 'close-circle'} size={24} color={accent} /></View>
+                  <View style={styles.customerCopy}><Text style={[styles.claimTitle, { color: colors.text }]}>{claim.claimant_name}</Text><Text style={[styles.claimMeta, { color: colors.textMuted }]}>Hesap telefonu: {claim.claimant_phone || 'Yok'} • {shortDate(claim.created_at)}</Text></View>
+                  <Text style={[styles.claimStatus, { color: accent }]}>{claim.status === 'pending' ? 'BEKLİYOR' : claim.status === 'approved' ? 'ONAYLI' : 'REDDEDİLDİ'}</Text>
                 </View>
-              </AnimatedEntrance>
+                <View style={[styles.claimBike, { backgroundColor: colors.surfaceSoft }]}><Ionicons name="bicycle" size={22} color={colors.primary2} /><View style={styles.customerCopy}><Text style={[styles.bikeTitle, { color: colors.text }]}>{claim.brand} {claim.model} • {claim.plate}</Text><Text style={[styles.customerMeta, { color: colors.textMuted }]}>İşletme kaydı: {claim.customer_name} • {claimMethodLabel[claim.method]}</Text>{claim.submitted_phone && <Text style={[styles.customerMeta, { color: colors.textMuted }]}>Gönderilen telefon: {claim.submitted_phone}</Text>}</View></View>
+                {claim.status === 'pending' && <View style={styles.claimActions}><AnimatedPressable onPress={() => reviewClaim(claim, false)} style={[styles.rejectButton, { borderColor: `${colors.red}42`, backgroundColor: `${colors.red}0D` }]}><Ionicons name="close" size={18} color={colors.red} /><Text style={[styles.rejectText, { color: colors.red }]}>Reddet</Text></AnimatedPressable><AnimatedPressable onPress={() => reviewClaim(claim, true)} style={[styles.approveButton, { backgroundColor: colors.green }]}><Ionicons name="checkmark" size={18} color="#fff" /><Text style={styles.approveText}>Motorla Eşleştir</Text></AnimatedPressable></View>}
+              </GlassCard>
             );
           })}
         </View>
@@ -326,110 +266,59 @@ export function CustomersScreen() {
   );
 }
 
-function CustomerMetric({ label, value, icon, accent, compact = false }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; accent: string; compact?: boolean }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.metric, { backgroundColor: `${accent}0F`, borderColor: `${accent}2F` }]}>
-      <Ionicons name={icon} size={17} color={accent} />
-      <Text numberOfLines={1} style={[compact ? styles.metricValueCompact : styles.metricValue, { color: colors.text }]}>{value}</Text>
-      <Text style={[styles.metricLabel, { color: colors.textMuted }]}>{label}</Text>
-    </View>
-  );
-}
-
-function InfoChip({ icon, text, accent }: { icon: keyof typeof Ionicons.glyphMap; text: string; accent: string }) {
-  return <View style={[styles.infoChip, { backgroundColor: `${accent}11`, borderColor: `${accent}2E` }]}><Ionicons name={icon} size={12} color={accent} /><Text style={[styles.infoChipText, { color: accent }]}>{text}</Text></View>;
-}
-
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 16 },
-  copy: { flex: 1, minWidth: 0 },
-  overviewTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  overviewLive: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  overviewEyebrow: { fontSize: 9.5, fontWeight: '900', letterSpacing: 1 },
-  overviewTitle: { fontSize: 22, fontWeight: '900', marginTop: 7 },
-  overviewText: { fontSize: 11, lineHeight: 17, marginTop: 5 },
-  overviewIcon: { width: 56, height: 56, borderRadius: 19, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.24, shadowRadius: 10, elevation: 7 },
-  overviewMetrics: { flexDirection: 'row', gap: 7, marginTop: 15 },
-  metric: { flex: 1, minHeight: 72, borderWidth: 1, borderRadius: 16, padding: 8, justifyContent: 'center' },
-  metricValue: { fontSize: 18, fontWeight: '900', marginTop: 4 },
-  metricValueCompact: { fontSize: 12.5, fontWeight: '900', marginTop: 5 },
-  metricLabel: { fontSize: 7, fontWeight: '900', letterSpacing: 0.5, marginTop: 3 },
-  tabs: { flexDirection: 'row', gap: 7, padding: 5, borderRadius: 20, borderWidth: 1 },
-  tabButton: { flex: 1, minHeight: 68, borderRadius: 16, borderWidth: 1, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 9 },
-  tabIcon: { width: 37, height: 37, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  tabCopy: { flex: 1, minWidth: 0 },
-  tabTitle: { fontSize: 11, fontWeight: '900' },
-  tabHint: { fontSize: 8.5, fontWeight: '800', marginTop: 3 },
-  badge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  tabs: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: 18, borderWidth: 1 },
+  tabButton: { flex: 1, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  tabText: { fontSize: 11, fontWeight: '900' },
+  badge: { minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   badgeText: { color: '#fff', fontSize: 9, fontWeight: '900' },
-  search: { minHeight: 60, borderWidth: 1, borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 10, shadowOpacity: 0.12, shadowRadius: 12, elevation: 4 },
-  searchIcon: { width: 39, height: 39, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  searchInput: { flex: 1, fontSize: 14, fontWeight: '700' },
-  clearSearch: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  formHeader: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 13 },
-  formIcon: { width: 47, height: 47, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  search: { minHeight: 54, borderWidth: 1, borderRadius: 18, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, gap: 10 },
+  searchInput: { flex: 1, fontSize: 14 },
   form: { gap: 13 },
-  formTitle: { fontSize: 17, fontWeight: '900' },
-  formText: { fontSize: 10.5, lineHeight: 16, marginTop: 4 },
-  list: { gap: 12 },
-  customerCard: { borderWidth: 1, borderRadius: 24, padding: 14, overflow: 'hidden', shadowOpacity: 0.14, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
-  customerRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
-  customerTop: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  avatar: { width: 53, height: 53, borderRadius: 18, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 7, elevation: 5 },
-  avatarText: { color: '#fff', fontSize: 20, fontWeight: '900' },
+  formTitle: { fontSize: 18, fontWeight: '900' },
+  list: { gap: 11 },
+  customerCard: { padding: 14 },
+  customerTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  avatar: { width: 48, height: 48, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 19, fontWeight: '900' },
   customerCopy: { flex: 1, minWidth: 0 },
-  customerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  customerName: { fontSize: 16, fontWeight: '900' },
+  customerName: { fontSize: 15, fontWeight: '900' },
   customerMeta: { fontSize: 10.5, marginTop: 4 },
-  customerChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 7 },
-  infoChip: { minHeight: 25, borderWidth: 1, borderRadius: 999, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  infoChipText: { fontSize: 8.5, fontWeight: '900' },
-  customerRight: { alignItems: 'flex-end', gap: 9 },
-  debtPill: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 6, alignItems: 'flex-end' },
-  debtLabel: { fontSize: 7, fontWeight: '900', letterSpacing: 0.7 },
-  debt: { fontSize: 11.5, fontWeight: '900', marginTop: 2 },
-  clearPill: { minHeight: 31, borderRadius: 11, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  clearText: { fontSize: 9, fontWeight: '900' },
-  expanded: { borderTopWidth: 1, marginTop: 15, paddingTop: 14, gap: 11 },
-  expandedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  expandedTitle: { fontSize: 15, fontWeight: '900' },
-  expandedSubtitle: { fontSize: 9.5, marginTop: 3 },
-  bikeBlock: { borderWidth: 1, borderRadius: 19, padding: 11, gap: 10 },
+  debt: { fontSize: 11, fontWeight: '900' },
+  expanded: { borderTopWidth: 1, marginTop: 14, paddingTop: 13, gap: 10 },
+  bikeBlock: { borderWidth: 1, borderRadius: 18, padding: 11, gap: 9 },
   bikeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bikeIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  bikeIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   bikeTitle: { fontSize: 13, fontWeight: '900' },
   lastService: { fontSize: 9, marginTop: 4 },
-  noBike: { textAlign: 'center', paddingVertical: 10, fontSize: 12 },
-  accessButton: { minHeight: 45, borderWidth: 1, borderRadius: 14, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  accessButtonText: { flex: 1, fontSize: 10, fontWeight: '900', textAlign: 'center' },
-  accessPanel: { gap: 13, alignItems: 'center' },
+  noBike: { textAlign: 'center', paddingVertical: 8, fontSize: 12 },
+  accessButton: { minHeight: 42, borderWidth: 1, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  accessButtonText: { fontSize: 10, fontWeight: '900' },
+  accessPanel: { borderWidth: 1, borderRadius: 18, padding: 13, gap: 13, alignItems: 'center' },
   qrWrap: { padding: 10, borderRadius: 16, backgroundColor: '#fff' },
   accessCopy: { width: '100%', alignItems: 'center', gap: 7 },
   accessLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   accessCode: { fontSize: 27, fontWeight: '900', letterSpacing: 4 },
   accessHint: { fontSize: 10.5, lineHeight: 16, textAlign: 'center' },
-  addBikeButton: { minHeight: 46, borderWidth: 1, borderStyle: 'dashed', borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  addBikeButton: { minHeight: 44, borderWidth: 1, borderStyle: 'dashed', borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   addBikeText: { fontSize: 12, fontWeight: '900' },
   bikeForm: { gap: 11 },
   twoCol: { flexDirection: 'row', gap: 9 },
   col: { flex: 1 },
-  empty: { alignItems: 'center', gap: 10, paddingVertical: 14 },
+  empty: { alignItems: 'center', gap: 10, paddingVertical: 28 },
   emptyTitle: { fontSize: 17, fontWeight: '900' },
-  emptyText: { fontSize: 12, lineHeight: 18, textAlign: 'center' },
-  claimCard: { borderWidth: 1, borderRadius: 24, padding: 15, gap: 12, overflow: 'hidden', shadowOpacity: 0.14, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
-  claimRail: { position: 'absolute', left: 0, top: 0, right: 0, height: 3 },
+  emptyText: { fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  claimCard: { gap: 12 },
   claimTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  claimIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  claimIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   claimTitle: { fontSize: 14, fontWeight: '900' },
   claimMeta: { fontSize: 10, marginTop: 4 },
-  claimStatusPill: { minHeight: 31, borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  claimStatus: { fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
-  claimBike: { minHeight: 78, borderRadius: 17, borderWidth: 1, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  claimMethod: { fontSize: 9, fontWeight: '900', marginTop: 4 },
+  claimStatus: { fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
+  claimBike: { minHeight: 66, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
   claimActions: { flexDirection: 'row', gap: 9 },
-  rejectButton: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  rejectButton: { flex: 1, minHeight: 46, borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   rejectText: { fontSize: 11, fontWeight: '900' },
-  approveButton: { flex: 1.45, minHeight: 48, borderRadius: 15, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  approveButton: { flex: 1.4, minHeight: 46, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   approveText: { color: '#fff', fontSize: 11, fontWeight: '900' },
 });
