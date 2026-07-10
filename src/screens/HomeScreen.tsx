@@ -147,20 +147,32 @@ export function HomeScreen({
               style={[styles.businessChip, { backgroundColor: workshop?.id === item.id ? colors.primary : colors.card, borderColor: workshop?.id === item.id ? colors.primary : colors.border }]}
             >
               <Ionicons name={item.is_active === false ? 'pause-circle' : 'business'} size={16} color={workshop?.id === item.id ? '#fff' : colors.textMuted} />
-              <Text style={[styles.businessChipText, { color: workshop?.id === item.id ? '#fff' : colors.text }]}>{item.name}</Text>
+              <Text numberOfLines={1} maxFontSizeMultiplier={1.03} style={[styles.businessChipText, { color: workshop?.id === item.id ? '#fff' : colors.text }]}>{item.name}</Text>
             </AnimatedPressable>
           ))}
         </ScrollView>
       )}
 
       {isOwner && canWork && !isApprentice && (
-        <View style={[styles.panelSwitch, { backgroundColor: colors.surfaceSoft }]}> 
-          {(['business', 'mechanic'] as PanelMode[]).map((value) => (
-            <AnimatedPressable key={value} onPress={() => setPanelMode(value)} style={[styles.panelSwitchItem, panelMode === value && { backgroundColor: colors.cardStrong }]}> 
-              <Ionicons name={value === 'business' ? 'business' : 'construct'} size={17} color={panelMode === value ? colors.primary : colors.textMuted} />
-              <Text style={[styles.panelSwitchText, { color: panelMode === value ? colors.text : colors.textMuted }]}>{value === 'business' ? 'İşletme Paneli' : 'Kendi Usta Panelim'}</Text>
-            </AnimatedPressable>
-          ))}
+        <View style={[styles.panelSwitch, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}> 
+          {(['business', 'mechanic'] as PanelMode[]).map((value) => {
+            const active = panelMode === value;
+            const accent = value === 'business' ? colors.cyan : colors.orange;
+            return (
+              <AnimatedPressable
+                key={value}
+                onPress={() => setPanelMode(value)}
+                style={[styles.panelSwitchItem, { borderColor: active ? `${accent}70` : 'transparent' }]}
+              >
+                {active && <LinearGradient colors={[`${accent}24`, `${colors.primary}16`]} style={StyleSheet.absoluteFill} />}
+                <View style={[styles.panelSwitchIcon, { backgroundColor: `${accent}16` }]}> 
+                  <Ionicons name={value === 'business' ? 'business' : 'construct'} size={17} color={accent} />
+                </View>
+                <Text numberOfLines={1} maxFontSizeMultiplier={1.02} style={[styles.panelSwitchText, { color: active ? colors.text : colors.textMuted }]}>{value === 'business' ? 'İşletme Paneli' : 'Usta Panelim'}</Text>
+                {active && <View style={[styles.panelSwitchDot, { backgroundColor: accent }]} />}
+              </AnimatedPressable>
+            );
+          })}
         </View>
       )}
 
@@ -173,7 +185,7 @@ export function HomeScreen({
           ] as const).map(([value, label, accent]) => (
             <AnimatedPressable key={value} onPress={() => changeAvailability(value)} style={[styles.availability, { backgroundColor: availability === value ? `${accent}22` : colors.card, borderColor: availability === value ? accent : colors.border }]}> 
               <View style={[styles.availabilityDot, { backgroundColor: accent }]} />
-              <Text style={[styles.availabilityText, { color: availability === value ? accent : colors.textMuted }]}>{label}</Text>
+              <Text numberOfLines={1} maxFontSizeMultiplier={1.02} style={[styles.availabilityText, { color: availability === value ? accent : colors.textMuted }]}>{label}</Text>
             </AnimatedPressable>
           ))}
         </View>
@@ -256,13 +268,15 @@ export function HomeScreen({
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 17 },
   businessChips: { gap: 9, paddingRight: 18 },
-  businessChip: { minHeight: 42, borderWidth: 1, borderRadius: 15, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  businessChipText: { fontSize: 12, fontWeight: '900' },
-  panelSwitch: { flexDirection: 'row', padding: 4, borderRadius: 17 },
-  panelSwitchItem: { flex: 1, minHeight: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
-  panelSwitchText: { fontSize: 11, fontWeight: '900' },
+  businessChip: { minHeight: 42, maxWidth: 245, borderWidth: 1, borderRadius: 15, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  businessChipText: { flexShrink: 1, fontSize: 12, fontWeight: '900' },
+  panelSwitch: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: 19, borderWidth: 1 },
+  panelSwitchItem: { flex: 1, minWidth: 0, minHeight: 52, borderRadius: 15, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7, paddingHorizontal: 7 },
+  panelSwitchIcon: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  panelSwitchText: { flexShrink: 1, fontSize: 10.5, fontWeight: '900', textAlign: 'center' },
+  panelSwitchDot: { width: 5, height: 5, borderRadius: 5 },
   availabilityRow: { flexDirection: 'row', gap: 8 },
-  availability: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  availability: { flex: 1, minWidth: 0, minHeight: 42, borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   availabilityDot: { width: 7, height: 7, borderRadius: 7 },
   availabilityText: { fontSize: 11, fontWeight: '900' },
   hero: { borderRadius: 28, padding: 21, minHeight: 170, overflow: 'hidden', justifyContent: 'space-between', shadowColor: '#6158FF', shadowOpacity: 0.36, shadowRadius: 24, elevation: 12 },
