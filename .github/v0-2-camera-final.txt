@@ -1,0 +1,1 @@
+Validate Expo Camera QR scanner, customer portal and final v0.2 bundle.
