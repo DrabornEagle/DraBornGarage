@@ -1,2 +1,2 @@
 Validate DraBornGarage v0.4.0 extra-work approval, service details, customer response, demo data and Android bundle.
-Rerun after concise CI logging update.
+Rerun after TypeScript diagnostics artifact support.
