@@ -1,0 +1,1 @@
+Validate restored stable customer, work orders and dashboard layouts without glow effects.
