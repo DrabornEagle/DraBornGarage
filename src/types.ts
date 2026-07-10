@@ -1,4 +1,4 @@
-export type ThemeMode = 'system' | 'light' | 'dark';
+export type ThemeMode = 'system' | 'light' | 'dark' | 'carbon' | 'racing' | 'electric' | 'sunset';
 export type MemberRole = 'owner' | 'owner_mechanic' | 'mechanic' | 'apprentice';
 export type WorkOrderStatus =
   | 'opened'
