@@ -124,15 +124,13 @@ export function PremiumGlowCard({
 
   return (
     <AnimatedEntrance delay={delay}>
-      <Animated.View
+      <View
         style={[
           styles.shadow,
           style,
           {
             shadowColor: accent,
-            shadowOpacity: live
-              ? glow.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.42] })
-              : 0.2,
+            shadowOpacity: live ? 0.3 : 0.2,
           },
         ]}
       >
@@ -142,6 +140,19 @@ export function PremiumGlowCard({
           end={{ x: 1, y: 1 }}
           style={[styles.card, { borderColor: `${accent}54` }]}
         >
+          {live && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.glowOverlay,
+                {
+                  borderColor: accent,
+                  opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.58] }),
+                  transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [0.995, 1.01] }) }],
+                },
+              ]}
+            />
+          )}
           <LinearGradient colors={[accent, second, accent]} style={styles.rail} />
           <View pointerEvents="none" style={[styles.orb, { backgroundColor: `${accent}18` }]} />
           <Animated.View
@@ -156,7 +167,7 @@ export function PremiumGlowCard({
           />
           {children}
         </LinearGradient>
-      </Animated.View>
+      </View>
     </AnimatedEntrance>
   );
 }
@@ -173,6 +184,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     padding: 16,
+  },
+  glowOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 1.5,
+    borderRadius: 24,
   },
   rail: {
     position: 'absolute',
