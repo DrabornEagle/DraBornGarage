@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { WorkOrderStatus } from '../types';
 
-export const statusLabels: Record<WorkOrderStatus, string> = {
+export const statusLabels: Record<string, string> = {
   opened: 'Kayıt Açıldı',
   received: 'Teslim Alındı',
   queued: 'Sıraya Alındı',
@@ -37,7 +37,7 @@ export function StatusPill({ status }: { status: WorkOrderStatus }) {
             : colors.red;
   return (
     <View style={[styles.pill, { backgroundColor: `${color}1C`, borderColor: `${color}40` }]}> 
-      <Text style={[styles.text, { color }]}>{statusLabels[status]}</Text>
+      <Text style={[styles.text, { color }]}>{statusLabels[status] ?? status}</Text>
     </View>
   );
 }
