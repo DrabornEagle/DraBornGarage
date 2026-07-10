@@ -9,11 +9,13 @@ import { PremiumBackground } from '../components/PremiumBackground';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { AccountMode } from '../types';
 
 export function AuthScreen() {
   const { colors } = useTheme();
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [registerMode, setRegisterMode] = useState<AccountMode>('customer');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -57,7 +59,7 @@ export function AuthScreen() {
     setLoading(true);
     const message = mode === 'login'
       ? await signIn(email, password)
-      : await signUp(fullName, phone, email, password);
+      : await signUp(fullName, phone, email, password, registerMode);
     setLoading(false);
     if (message) Alert.alert(mode === 'login' ? 'Giriş yapılamadı' : 'Bilgi', message);
   };
@@ -78,40 +80,26 @@ export function AuthScreen() {
             </View>
 
             <View style={styles.logoStage}>
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.logoGlow,
-                  {
-                    backgroundColor: colors.primary,
-                    opacity: glowOpacity,
-                    transform: [{ scale: logoScale }],
-                  },
-                ]}
-              />
+              <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
               <Animated.View style={[styles.logoRing, { borderColor: `${colors.cyan}78`, transform: [{ rotate: ringRotate }] }]}> 
                 <View style={[styles.ringBolt, styles.ringBoltTop, { backgroundColor: colors.orange }]} />
                 <View style={[styles.ringBolt, styles.ringBoltBottom, { backgroundColor: colors.cyan }]} />
               </Animated.View>
               <Animated.View style={{ transform: [{ scale: logoScale }] }}>
                 <LinearGradient colors={[colors.primary, colors.primary2, colors.cyan]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.logo}>
-                  <Animated.View style={{ transform: [{ translateY: toolY }] }}>
-                    <Ionicons name="construct" size={39} color="#fff" />
-                  </Animated.View>
+                  <Animated.View style={{ transform: [{ translateY: toolY }] }}><Ionicons name="construct" size={39} color="#fff" /></Animated.View>
                 </LinearGradient>
               </Animated.View>
-              <Animated.View style={[styles.miniGear, { backgroundColor: colors.cardStrong, borderColor: colors.border, transform: [{ rotate: ringRotate }] }]}> 
-                <Ionicons name="cog" size={22} color={colors.orange} />
-              </Animated.View>
+              <Animated.View style={[styles.miniGear, { backgroundColor: colors.cardStrong, borderColor: colors.border, transform: [{ rotate: ringRotate }] }]}><Ionicons name="cog" size={22} color={colors.orange} /></Animated.View>
             </View>
 
             <Text style={[styles.brandTitle, { color: colors.text }]} maxFontSizeMultiplier={1.08}>DraBornGarage</Text>
-            <Text style={[styles.brandText, { color: colors.textMuted }]}>Servis kabulünden atölye sırasına, ustalardan tahsilata kadar garajının komuta merkezi.</Text>
+            <Text style={[styles.brandText, { color: colors.textMuted }]}>İşletme ve ustalar servis sürecini yönetir; müşteriler motorunu, fiyatını ve hazır durumunu takip eder.</Text>
 
             <View style={styles.featureRow}>
               <Feature icon="business" label="Çok İşletmeli" color={colors.cyan} />
-              <Feature icon="shield-checkmark" label="Rol Korumalı" color={colors.green} />
-              <Feature icon="speedometer" label="Canlı Atölye" color={colors.orange} />
+              <Feature icon="shield-checkmark" label="Güvenli Eşleşme" color={colors.green} />
+              <Feature icon="bicycle" label="Motor Takibi" color={colors.orange} />
             </View>
           </View>
 
@@ -121,9 +109,7 @@ export function AuthScreen() {
                 <Text style={[styles.cardEyebrow, { color: colors.primary }]}>GARAJ ERİŞİMİ</Text>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>{mode === 'login' ? 'Hesabına bağlan' : 'Yeni hesap oluştur'}</Text>
               </View>
-              <View style={[styles.cardHeaderIcon, { backgroundColor: `${colors.orange}16`, borderColor: `${colors.orange}3A` }]}> 
-                <Ionicons name={mode === 'login' ? 'key' : 'person-add'} size={21} color={colors.orange} />
-              </View>
+              <View style={[styles.cardHeaderIcon, { backgroundColor: `${colors.orange}16`, borderColor: `${colors.orange}3A` }]}><Ionicons name={mode === 'login' ? 'key' : 'person-add'} size={21} color={colors.orange} /></View>
             </View>
 
             <View style={[styles.segment, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}> 
@@ -133,13 +119,7 @@ export function AuthScreen() {
                   <AnimatedPressable key={item} onPress={() => setMode(item)} style={[styles.segmentButton, { borderColor: active ? `${colors.primary}80` : 'transparent' }]}> 
                     {active && <LinearGradient colors={[`${colors.primary}E8`, `${colors.primary2}E8`]} style={StyleSheet.absoluteFill} />}
                     <Ionicons name={item === 'login' ? 'log-in' : 'person-add'} size={17} color={active ? '#fff' : colors.textMuted} />
-                    <Text
-                      numberOfLines={1}
-                      maxFontSizeMultiplier={1.05}
-                      style={[styles.segmentText, { color: active ? '#fff' : colors.textMuted }]}
-                    >
-                      {item === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}
-                    </Text>
+                    <Text numberOfLines={1} maxFontSizeMultiplier={1.05} style={[styles.segmentText, { color: active ? '#fff' : colors.textMuted }]}>{item === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
                   </AnimatedPressable>
                 );
               })}
@@ -147,18 +127,34 @@ export function AuthScreen() {
 
             {mode === 'register' && (
               <>
+                <Text style={[styles.roleLabel, { color: colors.textMuted }]}>HESAP TÜRÜNÜ SEÇ</Text>
+                <View style={styles.accountModeRow}>
+                  <AccountModeCard
+                    active={registerMode === 'customer'}
+                    title="Müşteri"
+                    subtitle="Motorumu ve servis durumumu takip edeceğim."
+                    icon="bicycle"
+                    accent={colors.cyan}
+                    onPress={() => setRegisterMode('customer')}
+                  />
+                  <AccountModeCard
+                    active={registerMode === 'staff'}
+                    title="İşletme / Usta"
+                    subtitle="Garaj, servis ve personel yönetimi yapacağım."
+                    icon="construct"
+                    accent={colors.orange}
+                    onPress={() => setRegisterMode('staff')}
+                  />
+                </View>
                 <FormField label="Ad Soyad" value={fullName} onChangeText={setFullName} placeholder="Örn. Ahmet Yılmaz" autoCapitalize="words" />
                 <FormField label="Telefon" value={phone} onChangeText={setPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" />
               </>
             )}
-            <FormField label="E-posta" value={email} onChangeText={setEmail} placeholder="usta@garaj.com" keyboardType="email-address" autoCapitalize="none" />
+            <FormField label="E-posta" value={email} onChangeText={setEmail} placeholder={mode === 'register' && registerMode === 'customer' ? 'musteri@email.com' : 'usta@garaj.com'} keyboardType="email-address" autoCapitalize="none" />
             <FormField label="Şifre" value={password} onChangeText={setPassword} placeholder="En az 6 karakter" secureTextEntry />
-            <PrimaryButton title={mode === 'login' ? 'Garaja Gir' : 'Hesabımı Oluştur'} onPress={submit} loading={loading} />
+            <PrimaryButton title={mode === 'login' ? 'Garaja Gir' : registerMode === 'customer' ? 'Müşteri Hesabımı Oluştur' : 'Personel Hesabımı Oluştur'} onPress={submit} loading={loading} />
 
-            <View style={[styles.secureStrip, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}28` }]}> 
-              <Ionicons name="lock-closed" size={16} color={colors.green} />
-              <Text style={[styles.secureStripText, { color: colors.textMuted }]}>İşletme bazlı yetkilendirme ve Supabase RLS aktif.</Text>
-            </View>
+            <View style={[styles.secureStrip, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}28` }]}><Ionicons name="lock-closed" size={16} color={colors.green} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Plaka tek başına hesap bağlantısı kurmaz; telefon, kod, QR veya usta onayı gerekir.</Text></View>
           </GlassCard>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -168,11 +164,18 @@ export function AuthScreen() {
 
 function Feature({ icon, label, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }) {
   const { colors } = useTheme();
+  return <View style={[styles.feature, { backgroundColor: `${color}10`, borderColor: `${color}34` }]}><Ionicons name={icon} size={16} color={color} /><Text numberOfLines={1} maxFontSizeMultiplier={1.02} style={[styles.featureText, { color: colors.textSoft }]}>{label}</Text></View>;
+}
+
+function AccountModeCard({ active, title, subtitle, icon, accent, onPress }: { active: boolean; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; onPress: () => void }) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.feature, { backgroundColor: `${color}10`, borderColor: `${color}34` }]}> 
-      <Ionicons name={icon} size={16} color={color} />
-      <Text numberOfLines={1} maxFontSizeMultiplier={1.02} style={[styles.featureText, { color: colors.textSoft }]}>{label}</Text>
-    </View>
+    <AnimatedPressable onPress={onPress} style={[styles.accountModeCard, { backgroundColor: active ? `${accent}18` : colors.surfaceSoft, borderColor: active ? accent : colors.border }]}> 
+      <View style={[styles.accountModeIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={icon} size={22} color={accent} /></View>
+      <Text style={[styles.accountModeTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.accountModeSubtitle, { color: colors.textMuted }]}>{subtitle}</Text>
+      <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={21} color={active ? accent : colors.textMuted} />
+    </AnimatedPressable>
   );
 }
 
@@ -194,8 +197,8 @@ const styles = StyleSheet.create({
   brandTitle: { fontSize: 34, fontWeight: '900', letterSpacing: -1.3 },
   brandText: { textAlign: 'center', maxWidth: 350, lineHeight: 20, fontSize: 13 },
   featureRow: { width: '100%', flexDirection: 'row', gap: 7, marginTop: 5 },
-  feature: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 14, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  featureText: { fontSize: 9, fontWeight: '900' },
+  feature: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 14, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  featureText: { fontSize: 8.7, fontWeight: '900' },
   card: { gap: 15, paddingTop: 18 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   cardEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
@@ -204,6 +207,12 @@ const styles = StyleSheet.create({
   segment: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: 17, borderWidth: 1, overflow: 'hidden' },
   segmentButton: { flex: 1, minWidth: 0, minHeight: 46, borderRadius: 13, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7, paddingHorizontal: 8 },
   segmentText: { fontSize: 12, fontWeight: '900', textAlign: 'center' },
-  secureStrip: { minHeight: 44, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  secureStripText: { flexShrink: 1, fontSize: 11, textAlign: 'center' },
+  roleLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 0.9 },
+  accountModeRow: { flexDirection: 'row', gap: 9 },
+  accountModeCard: { flex: 1, minWidth: 0, minHeight: 154, borderWidth: 1, borderRadius: 18, padding: 12, gap: 7, alignItems: 'flex-start' },
+  accountModeIcon: { width: 41, height: 41, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  accountModeTitle: { fontSize: 14, fontWeight: '900' },
+  accountModeSubtitle: { flex: 1, fontSize: 10, lineHeight: 15 },
+  secureStrip: { minHeight: 48, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  secureStripText: { flex: 1, fontSize: 10.5, lineHeight: 16, textAlign: 'center' },
 });
