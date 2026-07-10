@@ -1,6 +1,6 @@
 # DraBornGarage
 
-Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis yönetim platformu.
+Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis ve müşteri takip platformu.
 
 ## Ana ürün kararı
 
@@ -25,7 +25,26 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis 
 - Nakit ve IBAN tahsilatı
 - Yapılan işlemler ve kullanılan parçalar
 - İşletme bazlı Supabase RLS
-- Geçici, güvenli ve silinebilir tam v0.1 demo paketi
+
+## v0.2 — Müşteri Hesabı ve Motor Eşleştirme
+
+- Müşteri ve İşletme/Usta hesap türüyle kayıt
+- Ayrı modern Müşteri Portalı
+- Plaka + telefon ile güvenli motor eşleştirme
+- Benzersiz 8 haneli servis takip kodu
+- QR kod ve `draborngarage://claim` derin bağlantısı
+- Usta onayı isteyen eşleştirme talebi
+- İşletme tarafında talep onaylama/reddetme
+- Tek işletmede otomatik giriş
+- Birden fazla işletmede işletme seçimi
+- İşletmeye özel motorlar ve servis geçmişi
+- Aktif servis durumu ve servis zaman çizgisi
+- Net/tahmini fiyat, ödenen ve kalan tutar
+- Motorlarım ekranı
+- Servislerim ve ayrıntılı servis ekranı
+- Müşteri bağlantısı ve talep geçmişi
+- Personel ve müşteri görünümü arasında geçiş
+- İşletmenin iç notlarını müşteriye göstermeyen güvenli RPC katmanı
 
 > Usta bazlı tutarlar maaş, komisyon, prim, net kâr veya ortaklık payı değildir. Sistem yalnızca hangi ustanın hangi işlem için ne kadar tutar kaydettiğini tutar.
 
@@ -48,8 +67,9 @@ npm run test:bundle
 
 ## Proje belgeleri
 
-- [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md) — tamamlanan ve cihazda test edilecek v0.1 maddeleri
-- [`docs/DEMO_TEST.md`](docs/DEMO_TEST.md) — tam v0.1 demo test akışı
+- [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md) — v0.1 çekirdek kontrol listesi
+- [`docs/V0.2_CHECKLIST.md`](docs/V0.2_CHECKLIST.md) — müşteri hesabı ve güvenli motor eşleştirme kontrol listesi
+- [`docs/DEMO_TEST.md`](docs/DEMO_TEST.md) — çok işletmeli test verisi akışı
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — yalnız v0.1–v1.0 onaylı mobil plan
 - [`supabase/migrations`](supabase/migrations) — tekrar kurulabilir şema, RPC, RLS ve demo migration’ları
 
