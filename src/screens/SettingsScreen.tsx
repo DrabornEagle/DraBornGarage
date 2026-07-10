@@ -16,20 +16,31 @@ interface DemoStatus {
   created_at?: string | null;
   customer_count: number;
   work_order_count: number;
+  workshop_count?: number;
 }
 
 const EMPTY_DEMO: DemoStatus = {
   active: false,
   customer_count: 0,
   work_order_count: 0,
+  workshop_count: 0,
+};
+
+const roleLabel = (role?: string, isAdmin?: boolean) => {
+  if (isAdmin) return 'Admin';
+  if (role === 'owner_mechanic') return 'İşletme Sahibi + Usta';
+  if (role === 'owner') return 'İşletme Sahibi';
+  if (role === 'mechanic') return 'Usta';
+  if (role === 'apprentice') return 'Çırak';
+  return 'Kullanıcı';
 };
 
 export function SettingsScreen() {
   const { colors, mode, setMode } = useTheme();
-  const { profile, workshop, membership, signOut } = useAuth();
+  const { profile, workshop, membership, isAdmin, signOut, refreshWorkspace } = useAuth();
   const [demoStatus, setDemoStatus] = useState<DemoStatus>(EMPTY_DEMO);
   const [demoLoading, setDemoLoading] = useState(false);
-  const isOwner = membership?.role === 'owner';
+  const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
 
   const loadDemoStatus = useCallback(async () => {
     if (!workshop || !isOwner) {
@@ -47,19 +58,20 @@ export function SettingsScreen() {
   const createDemo = () => {
     if (!workshop) return;
     Alert.alert(
-      'Demo atölyesi yüklensin mi?',
-      '5 müşteri, 5 motosiklet, farklı servis durumları, işlemler, parçalar ve tahsilatlar eklenecek. Gerçek kayıtların etkilenmez.',
+      'Tam v0.1 demosu yüklensin mi?',
+      '3 işletme görünümü, 7 müşteri, 7 motosiklet, hızlı servis, bırakılan motor, randevulu kayıt, atölye sırası, net/tahmini fiyat, Nakit ve IBAN örnekleri eklenecek.',
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
           text: 'Demoyu Yükle',
           onPress: async () => {
             setDemoLoading(true);
-            const { error } = await supabase.rpc('create_demo_data', { p_workshop_id: workshop.id });
+            const { data, error } = await supabase.rpc('create_demo_data', { p_workshop_id: workshop.id });
             setDemoLoading(false);
             if (error) return Alert.alert('Demo yüklenemedi', error.message);
+            await refreshWorkspace(workshop.id);
             await loadDemoStatus();
-            Alert.alert('Demo hazır', 'Panel, müşteriler ve iş emirleri artık örnek verilerle dolu. Ana panele dönerek test edebilirsin.');
+            Alert.alert('Demo hazır', `Demo batch oluşturuldu: ${String(data).slice(0, 8)}… Ana panel, Admin, Müşteriler ve İş Emirleri sekmelerini test edebilirsin.`);
           },
         },
       ],
@@ -70,7 +82,7 @@ export function SettingsScreen() {
     if (!workshop) return;
     Alert.alert(
       'Demo verileri silinsin mi?',
-      'Sadece geçici demo kayıtları kaldırılacak. Kendi oluşturduğun gerçek müşteriler ve servis kayıtları kesinlikle silinmeyecek.',
+      'Sadece demo_batch_id taşıyan geçici kayıtlar ve demo işletmeler kaldırılacak. Gerçek işletmen, müşterilerin ve servis kayıtların silinmeyecek.',
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -78,11 +90,13 @@ export function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             setDemoLoading(true);
-            const { error } = await supabase.rpc('clear_demo_data', { p_workshop_id: workshop.id });
+            const { data, error } = await supabase.rpc('clear_demo_data', { p_workshop_id: workshop.id });
             setDemoLoading(false);
             if (error) return Alert.alert('Demo temizlenemedi', error.message);
-            await loadDemoStatus();
-            Alert.alert('Demo temizlendi', 'Geçici demo müşterileri, motosikletleri, iş emirleri, parçaları ve tahsilatları kaldırıldı.');
+            const rootWorkshopId = (data as any)?.root_workshop_id ?? null;
+            await refreshWorkspace(rootWorkshopId);
+            setDemoStatus(EMPTY_DEMO);
+            Alert.alert('Demo temizlendi', 'Geçici demo işletmeleri, müşterileri, motorları, servisleri, parçaları ve tahsilatları kaldırıldı.');
           },
         },
       ],
@@ -100,7 +114,7 @@ export function SettingsScreen() {
 
       <GlassCard style={styles.profileCard}>
         <View style={[styles.avatar, { backgroundColor: `${colors.primary}20` }]}><Text style={[styles.avatarText, { color: colors.primary }]}>{profile?.full_name?.charAt(0) || 'D'}</Text></View>
-        <View style={styles.copy}><Text style={[styles.name, { color: colors.text }]}>{profile?.full_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{membership?.role === 'owner' ? 'İşletme sahibi' : 'Usta'} • {workshop?.name}</Text></View>
+        <View style={styles.copy}><Text style={[styles.name, { color: colors.text }]}>{profile?.full_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{roleLabel(membership?.role, isAdmin)} • {workshop?.name}</Text></View>
         <Ionicons name="shield-checkmark" size={23} color={colors.green} />
       </GlassCard>
 
@@ -114,46 +128,28 @@ export function SettingsScreen() {
               </View>
               <View style={styles.copy}>
                 <View style={styles.demoTitleRow}>
-                  <Text style={[styles.demoTitle, { color: colors.text }]}>Geçici Demo Modu</Text>
+                  <Text style={[styles.demoTitle, { color: colors.text }]}>Geçici v0.1 Demo Modu</Text>
                   <View style={[styles.demoPill, { backgroundColor: demoStatus.active ? `${colors.green}1A` : `${colors.textMuted}18`, borderColor: demoStatus.active ? `${colors.green}45` : colors.border }]}>
                     <View style={[styles.demoDot, { backgroundColor: demoStatus.active ? colors.green : colors.textMuted }]} />
                     <Text style={[styles.demoPillText, { color: demoStatus.active ? colors.green : colors.textMuted }]}>{demoStatus.active ? 'AKTİF' : 'KAPALI'}</Text>
                   </View>
                 </View>
-                <Text style={[styles.demoText, { color: colors.textMuted }]}>
-                  Gerçek verilerden ayrı, tek dokunuşla yüklenip güvenle temizlenen test kayıtları.
-                </Text>
+                <Text style={[styles.demoText, { color: colors.textMuted }]}>Gerçek verilerden ayrı, çok işletmeli v0.1 akışlarını dolduran güvenli test paketi.</Text>
               </View>
             </View>
 
             <View style={styles.demoStats}>
-              <View style={[styles.demoStat, { backgroundColor: colors.surfaceSoft }]}>
-                <Ionicons name="people" size={18} color={colors.primary} />
-                <Text style={[styles.demoStatValue, { color: colors.text }]}>{demoStatus.customer_count}</Text>
-                <Text style={[styles.demoStatLabel, { color: colors.textMuted }]}>Müşteri</Text>
-              </View>
-              <View style={[styles.demoStat, { backgroundColor: colors.surfaceSoft }]}>
-                <Ionicons name="construct" size={18} color={colors.orange} />
-                <Text style={[styles.demoStatValue, { color: colors.text }]}>{demoStatus.work_order_count}</Text>
-                <Text style={[styles.demoStatLabel, { color: colors.textMuted }]}>İş emri</Text>
-              </View>
-              <View style={[styles.demoStat, { backgroundColor: colors.surfaceSoft }]}>
-                <Ionicons name="pulse" size={18} color={colors.cyan} />
-                <Text style={[styles.demoStatValue, { color: colors.text }]}>5</Text>
-                <Text style={[styles.demoStatLabel, { color: colors.textMuted }]}>Durum testi</Text>
-              </View>
+              <View style={[styles.demoStat, { backgroundColor: colors.surfaceSoft }]}><Ionicons name="business" size={18} color={colors.cyan} /><Text style={[styles.demoStatValue, { color: colors.text }]}>{(demoStatus.workshop_count ?? 0) + (demoStatus.active ? 1 : 0)}</Text><Text style={[styles.demoStatLabel, { color: colors.textMuted }]}>İşletme</Text></View>
+              <View style={[styles.demoStat, { backgroundColor: colors.surfaceSoft }]}><Ionicons name="people" size={18} color={colors.primary} /><Text style={[styles.demoStatValue, { color: colors.text }]}>{demoStatus.customer_count}</Text><Text style={[styles.demoStatLabel, { color: colors.textMuted }]}>Müşteri</Text></View>
+              <View style={[styles.demoStat, { backgroundColor: colors.surfaceSoft }]}><Ionicons name="construct" size={18} color={colors.orange} /><Text style={[styles.demoStatValue, { color: colors.text }]}>{demoStatus.work_order_count}</Text><Text style={[styles.demoStatLabel, { color: colors.textMuted }]}>İş emri</Text></View>
             </View>
 
             <View style={[styles.demoNotice, { backgroundColor: `${colors.orange}0D`, borderColor: `${colors.orange}2B` }]}>
               <Ionicons name="warning-outline" size={19} color={colors.orange} />
-              <Text style={[styles.demoNoticeText, { color: colors.textMuted }]}>Temizleme işlemi yalnızca demo_batch_id taşıyan örnek kayıtları siler; gerçek servis verilerine dokunmaz.</Text>
+              <Text style={[styles.demoNoticeText, { color: colors.textMuted }]}>Temizleme yalnız demo batch kayıtlarını siler. Gerçek işletme ve servis verilerine dokunmaz.</Text>
             </View>
 
-            {demoStatus.active ? (
-              <PrimaryButton title="Demo Verilerini Temizle" onPress={clearDemo} loading={demoLoading} secondary />
-            ) : (
-              <PrimaryButton title="Demo Atölyesini Yükle" onPress={createDemo} loading={demoLoading} />
-            )}
+            {demoStatus.active ? <PrimaryButton title="Demo Verilerini Temizle" onPress={clearDemo} loading={demoLoading} secondary /> : <PrimaryButton title="Tam v0.1 Demosunu Yükle" onPress={createDemo} loading={demoLoading} />}
           </GlassCard>
         </>
       )}
@@ -178,11 +174,12 @@ export function SettingsScreen() {
         <InfoRow icon="business" label="İşletme adı" value={workshop?.name || '-'} />
         <InfoRow icon="call" label="Telefon" value={workshop?.phone || 'Eklenmedi'} />
         <InfoRow icon="location" label="Adres" value={workshop?.address || 'Eklenmedi'} />
+        <InfoRow icon="toggle" label="Durum" value={workshop?.is_active === false ? 'Pasif' : 'Aktif'} />
       </GlassCard>
 
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Uygulama</Text>
       <GlassCard style={styles.infoCard}>
-        <InfoRow icon="layers" label="Sürüm" value="v0.1.0 • Demo test paketi" />
+        <InfoRow icon="layers" label="Sürüm" value="v0.1.0 • Çok işletmeli çekirdek" />
         <InfoRow icon="phone-portrait" label="Test yöntemi" value="Expo Go • SDK 54" />
         <InfoRow icon="cube" label="APK planı" value="v1.0" />
       </GlassCard>
