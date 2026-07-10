@@ -23,8 +23,29 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund --silent
 
-      - name: TypeScript check
-        run: npm run typecheck
+      - name: Capture TypeScript diagnostics
+        id: typecheck
+        shell: bash
+        run: |
+          set +e
+          npm run typecheck > typecheck.log 2>&1
+          EXIT_CODE=$?
+          cat typecheck.log
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload TypeScript diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: typecheck-diagnostics
+          path: typecheck.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce TypeScript result
+        if: steps.typecheck.outputs.exit_code != '0'
+        run: exit 1
 
       - name: Android JavaScript bundle
         env:
