@@ -1,31 +1,50 @@
 # DraBornGarage
 
-Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis yönetim platformu.
+Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis, müşteri ve randevu yönetim platformu.
 
-## Ana ürün kararı
+## Güncel sürüm
 
-Şu anda yalnızca **DraBornGarage** geliştirilmektedir. DraBornStyle, DraBornRepair, DraBornWash ve DraBornClinic bu yol haritasında yer almaz. Öncelik mobil uygulamanın v1.0’a kadar tamamlanması ve Google Play’e hazırlanmasıdır.
+**v0.3.0 — Randevu, Müsaitlik ve Usta Takvimi**
 
-## v0.1 — Çok İşletmeli Çekirdek
+## Tamamlanan ana modüller
 
-- `Admin` paneli; Super Admin adı kullanılmaz
-- Birden fazla işletme ve işletmeler arasında güvenli seçim
-- İşletme ekleme, düzenleme, aktif/pasif yapma
-- İşletme Sahibi
-- İşletme Sahibi + Usta
-- Usta
-- Finansal verileri göremeyen kısıtlı Çırak Paneli
-- Personel daveti, rol değişimi ve pasifleştirme
-- Plakayla tekrar gelen müşteri/motor bulma
-- Hızlı Servis, Bırakılan Motor ve Randevulu Servis veri tipi
+### v0.1 — Çok İşletmeli Çekirdek
+
+- Admin, İşletme Sahibi, İşletme Sahibi + Usta, Usta ve Çırak rolleri
+- Çok işletmeli güvenli veri ayrımı
+- Müşteri, motosiklet ve servis kayıtları
+- Hızlı Servis, Bırakılan Motor ve Randevulu Servis tipi
 - Günlük atölye sırası
-- Ayrıntılı servis durumları
-- Net fiyat ve tahmini fiyat
-- Tamire başlamadan önce zorunlu ücret kontrolü
-- Nakit ve IBAN tahsilatı
+- Net/tahmini fiyat, Nakit/IBAN tahsilatı
 - Yapılan işlemler ve kullanılan parçalar
-- İşletme bazlı Supabase RLS
-- Geçici, güvenli ve silinebilir tam v0.1 demo paketi
+
+### v0.2 — Müşteri Hesabı ve Motor Eşleştirme
+
+- Müşteri ve personel hesap türleri
+- Ayrı Müşteri Portalı
+- Plaka + telefon, servis takip kodu, QR ve usta onayı
+- Uygulama içi QR kamera tarayıcısı
+- Motorlarım, Servislerim ve müşteri hesap yönetimi
+- Çok işletmeli müşteri seçimi
+- İşletmede eşleştirme talebi onaylama/reddetme
+
+### v0.3 — Randevu, Müsaitlik ve Usta Takvimi
+
+- Usta haftalık çalışma saatleri
+- Mola ve randevu slot süresi
+- Müsait / Meşgul / Kapalı durumu
+- Belirli gün ve saat kapatma
+- Çakışmasız gerçek müsait saat motoru
+- Müşteri uygulamasından randevu talebi
+- Otomatik onay veya usta onayı
+- İşletme Sahibi/Admin/Usta günlük takvimi
+- Manuel randevu ekleme
+- Yeniden planlama ve başka ustaya aktarma yetkileri
+- Onaylandı, Geldi, Gelmedi, İptal ve Servise Dönüştü akışları
+- Randevuyu tek dokunuşla servis kaydına dönüştürme
+- Randevu hareket geçmişi
+- İşletme randevu ayarları
+- Veritabanı seviyesinde çift randevu engeli
 
 > Usta bazlı tutarlar maaş, komisyon, prim, net kâr veya ortaklık payı değildir. Sistem yalnızca hangi ustanın hangi işlem için ne kadar tutar kaydettiğini tutar.
 
@@ -37,8 +56,6 @@ npm install --no-audit --no-fund
 npx expo start -c --go
 ```
 
-Termux için yalnız ZIP kullanan kopyala-yapıştır kurulum: [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
-
 ## Kontroller
 
 ```bash
@@ -46,11 +63,24 @@ npm run typecheck
 npm run test:bundle
 ```
 
+v0.3 için GitHub Actions bağımlılık kurulumu, TypeScript ve Android JavaScript bundle adımları başarıyla tamamlanmıştır.
+
+## Yedek ve geri dönüş
+
+Yeni sürüme geçmeden önce yedek oluşturmak zorunludur.
+
+- v0.2 kod yedeği: `backup/v0.2.0-before-v0.3`
+- v0.3 → v0.2 veritabanı rollback: [`supabase/rollbacks/rollback_v0_3_to_v0_2.sql`](supabase/rollbacks/rollback_v0_3_to_v0_2.sql)
+- Politika: [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
+
 ## Proje belgeleri
 
-- [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md) — tamamlanan ve cihazda test edilecek v0.1 maddeleri
-- [`docs/DEMO_TEST.md`](docs/DEMO_TEST.md) — tam v0.1 demo test akışı
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — yalnız v0.1–v1.0 onaylı mobil plan
-- [`supabase/migrations`](supabase/migrations) — tekrar kurulabilir şema, RPC, RLS ve demo migration’ları
+- [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md)
+- [`docs/V0.2_CHECKLIST.md`](docs/V0.2_CHECKLIST.md)
+- [`docs/V0.3_CHECKLIST.md`](docs/V0.3_CHECKLIST.md)
+- [`docs/ROADMAP.md`](docs/ROADMAP.md)
+- [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
+- [`supabase/migrations`](supabase/migrations)
+- [`supabase/rollbacks`](supabase/rollbacks)
 
 APK/AAB üretimi v1.0 aşamasındadır. Tam web sürümü v1.0 sonrasında yalnızca opsiyonel olarak değerlendirilecektir.
