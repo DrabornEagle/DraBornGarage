@@ -7,6 +7,7 @@ import { AnimatedPressable } from './components/AnimatedPressable';
 import { PremiumBackground } from './components/PremiumBackground';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
+import { AppointmentsScreen } from './screens/AppointmentsScreen';
 import { CustomersScreen } from './screens/CustomersScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { NewWorkOrderScreen } from './screens/NewWorkOrderScreen';
@@ -15,7 +16,7 @@ import { TeamScreen } from './screens/TeamScreen';
 import { WorkOrdersScreen } from './screens/WorkOrdersScreen';
 import { ServiceType } from './types';
 
-type Tab = 'home' | 'orders' | 'customers' | 'team' | 'settings';
+type Tab = 'home' | 'orders' | 'appointments' | 'customers' | 'team' | 'settings';
 
 type TabItem = {
   key: Tab;
@@ -41,17 +42,20 @@ export function AppShell() {
     ? <HomeScreen onNewOrder={openNew} onOpenOrders={openOrders} />
     : tab === 'orders'
       ? <WorkOrdersScreen onNewOrder={() => openNew('dropoff')} />
-      : tab === 'customers'
-        ? <CustomersScreen />
-        : tab === 'team'
-          ? <TeamScreen />
-          : <SettingsScreen />;
+      : tab === 'appointments'
+        ? <AppointmentsScreen />
+        : tab === 'customers'
+          ? <CustomersScreen />
+          : tab === 'team'
+            ? <TeamScreen />
+            : <SettingsScreen />;
 
   const tabs = useMemo<TabItem[]>(() => {
     const all: TabItem[] = [
       { key: 'home', label: isApprentice ? 'Atölye' : 'Panel', icon: 'grid-outline', activeIcon: 'grid', accent: colors.primary, accent2: colors.primary2 },
       { key: 'orders', label: isApprentice ? 'Görevler' : 'İşler', icon: 'construct-outline', activeIcon: 'construct', accent: colors.orange, accent2: colors.red },
-      { key: 'customers', label: 'Müşteri', icon: 'people-outline', activeIcon: 'people', accent: colors.cyan, accent2: colors.primary2 },
+      { key: 'appointments', label: 'Takvim', icon: 'calendar-outline', activeIcon: 'calendar', accent: colors.cyan, accent2: colors.primary2 },
+      { key: 'customers', label: 'Müşteri', icon: 'people-outline', activeIcon: 'people', accent: colors.primary2, accent2: colors.cyan },
       { key: 'team', label: isAdmin ? 'Admin' : isOwner ? 'Ekip' : 'Kazancım', icon: isAdmin ? 'shield-checkmark-outline' : isOwner ? 'shield-outline' : 'wallet-outline', activeIcon: isAdmin ? 'shield-checkmark' : isOwner ? 'shield' : 'wallet', accent: colors.green, accent2: colors.cyan },
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.red, accent2: colors.orange },
     ];
@@ -65,7 +69,7 @@ export function AppShell() {
         <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
           <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}> 
             <View style={styles.railRow} pointerEvents="none">
-              {[colors.orange, colors.black, colors.orange, colors.black, colors.cyan, colors.black, colors.cyan].map((color, index) => (
+              {[colors.orange, colors.black, colors.cyan, colors.black, colors.green, colors.black].map((color, index) => (
                 <View key={`${color}-${index}`} style={[styles.railBlock, { backgroundColor: color }]} />
               ))}
             </View>
@@ -77,23 +81,16 @@ export function AppShell() {
                     <View style={styles.navIconShell}>
                       {active ? (
                         <LinearGradient colors={[item.accent, item.accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.activeIcon}>
-                          <Ionicons name={item.activeIcon} size={22} color="#fff" />
+                          <Ionicons name={item.activeIcon} size={21} color="#fff" />
                         </LinearGradient>
                       ) : (
                         <View style={[styles.inactiveIcon, { backgroundColor: `${item.accent}12`, borderColor: `${item.accent}28` }]}> 
-                          <Ionicons name={item.icon} size={21} color={item.accent} />
+                          <Ionicons name={item.icon} size={20} color={item.accent} />
                         </View>
                       )}
-                      {active && <View style={[styles.activeSpark, { backgroundColor: item.accent2 }]} />}
                     </View>
-                    <Text
-                      numberOfLines={1}
-                      maxFontSizeMultiplier={1.02}
-                      style={[styles.navLabel, { color: active ? item.accent : colors.textMuted }]}
-                    >
-                      {item.label}
-                    </Text>
-                    <View style={[styles.activeLine, { backgroundColor: active ? item.accent : 'transparent', shadowColor: item.accent }]} />
+                    <Text numberOfLines={1} maxFontSizeMultiplier={1.02} style={[styles.navLabel, { color: active ? item.accent : colors.textMuted }]}>{item.label}</Text>
+                    <View style={[styles.activeLine, { backgroundColor: active ? item.accent : 'transparent' }]} />
                   </AnimatedPressable>
                 );
               })}
@@ -122,29 +119,16 @@ export function AppShell() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  navWrap: {
-    position: 'absolute',
-    left: 11,
-    right: 11,
-    bottom: 10,
-    borderWidth: 1,
-    borderRadius: 28,
-    overflow: 'hidden',
-    shadowOpacity: 0.26,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 16,
-  },
+  navWrap: { position: 'absolute', left: 8, right: 8, bottom: 9, borderWidth: 1, borderRadius: 28, overflow: 'hidden', shadowOpacity: 0.26, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 16 },
   navBlur: { overflow: 'hidden' },
   navBackdrop: { minHeight: 88 },
   railRow: { height: 4, flexDirection: 'row', overflow: 'hidden', opacity: 0.85 },
   railBlock: { flex: 1, height: 10, transform: [{ skewX: '-24deg' }], marginHorizontal: 1 },
-  navInner: { minHeight: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 4, paddingTop: 7, paddingBottom: 7 },
+  navInner: { minHeight: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 1, paddingTop: 7, paddingBottom: 7 },
   navItem: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  navIconShell: { width: 46, height: 43, alignItems: 'center', justifyContent: 'center' },
-  activeIcon: { width: 43, height: 43, borderRadius: 15, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 8, elevation: 6 },
-  inactiveIcon: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  activeSpark: { position: 'absolute', width: 6, height: 6, borderRadius: 6, right: 0, top: 2, shadowOpacity: 0.75, shadowRadius: 6 },
-  navLabel: { fontSize: 9, fontWeight: '900', textAlign: 'center' },
-  activeLine: { width: 19, height: 2.5, borderRadius: 3, marginTop: 2, shadowOpacity: 0.8, shadowRadius: 5 },
+  navIconShell: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  activeIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 8, elevation: 6 },
+  inactiveIcon: { width: 37, height: 37, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  navLabel: { fontSize: 7.8, fontWeight: '900', textAlign: 'center' },
+  activeLine: { width: 17, height: 2.5, borderRadius: 3 },
 });
