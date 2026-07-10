@@ -142,7 +142,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
 
   useEffect(() => { load(); }, [load]);
 
-  const run = async (action: () => Promise<{ error: any }>, fallback: string) => {
+  const run = async (action: () => PromiseLike<{ error: any }>, fallback: string) => {
     setSaving(true);
     const result = await action();
     setSaving(false);
