@@ -1,0 +1,1 @@
+Validate final DraBornGarage v0.2 customer portal, settings, QR package and security hardening.
