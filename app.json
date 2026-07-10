@@ -2,7 +2,8 @@
   "expo": {
     "name": "DraBornGarage",
     "slug": "draborngarage",
-    "version": "0.1.0",
+    "scheme": "draborngarage",
+    "version": "0.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +14,19 @@
     "android": {
       "package": "com.draborneagle.draborngarage",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "draborngarage",
+              "host": "claim"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     }
   }
 }
