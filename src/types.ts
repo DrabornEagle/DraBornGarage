@@ -1,4 +1,5 @@
 export type ThemeMode = 'system' | 'light' | 'dark' | 'carbon' | 'racing' | 'electric' | 'sunset';
+export type AccountMode = 'staff' | 'customer';
 export type MemberRole = 'owner' | 'owner_mechanic' | 'mechanic' | 'apprentice';
 export type WorkOrderStatus =
   | 'opened'
@@ -23,6 +24,8 @@ export type ServiceType = 'appointment' | 'quick' | 'dropoff';
 export type CustomerWaitingStatus = 'waiting_shop' | 'left_vehicle' | 'return_later' | 'third_party_delivery';
 export type PriceType = 'estimated' | 'fixed';
 export type AvailabilityStatus = 'available' | 'busy' | 'off';
+export type CustomerClaimMethod = 'phone' | 'tracking_code' | 'qr' | 'mechanic_approval' | 'staff_manual';
+export type CustomerClaimStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'cancelled';
 
 export interface Profile {
   id: string;
@@ -30,6 +33,7 @@ export interface Profile {
   phone?: string | null;
   avatar_url?: string | null;
   is_admin?: boolean;
+  account_mode?: AccountMode;
 }
 
 export interface Workshop {
@@ -71,6 +75,97 @@ export interface Motorcycle {
   year?: number | null;
   color?: string | null;
   odometer?: number | null;
+}
+
+export interface CustomerWorkshopLink {
+  link_id: string;
+  workshop_id: string;
+  workshop_name: string;
+  workshop_phone?: string | null;
+  workshop_address?: string | null;
+  customer_id: string;
+  customer_name: string;
+  linked_at?: string | null;
+  link_method: CustomerClaimMethod;
+}
+
+export interface CustomerMotorcycle {
+  id: string;
+  customer_id: string;
+  brand: string;
+  model: string;
+  year?: number | null;
+  plate?: string | null;
+  color?: string | null;
+  odometer?: number | null;
+  service_count: number;
+  active_service_count: number;
+  last_service_at?: string | null;
+  latest_status?: WorkOrderStatus | null;
+}
+
+export interface CustomerServiceItem {
+  title: string;
+  price: number;
+  completed: boolean;
+}
+
+export interface CustomerServiceRecord {
+  id: string;
+  workshop_id: string;
+  workshop_name: string;
+  motorcycle_id: string;
+  brand: string;
+  model: string;
+  plate?: string | null;
+  status: WorkOrderStatus;
+  service_type: ServiceType;
+  complaint: string;
+  price_type?: PriceType | null;
+  estimated_price_min?: number | null;
+  estimated_price_max?: number | null;
+  quoted_price?: number | null;
+  total_amount: number;
+  amount_received: number;
+  remaining_amount: number;
+  payment_status: PaymentStatus;
+  arrived_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  delivered_at?: string | null;
+  service_items: CustomerServiceItem[];
+}
+
+export interface CustomerClaim {
+  id: string;
+  workshop_id: string;
+  workshop_name: string;
+  motorcycle_id: string;
+  brand: string;
+  model: string;
+  plate?: string | null;
+  method: CustomerClaimMethod;
+  status: CustomerClaimStatus;
+  created_at: string;
+  reviewed_at?: string | null;
+  review_note?: string | null;
+}
+
+export interface StaffCustomerClaim {
+  id: string;
+  user_id: string;
+  claimant_name: string;
+  claimant_phone?: string | null;
+  customer_id: string;
+  customer_name: string;
+  motorcycle_id: string;
+  brand: string;
+  model: string;
+  plate?: string | null;
+  method: CustomerClaimMethod;
+  status: CustomerClaimStatus;
+  submitted_phone?: string | null;
+  created_at: string;
 }
 
 export interface WorkOrderListItem {
