@@ -56,7 +56,7 @@ const roleLabel = (role?: string, isAdmin?: boolean) => {
 
 export function SettingsScreen() {
   const { colors, mode, setMode } = useTheme();
-  const { profile, workshop, membership, isAdmin, signOut, refreshWorkspace } = useAuth();
+  const { profile, workshop, membership, isAdmin, signOut, refreshWorkspace, setAccountMode } = useAuth();
   const [demoStatus, setDemoStatus] = useState<DemoStatus>(EMPTY_DEMO);
   const [demoLoading, setDemoLoading] = useState(false);
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
@@ -77,8 +77,8 @@ export function SettingsScreen() {
   const createDemo = () => {
     if (!workshop) return;
     Alert.alert(
-      'Tam v0.1 demosu yüklensin mi?',
-      '3 işletme görünümü, 7 müşteri, 7 motosiklet, hızlı servis, bırakılan motor, randevulu kayıt, atölye sırası, net/tahmini fiyat, Nakit ve IBAN örnekleri eklenecek.',
+      'Test verileri yüklensin mi?',
+      '3 işletme görünümü, 7 müşteri, 7 motosiklet, servis takip kodları, QR bağlantıları, hızlı servis, atölye sırası, fiyat ve ödeme örnekleri eklenecek.',
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -90,7 +90,7 @@ export function SettingsScreen() {
             if (error) return Alert.alert('Demo yüklenemedi', error.message);
             await refreshWorkspace(workshop.id);
             await loadDemoStatus();
-            Alert.alert('Demo hazır', `Demo batch oluşturuldu: ${String(data).slice(0, 8)}… Ana panel, Admin, Müşteriler ve İş Emirleri sekmelerini test edebilirsin.`);
+            Alert.alert('Demo hazır', `Demo batch oluşturuldu: ${String(data).slice(0, 8)}… Müşteriler ekranındaki takip kodu ve QR kartlarını da test edebilirsin.`);
           },
         },
       ],
@@ -122,6 +122,11 @@ export function SettingsScreen() {
     );
   };
 
+  const openCustomerMode = async () => {
+    const error = await setAccountMode('customer');
+    if (error) Alert.alert('Müşteri görünümü açılamadı', error);
+  };
+
   const logout = () => Alert.alert('Çıkış yapılsın mı?', 'Bu cihazdaki oturum kapatılacak.', [
     { text: 'Vazgeç', style: 'cancel' },
     { text: 'Çıkış Yap', style: 'destructive', onPress: signOut },
@@ -129,13 +134,19 @@ export function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <ScreenHeader eyebrow="KİŞİSELLEŞTİR" title="Ayarlar" subtitle="Garaj temasını, test verilerini, hesabı ve aktif işletmeyi yönet." />
+      <ScreenHeader eyebrow="KİŞİSELLEŞTİR" title="Ayarlar" subtitle="Garaj temasını, müşteri görünümünü, test verilerini ve aktif işletmeyi yönet." />
 
       <GlassCard style={styles.profileCard}>
         <LinearGradient colors={[colors.primary, colors.primary2]} style={styles.avatar}><Text style={styles.avatarText}>{profile?.full_name?.charAt(0) || 'D'}</Text></LinearGradient>
         <View style={styles.copy}><Text style={[styles.name, { color: colors.text }]}>{profile?.full_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{roleLabel(membership?.role, isAdmin)} • {workshop?.name}</Text></View>
         <Ionicons name="shield-checkmark" size={23} color={colors.green} />
       </GlassCard>
+
+      <AnimatedPressable onPress={openCustomerMode} style={[styles.modeButton, { backgroundColor: `${colors.cyan}11`, borderColor: `${colors.cyan}3D` }]}> 
+        <View style={[styles.modeIcon, { backgroundColor: `${colors.cyan}18` }]}><Ionicons name="bicycle" size={24} color={colors.cyan} /></View>
+        <View style={styles.copy}><Text style={[styles.modeTitle, { color: colors.text }]}>Müşteri görünümüne geç</Text><Text style={[styles.modeText, { color: colors.textMuted }]}>Motor eşleştirme, aktif servis, fiyat ve geçmiş ekranlarını müşteri hesabı gibi test et.</Text></View>
+        <Ionicons name="chevron-forward" size={21} color={colors.cyan} />
+      </AnimatedPressable>
 
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Garaj Temaları</Text>
       <Text style={[styles.sectionDescription, { color: colors.textMuted }]}>Tema değişikliği anında tüm panellere, animasyonlu arka plana ve alt menüye uygulanır.</Text>
@@ -181,13 +192,13 @@ export function SettingsScreen() {
               </View>
               <View style={styles.copy}>
                 <View style={styles.demoTitleRow}>
-                  <Text style={[styles.demoTitle, { color: colors.text }]}>Geçici v0.1 Demo Modu</Text>
+                  <Text style={[styles.demoTitle, { color: colors.text }]}>Geçici v0.2 Test Verileri</Text>
                   <View style={[styles.demoPill, { backgroundColor: demoStatus.active ? `${colors.green}1A` : `${colors.textMuted}18`, borderColor: demoStatus.active ? `${colors.green}45` : colors.border }]}> 
                     <View style={[styles.demoDot, { backgroundColor: demoStatus.active ? colors.green : colors.textMuted }]} />
                     <Text style={[styles.demoPillText, { color: demoStatus.active ? colors.green : colors.textMuted }]}>{demoStatus.active ? 'AKTİF' : 'KAPALI'}</Text>
                   </View>
                 </View>
-                <Text style={[styles.demoText, { color: colors.textMuted }]}>Gerçek verilerden ayrı, çok işletmeli v0.1 akışlarını dolduran güvenli test paketi.</Text>
+                <Text style={[styles.demoText, { color: colors.textMuted }]}>Çok işletmeli servis verileriyle takip kodu, QR, müşteri portalı ve tekrar gelen müşteri akışlarını test et.</Text>
               </View>
             </View>
 
@@ -202,7 +213,7 @@ export function SettingsScreen() {
               <Text style={[styles.demoNoticeText, { color: colors.textMuted }]}>Temizleme yalnız demo batch kayıtlarını siler. Gerçek işletme ve servis verilerine dokunmaz.</Text>
             </View>
 
-            {demoStatus.active ? <PrimaryButton title="Demo Verilerini Temizle" onPress={clearDemo} loading={demoLoading} secondary /> : <PrimaryButton title="Tam v0.1 Demosunu Yükle" onPress={createDemo} loading={demoLoading} />}
+            {demoStatus.active ? <PrimaryButton title="Demo Verilerini Temizle" onPress={clearDemo} loading={demoLoading} secondary /> : <PrimaryButton title="Tam v0.2 Test Verisini Yükle" onPress={createDemo} loading={demoLoading} />}
           </GlassCard>
         </>
       )}
@@ -217,8 +228,9 @@ export function SettingsScreen() {
 
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Uygulama</Text>
       <GlassCard style={styles.infoCard}>
-        <InfoRow icon="layers" label="Sürüm" value="v0.1.0 • Çok işletmeli çekirdek" />
+        <InfoRow icon="layers" label="Sürüm" value="v0.2.0 • Müşteri hesabı ve motor eşleştirme" />
         <InfoRow icon="phone-portrait" label="Test yöntemi" value="Expo Go • SDK 54" />
+        <InfoRow icon="qr-code" label="Müşteri erişimi" value="Telefon • Takip kodu • QR • Usta onayı" />
         <InfoRow icon="cube" label="APK planı" value="v1.0" />
       </GlassCard>
 
@@ -240,6 +252,10 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 0 },
   name: { fontSize: 17, fontWeight: '900' },
   meta: { fontSize: 12, marginTop: 4 },
+  modeButton: { minHeight: 82, borderWidth: 1, borderRadius: 21, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  modeIcon: { width: 49, height: 49, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  modeTitle: { fontSize: 14, fontWeight: '900' },
+  modeText: { fontSize: 10.5, lineHeight: 16, marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 },
   sectionDescription: { fontSize: 12, lineHeight: 18, marginTop: -8 },
   themeList: { gap: 10 },
