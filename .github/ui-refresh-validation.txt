@@ -1,1 +1,0 @@
-Validate animated garage UI refresh and custom themes.
