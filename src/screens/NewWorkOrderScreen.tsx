@@ -196,7 +196,7 @@ export function NewWorkOrderScreen({
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <AnimatedPressable onPress={onClose} style={[styles.close, { backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="close" size={24} color={colors.text} /></AnimatedPressable>
           <View style={styles.headerCopy}>
@@ -210,9 +210,9 @@ export function NewWorkOrderScreen({
         <GlassCard style={styles.formCard}>
           <ChoiceGrid
             items={[
-              { id: 'quick', title: 'Hızlı Servis', sub: 'Randevusuz gelen motor', icon: 'flash' },
-              { id: 'dropoff', title: 'Bırakılan Motor', sub: 'Uzun tamir / sonra teslim', icon: 'key' },
-              { id: 'appointment', title: 'Randevulu', sub: 'Randevu kaynağından geldi', icon: 'calendar' },
+              { id: 'quick', title: 'Hızlı Servis', sub: 'Randevusuz gelen motor', icon: 'flash', accent: colors.orange },
+              { id: 'dropoff', title: 'Bırakılan Motor', sub: 'Uzun tamir / sonra teslim', icon: 'key', accent: colors.primary },
+              { id: 'appointment', title: 'Randevulu', sub: 'Randevu kaynağından geldi', icon: 'calendar', accent: colors.cyan },
             ]}
             selected={serviceType}
             onSelect={(id) => setServiceType(id as ServiceType)}
@@ -220,10 +220,10 @@ export function NewWorkOrderScreen({
           <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>MÜŞTERİ DURUMU</Text>
           <ChoiceGrid
             items={[
-              { id: 'waiting_shop', title: 'Dükkânda bekliyor', sub: 'Hızlı teslim bekliyor', icon: 'hourglass' },
-              { id: 'left_vehicle', title: 'Motoru bırakıp gitti', sub: 'Hazır olunca gelecek', icon: 'walk' },
-              { id: 'return_later', title: 'Sonra gelecek', sub: 'Teslim için dönecek', icon: 'time' },
-              { id: 'third_party_delivery', title: 'Başkası teslim etti', sub: 'Müşteri motorla gelmedi', icon: 'people' },
+              { id: 'waiting_shop', title: 'Dükkânda bekliyor', sub: 'Hızlı teslim bekliyor', icon: 'hourglass', accent: colors.orange },
+              { id: 'left_vehicle', title: 'Motoru bırakıp gitti', sub: 'Hazır olunca gelecek', icon: 'walk', accent: colors.primary },
+              { id: 'return_later', title: 'Sonra gelecek', sub: 'Teslim için dönecek', icon: 'time', accent: colors.cyan },
+              { id: 'third_party_delivery', title: 'Başkası teslim etti', sub: 'Müşteri motorla gelmedi', icon: 'people', accent: colors.green },
             ]}
             selected={waitingStatus}
             onSelect={(id) => setWaitingStatus(id as CustomerWaitingStatus)}
@@ -296,9 +296,9 @@ export function NewWorkOrderScreen({
         <GlassCard style={styles.formCard}>
           <ChoiceGrid
             items={[
-              { id: 'none', title: 'Henüz ödeme yok', sub: 'Sonra tahsil edilecek', icon: 'time' },
-              { id: 'cash', title: 'Nakit', sub: 'Kasaya alındı', icon: 'cash' },
-              { id: 'transfer', title: 'IBAN', sub: 'Banka transferi', icon: 'business' },
+              { id: 'none', title: 'Henüz ödeme yok', sub: 'Sonra tahsil edilecek', icon: 'time', accent: colors.primary },
+              { id: 'cash', title: 'Nakit', sub: 'Kasaya alındı', icon: 'cash', accent: colors.green },
+              { id: 'transfer', title: 'IBAN', sub: 'Banka transferi', icon: 'business', accent: colors.cyan },
             ]}
             selected={paymentMethod}
             onSelect={(id) => setPaymentMethod(id as 'none' | PaymentMethod)}
@@ -319,12 +319,74 @@ function Section({ title }: { title: string }) {
 
 function Toggle({ value, onChange, first, second }: { value: boolean; onChange: (value: boolean) => void; first: string; second: string }) {
   const { colors } = useTheme();
-  return <View style={[styles.toggle, { backgroundColor: colors.surfaceSoft }]}>{[[true, first], [false, second]].map(([item, label]) => <AnimatedPressable key={String(item)} onPress={() => onChange(Boolean(item))} style={[styles.toggleItem, value === item && { backgroundColor: colors.cardStrong }]}><Text style={[styles.toggleText, { color: value === item ? colors.text : colors.textMuted }]}>{String(label)}</Text></AnimatedPressable>)}</View>;
+  const options = [
+    { value: true, label: first },
+    { value: false, label: second },
+  ];
+  return (
+    <View style={[styles.toggle, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}> 
+      {options.map((option) => {
+        const active = value === option.value;
+        return (
+          <AnimatedPressable
+            key={String(option.value)}
+            onPress={() => onChange(option.value)}
+            style={[
+              styles.toggleItem,
+              {
+                backgroundColor: active ? colors.cardStrong : 'transparent',
+                borderColor: active ? `${colors.primary}7A` : 'transparent',
+              },
+            ]}
+          >
+            <Text numberOfLines={1} maxFontSizeMultiplier={1.02} style={[styles.toggleText, { color: active ? colors.text : colors.textMuted }]}>{option.label}</Text>
+            {active && <View style={[styles.toggleDot, { backgroundColor: colors.primary }]} />}
+          </AnimatedPressable>
+        );
+      })}
+    </View>
+  );
 }
 
-function ChoiceGrid({ items, selected, onSelect }: { items: { id: string; title: string; sub: string; icon: keyof typeof Ionicons.glyphMap }[]; selected: string; onSelect: (id: string) => void }) {
+type ChoiceItem = {
+  id: string;
+  title: string;
+  sub: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  accent: string;
+};
+
+function ChoiceGrid({ items, selected, onSelect }: { items: ChoiceItem[]; selected: string; onSelect: (id: string) => void }) {
   const { colors } = useTheme();
-  return <View style={styles.choiceGrid}>{items.map((item) => <AnimatedPressable key={item.id} onPress={() => onSelect(item.id)} style={[styles.choice, { backgroundColor: selected === item.id ? `${colors.primary}1C` : colors.surfaceSoft, borderColor: selected === item.id ? colors.primary : colors.border }]}><Ionicons name={item.icon} size={20} color={selected === item.id ? colors.primary : colors.textMuted} /><Text style={[styles.choiceTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.choiceSub, { color: colors.textMuted }]}>{item.sub}</Text></AnimatedPressable>)}</View>;
+  return (
+    <View style={styles.choiceGrid}>
+      {items.map((item) => {
+        const active = selected === item.id;
+        return (
+          <AnimatedPressable
+            key={item.id}
+            onPress={() => onSelect(item.id)}
+            style={[
+              styles.choice,
+              {
+                backgroundColor: active ? `${item.accent}18` : colors.surfaceSoft,
+                borderColor: active ? item.accent : colors.border,
+              },
+            ]}
+          >
+            <View style={[styles.choiceIcon, { backgroundColor: `${item.accent}18`, borderColor: `${item.accent}38` }]}> 
+              <Ionicons name={item.icon} size={21} color={item.accent} />
+            </View>
+            <View style={styles.choiceCopy}>
+              <Text numberOfLines={2} maxFontSizeMultiplier={1.08} style={[styles.choiceTitle, { color: colors.text }]}>{item.title}</Text>
+              <Text numberOfLines={2} maxFontSizeMultiplier={1.08} style={[styles.choiceSub, { color: colors.textMuted }]}>{item.sub}</Text>
+            </View>
+            <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={23} color={active ? item.accent : colors.textMuted} />
+          </AnimatedPressable>
+        );
+      })}
+    </View>
+  );
 }
 
 function ChipList({ items, selected, onSelect, empty }: { items: { id: string; label: string; sub: string }[]; selected: string | null; onSelect: (id: string) => void; empty: string }) {
@@ -344,22 +406,25 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, lineHeight: 19, marginTop: 4 },
   section: { fontSize: 18, fontWeight: '900', marginTop: 6 },
   formCard: { gap: 14 },
-  toggle: { flexDirection: 'row', padding: 4, borderRadius: 16 },
-  toggleItem: { flex: 1, minHeight: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  toggleText: { fontSize: 12, fontWeight: '900' },
+  toggle: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: 17, borderWidth: 1 },
+  toggleItem: { flex: 1, minWidth: 0, minHeight: 46, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  toggleText: { fontSize: 12, fontWeight: '900', textAlign: 'center' },
+  toggleDot: { width: 18, height: 2.5, borderRadius: 3, marginTop: 4 },
   twoCol: { flexDirection: 'row', gap: 10 },
-  col: { flex: 1 },
+  col: { flex: 1, minWidth: 0 },
   fieldLabel: { fontSize: 11, fontWeight: '900', letterSpacing: 0.8 },
   chips: { gap: 9 },
   chip: { minHeight: 59, borderRadius: 17, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  chipCopy: { flex: 1 },
+  chipCopy: { flex: 1, minWidth: 0 },
   chipTitle: { fontSize: 14, fontWeight: '900' },
   chipSub: { fontSize: 11, marginTop: 3 },
   empty: { textAlign: 'center', paddingVertical: 16, fontSize: 13 },
-  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: { width: '48.5%', minHeight: 92, borderRadius: 16, borderWidth: 1, padding: 12, gap: 5 },
-  choiceTitle: { fontSize: 12, fontWeight: '900' },
-  choiceSub: { fontSize: 9, lineHeight: 13 },
+  choiceGrid: { gap: 9 },
+  choice: { width: '100%', minHeight: 74, borderRadius: 18, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  choiceIcon: { width: 44, height: 44, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  choiceCopy: { flex: 1, minWidth: 0 },
+  choiceTitle: { fontSize: 14, fontWeight: '900' },
+  choiceSub: { fontSize: 11, lineHeight: 16, marginTop: 3 },
   matchList: { gap: 8 },
   matchCard: { minHeight: 62, borderRadius: 16, borderWidth: 1, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 },
   warning: { borderWidth: 1, borderRadius: 15, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 8 },
