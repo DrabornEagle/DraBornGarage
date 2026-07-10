@@ -1,32 +1,10 @@
-name: One-time v0.4 Type Fix
+name: One-time v0.4 Type Fix (completed)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/one-time-v04-type-fix.yml
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  fix:
+  completed:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Apply PromiseLike type fix
-        run: |
-          sed -i "s/const run = async (action: () => Promise<{ error: any }>, fallback: string)/const run = async (action: () => PromiseLike<{ error: any }>, fallback: string)/" src/screens/WorkOrderDetailV04.tsx
-          grep -n "const run" src/screens/WorkOrderDetailV04.tsx
-
-      - name: Commit fix
-        run: |
-          git config user.name "DraBornGarage CI"
-          git config user.email "actions@users.noreply.github.com"
-          git add src/screens/WorkOrderDetailV04.tsx
-          git diff --cached --quiet || git commit -m "fix: accept Supabase PromiseLike actions in v0.4 detail"
-          git push origin main
+      - run: echo "v0.4 PromiseLike type fix completed."
