@@ -1,6 +1,7 @@
 begin;
 
--- v0.4 customer RPCs
+-- v0.4 demo and customer RPCs
+drop function if exists public.create_v04_demo_data(uuid);
 drop function if exists public.customer_respond_extra_request(uuid, boolean, text);
 drop function if exists public.customer_get_service_detail(uuid);
 drop function if exists public.customer_get_services(uuid);
