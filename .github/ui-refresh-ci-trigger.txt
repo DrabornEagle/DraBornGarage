@@ -1,0 +1,1 @@
+Validate the animated login, responsive controls, custom themes and colorful bottom navigation.
