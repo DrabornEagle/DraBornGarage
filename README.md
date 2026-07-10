@@ -4,7 +4,9 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.3.0 — Randevu, Müsaitlik ve Usta Takvimi**
+**v0.3.1 — Sürümleme, Yedekleme ve Geri Alma Standardı**
+
+v0.3.1; v0.3.0 randevu, müsaitlik ve usta takvimi özelliklerini korur. Bu güncelleme her değişiklikten sonra sürüm numarasının artırılmasını, yeni sürüm başlamadan önce tam sürüm yedeği oluşturulmasını ve kurulum/geri alma komutlarında hangi sürümün kurulduğunun ve hangisinin yedeklendiğinin açıkça gösterilmesini zorunlu hale getirir.
 
 ## Tamamlanan ana modüller
 
@@ -28,7 +30,7 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 - Çok işletmeli müşteri seçimi
 - İşletmede eşleştirme talebi onaylama/reddetme
 
-### v0.3 — Randevu, Müsaitlik ve Usta Takvimi
+### v0.3.0 — Randevu, Müsaitlik ve Usta Takvimi
 
 - Usta haftalık çalışma saatleri
 - Mola ve randevu slot süresi
@@ -45,6 +47,16 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 - Randevu hareket geçmişi
 - İşletme randevu ayarları
 - Veritabanı seviyesinde çift randevu engeli
+
+### v0.3.1 — Sürüm ve Yedekleme Standardı
+
+- Her tamamlanan değişiklikte sürüm artırma
+- Aynı aşamadaki güncellemelerde `v0.3.1`, `v0.3.2` biçiminde patch artırma
+- Yeni yol haritası aşamasında `v0.4.0` biçimine geçme
+- Yeni sürümden önce tam sürüm numaralı GitHub yedeği
+- Kurulum komutunda kurulan ve yedeklenen sürümü gösterme
+- Geri alma komutunda geri dönülen ve korunan sürümü gösterme
+- Veritabanı değişikliği olmayan sürümlerde no-op rollback kaydı
 
 > Usta bazlı tutarlar maaş, komisyon, prim, net kâr veya ortaklık payı değildir. Sistem yalnızca hangi ustanın hangi işlem için ne kadar tutar kaydettiğini tutar.
 
@@ -63,21 +75,21 @@ npm run typecheck
 npm run test:bundle
 ```
 
-v0.3 için GitHub Actions bağımlılık kurulumu, TypeScript ve Android JavaScript bundle adımları başarıyla tamamlanmıştır.
+## Güncel yedek ve geri dönüş
 
-## Yedek ve geri dönüş
-
-Yeni sürüme geçmeden önce yedek oluşturmak zorunludur.
-
-- v0.2 kod yedeği: `backup/v0.2.0-before-v0.3`
-- v0.3 → v0.2 veritabanı rollback: [`supabase/rollbacks/rollback_v0_3_to_v0_2.sql`](supabase/rollbacks/rollback_v0_3_to_v0_2.sql)
-- Politika: [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
+- **Kurulan sürüm:** `v0.3.1`
+- **Yedeklenen sürüm:** `v0.3.0`
+- **Kod yedeği:** `backup/v0.3.0-before-v0.3.1`
+- **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_3_1_to_v0_3_0.sql`](supabase/rollbacks/rollback_v0_3_1_to_v0_3_0.sql)
+- **Kurulum ve geri alma komutları:** [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
+- **Zorunlu politika:** [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
 
 ## Proje belgeleri
 
 - [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md)
 - [`docs/V0.2_CHECKLIST.md`](docs/V0.2_CHECKLIST.md)
 - [`docs/V0.3_CHECKLIST.md`](docs/V0.3_CHECKLIST.md)
+- [`docs/V0.3.1_CHANGELOG.md`](docs/V0.3.1_CHANGELOG.md)
 - [`docs/ROADMAP.md`](docs/ROADMAP.md)
 - [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
 - [`supabase/migrations`](supabase/migrations)
