@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedPressable } from '../components/AnimatedPressable';
@@ -19,12 +20,30 @@ interface DemoStatus {
   workshop_count?: number;
 }
 
+type ThemeOption = {
+  value: ThemeMode;
+  title: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  preview: [string, string];
+};
+
 const EMPTY_DEMO: DemoStatus = {
   active: false,
   customer_count: 0,
   work_order_count: 0,
   workshop_count: 0,
 };
+
+const THEME_OPTIONS: ThemeOption[] = [
+  { value: 'system', title: 'Otomatik', subtitle: 'Telefonun açık/koyu görünümünü takip eder.', icon: 'contrast', preview: ['#F4F7FC', '#070A12'] },
+  { value: 'light', title: 'Aydınlık Atölye', subtitle: 'Temiz metal, beyaz servis ve gündüz görünümü.', icon: 'sunny', preview: ['#FFFFFF', '#3D7BFF'] },
+  { value: 'dark', title: 'Gece Garajı', subtitle: 'Mor–mavi neonlu ana DraBornGarage teması.', icon: 'moon', preview: ['#7C5CFF', '#20D9D2'] },
+  { value: 'carbon', title: 'Karbon Fiber', subtitle: 'Siyah, çelik ve karbon kaplama hissi.', icon: 'layers', preview: ['#16191C', '#D4D9E0'] },
+  { value: 'racing', title: 'Yarış Garajı', subtitle: 'Kırmızı, turuncu ve pist odaklı agresif görünüm.', icon: 'speedometer', preview: ['#FF355D', '#FF7A2F'] },
+  { value: 'electric', title: 'Electric Blue', subtitle: 'Elektrik mavisi, cyan ve teknoloji garajı.', icon: 'flash', preview: ['#12DDF4', '#318CFF'] },
+  { value: 'sunset', title: 'Sunset Workshop', subtitle: 'Turuncu–mor sıcak gece atölyesi.', icon: 'flame', preview: ['#FF7A4D', '#C45BFF'] },
+];
 
 const roleLabel = (role?: string, isAdmin?: boolean) => {
   if (isAdmin) return 'Admin';
@@ -109,27 +128,61 @@ export function SettingsScreen() {
   ]);
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <ScreenHeader eyebrow="KİŞİSELLEŞTİR" title="Ayarlar" subtitle="Görünüm, test atölyesi, hesap ve aktif işletme bilgileri." />
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScreenHeader eyebrow="KİŞİSELLEŞTİR" title="Ayarlar" subtitle="Garaj temasını, test verilerini, hesabı ve aktif işletmeyi yönet." />
 
       <GlassCard style={styles.profileCard}>
-        <View style={[styles.avatar, { backgroundColor: `${colors.primary}20` }]}><Text style={[styles.avatarText, { color: colors.primary }]}>{profile?.full_name?.charAt(0) || 'D'}</Text></View>
+        <LinearGradient colors={[colors.primary, colors.primary2]} style={styles.avatar}><Text style={styles.avatarText}>{profile?.full_name?.charAt(0) || 'D'}</Text></LinearGradient>
         <View style={styles.copy}><Text style={[styles.name, { color: colors.text }]}>{profile?.full_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{roleLabel(membership?.role, isAdmin)} • {workshop?.name}</Text></View>
         <Ionicons name="shield-checkmark" size={23} color={colors.green} />
       </GlassCard>
+
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Garaj Temaları</Text>
+      <Text style={[styles.sectionDescription, { color: colors.textMuted }]}>Tema değişikliği anında tüm panellere, animasyonlu arka plana ve alt menüye uygulanır.</Text>
+      <View style={styles.themeList}>
+        {THEME_OPTIONS.map((item) => {
+          const active = mode === item.value;
+          return (
+            <AnimatedPressable
+              key={item.value}
+              onPress={() => setMode(item.value)}
+              style={[
+                styles.themeCard,
+                {
+                  backgroundColor: active ? `${colors.primary}14` : colors.card,
+                  borderColor: active ? colors.primary : colors.border,
+                  shadowColor: active ? colors.primary : '#000',
+                },
+              ]}
+            >
+              <LinearGradient colors={item.preview} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.themePreview}>
+                <Ionicons name={item.icon} size={22} color="#fff" />
+                <View style={styles.previewRail}><View style={styles.previewRailLight} /><View style={styles.previewRailDark} /></View>
+              </LinearGradient>
+              <View style={styles.copy}>
+                <Text numberOfLines={1} maxFontSizeMultiplier={1.06} style={[styles.themeTitle, { color: colors.text }]}>{item.title}</Text>
+                <Text maxFontSizeMultiplier={1.08} style={[styles.themeSubtitle, { color: colors.textMuted }]}>{item.subtitle}</Text>
+              </View>
+              <View style={[styles.themeCheck, { backgroundColor: active ? colors.primary : colors.surfaceSoft, borderColor: active ? colors.primary : colors.border }]}> 
+                <Ionicons name={active ? 'checkmark' : 'ellipse-outline'} size={18} color={active ? '#fff' : colors.textMuted} />
+              </View>
+            </AnimatedPressable>
+          );
+        })}
+      </View>
 
       {isOwner && (
         <>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Test Atölyesi</Text>
           <GlassCard style={styles.demoCard}>
             <View style={styles.demoHeader}>
-              <View style={[styles.demoIcon, { backgroundColor: demoStatus.active ? `${colors.green}1C` : `${colors.orange}1C` }]}>
+              <View style={[styles.demoIcon, { backgroundColor: demoStatus.active ? `${colors.green}1C` : `${colors.orange}1C` }]}> 
                 <Ionicons name={demoStatus.active ? 'flask' : 'flask-outline'} size={25} color={demoStatus.active ? colors.green : colors.orange} />
               </View>
               <View style={styles.copy}>
                 <View style={styles.demoTitleRow}>
                   <Text style={[styles.demoTitle, { color: colors.text }]}>Geçici v0.1 Demo Modu</Text>
-                  <View style={[styles.demoPill, { backgroundColor: demoStatus.active ? `${colors.green}1A` : `${colors.textMuted}18`, borderColor: demoStatus.active ? `${colors.green}45` : colors.border }]}>
+                  <View style={[styles.demoPill, { backgroundColor: demoStatus.active ? `${colors.green}1A` : `${colors.textMuted}18`, borderColor: demoStatus.active ? `${colors.green}45` : colors.border }]}> 
                     <View style={[styles.demoDot, { backgroundColor: demoStatus.active ? colors.green : colors.textMuted }]} />
                     <Text style={[styles.demoPillText, { color: demoStatus.active ? colors.green : colors.textMuted }]}>{demoStatus.active ? 'AKTİF' : 'KAPALI'}</Text>
                   </View>
@@ -144,7 +197,7 @@ export function SettingsScreen() {
               <View style={[styles.demoStat, { backgroundColor: colors.surfaceSoft }]}><Ionicons name="construct" size={18} color={colors.orange} /><Text style={[styles.demoStatValue, { color: colors.text }]}>{demoStatus.work_order_count}</Text><Text style={[styles.demoStatLabel, { color: colors.textMuted }]}>İş emri</Text></View>
             </View>
 
-            <View style={[styles.demoNotice, { backgroundColor: `${colors.orange}0D`, borderColor: `${colors.orange}2B` }]}>
+            <View style={[styles.demoNotice, { backgroundColor: `${colors.orange}0D`, borderColor: `${colors.orange}2B` }]}> 
               <Ionicons name="warning-outline" size={19} color={colors.orange} />
               <Text style={[styles.demoNoticeText, { color: colors.textMuted }]}>Temizleme yalnız demo batch kayıtlarını siler. Gerçek işletme ve servis verilerine dokunmaz.</Text>
             </View>
@@ -153,21 +206,6 @@ export function SettingsScreen() {
           </GlassCard>
         </>
       )}
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Tema</Text>
-      <GlassCard style={styles.optionCard}>
-        {([
-          ['system', 'Otomatik', 'Telefonun görünümünü takip eder', 'contrast'],
-          ['light', 'Açık', 'Aydınlık metal atölye görünümü', 'sunny'],
-          ['dark', 'Koyu', 'Gece garajı ve neon servis görünümü', 'moon'],
-        ] as [ThemeMode, string, string, keyof typeof Ionicons.glyphMap][]).map(([value, title, subtitle, icon], index) => (
-          <AnimatedPressable key={value} onPress={() => setMode(value)} style={[styles.optionRow, index > 0 && { borderTopColor: colors.border, borderTopWidth: 1 }]}> 
-            <View style={[styles.optionIcon, { backgroundColor: `${colors.primary}15` }]}><Ionicons name={icon} size={21} color={colors.primary} /></View>
-            <View style={styles.copy}><Text style={[styles.optionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.optionSubtitle, { color: colors.textMuted }]}>{subtitle}</Text></View>
-            <Ionicons name={mode === value ? 'radio-button-on' : 'radio-button-off'} size={23} color={mode === value ? colors.primary : colors.textMuted} />
-          </AnimatedPressable>
-        ))}
-      </GlassCard>
 
       <Text style={[styles.sectionTitle, { color: colors.text }]}>İşletme</Text>
       <GlassCard style={styles.infoCard}>
@@ -198,11 +236,21 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 16 },
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 54, height: 54, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 21, fontWeight: '900' },
-  copy: { flex: 1 },
+  avatarText: { color: '#fff', fontSize: 21, fontWeight: '900' },
+  copy: { flex: 1, minWidth: 0 },
   name: { fontSize: 17, fontWeight: '900' },
   meta: { fontSize: 12, marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 },
+  sectionDescription: { fontSize: 12, lineHeight: 18, marginTop: -8 },
+  themeList: { gap: 10 },
+  themeCard: { minHeight: 84, borderWidth: 1, borderRadius: 21, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, shadowOpacity: 0.12, shadowRadius: 12, elevation: 3 },
+  themePreview: { width: 58, height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  previewRail: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 7, flexDirection: 'row' },
+  previewRailLight: { flex: 1, backgroundColor: '#FFB14A', transform: [{ skewX: '-24deg' }] },
+  previewRailDark: { flex: 1, backgroundColor: '#101010', transform: [{ skewX: '-24deg' }] },
+  themeTitle: { fontSize: 15, fontWeight: '900' },
+  themeSubtitle: { fontSize: 11, lineHeight: 16, marginTop: 4 },
+  themeCheck: { width: 34, height: 34, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   demoCard: { gap: 15 },
   demoHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   demoIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
@@ -218,11 +266,6 @@ const styles = StyleSheet.create({
   demoStatLabel: { fontSize: 9, fontWeight: '800' },
   demoNotice: { borderWidth: 1, borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
   demoNoticeText: { flex: 1, fontSize: 11, lineHeight: 17 },
-  optionCard: { paddingVertical: 5, paddingHorizontal: 15 },
-  optionRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  optionIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  optionTitle: { fontSize: 14, fontWeight: '900' },
-  optionSubtitle: { fontSize: 11, marginTop: 3 },
   infoCard: { paddingVertical: 2, paddingHorizontal: 15 },
   infoRow: { minHeight: 68, borderBottomWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   infoLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 0.6 },
