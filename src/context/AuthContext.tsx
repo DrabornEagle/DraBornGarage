@@ -2,24 +2,30 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { MemberRole, Profile, Workshop, WorkshopMember } from '../types';
+import { AccountMode, CustomerWorkshopLink, MemberRole, Profile, Workshop, WorkshopMember } from '../types';
 
 const ACTIVE_WORKSHOP_KEY = '@draborngarage/active-workshop';
+const ACTIVE_CUSTOMER_WORKSHOP_KEY = '@draborngarage/customer-active-workshop';
 
 interface AuthContextValue {
   session: Session | null;
   profile: Profile | null;
+  accountMode: AccountMode;
   workshop: Workshop | null;
   workshops: Workshop[];
   membership: WorkshopMember | null;
   memberships: WorkshopMember[];
+  customerWorkshop: CustomerWorkshopLink | null;
+  customerWorkshops: CustomerWorkshopLink[];
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (fullName: string, phone: string, email: string, password: string) => Promise<string | null>;
+  signUp: (fullName: string, phone: string, email: string, password: string, accountMode?: AccountMode) => Promise<string | null>;
   signOut: () => Promise<void>;
-  refreshWorkspace: (preferredWorkshopId?: string | null) => Promise<void>;
+  refreshWorkspace: (preferredWorkshopId?: string | null, preferredCustomerWorkshopId?: string | null) => Promise<void>;
   selectWorkshop: (workshopId: string) => Promise<void>;
+  selectCustomerWorkshop: (workshopId: string) => Promise<void>;
+  setAccountMode: (mode: AccountMode) => Promise<string | null>;
   createWorkshop: (name: string, phone: string, address: string) => Promise<string | null>;
   joinWorkshop: (code: string) => Promise<string | null>;
   createInviteCode: (role: MemberRole) => Promise<{ code?: string; error?: string }>;
@@ -34,32 +40,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memberships, setMemberships] = useState<WorkshopMember[]>([]);
   const [workshop, setWorkshop] = useState<Workshop | null>(null);
   const [membership, setMembership] = useState<WorkshopMember | null>(null);
+  const [customerWorkshops, setCustomerWorkshops] = useState<CustomerWorkshopLink[]>([]);
+  const [customerWorkshop, setCustomerWorkshop] = useState<CustomerWorkshopLink | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshWorkspace = useCallback(async (preferredWorkshopId?: string | null) => {
+  const clearState = useCallback(() => {
+    setProfile(null);
+    setWorkshops([]);
+    setMemberships([]);
+    setWorkshop(null);
+    setMembership(null);
+    setCustomerWorkshops([]);
+    setCustomerWorkshop(null);
+  }, []);
+
+  const refreshWorkspace = useCallback(async (
+    preferredWorkshopId?: string | null,
+    preferredCustomerWorkshopId?: string | null,
+  ) => {
     const { data: sessionData } = await supabase.auth.getSession();
     const currentSession = sessionData.session;
     setSession(currentSession);
 
     if (!currentSession?.user) {
-      setProfile(null);
-      setWorkshops([]);
-      setMemberships([]);
-      setWorkshop(null);
-      setMembership(null);
+      clearState();
       setLoading(false);
       return;
     }
 
     const userId = currentSession.user.id;
-    const [{ data: profileData }, { data: memberData }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin').eq('id', userId).maybeSingle(),
+    const [{ data: profileData }, { data: memberData }, customerWorkshopResult] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin, account_mode').eq('id', userId).maybeSingle(),
       supabase
         .from('workshop_members')
         .select('workshop_id, user_id, role, is_active, availability_status, staff_note')
         .eq('user_id', userId)
         .eq('is_active', true)
         .order('joined_at', { ascending: true }),
+      supabase.rpc('customer_get_workshops'),
     ]);
 
     const nextProfile = (profileData as Profile | null) ?? null;
@@ -68,39 +86,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(nextProfile);
     setMemberships(nextMemberships);
 
-    let workshopQuery = supabase
-      .from('workshops')
-      .select('id, name, phone, address, logo_url, is_active, demo_batch_id')
-      .order('created_at', { ascending: true });
-
-    if (!admin) {
+    let nextWorkshops: Workshop[] = [];
+    if (admin) {
+      const { data } = await supabase
+        .from('workshops')
+        .select('id, name, phone, address, logo_url, is_active, demo_batch_id')
+        .order('created_at', { ascending: true });
+      nextWorkshops = (data as Workshop[]) ?? [];
+    } else if (nextMemberships.length > 0) {
       const ids = nextMemberships.map((item) => item.workshop_id);
-      if (ids.length === 0) {
-        setWorkshops([]);
-        setWorkshop(null);
-        setMembership(null);
-        setLoading(false);
-        return;
-      }
-      workshopQuery = workshopQuery.in('id', ids).eq('is_active', true);
+      const { data } = await supabase
+        .from('workshops')
+        .select('id, name, phone, address, logo_url, is_active, demo_batch_id')
+        .in('id', ids)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
+      nextWorkshops = (data as Workshop[]) ?? [];
     }
-
-    const { data: workshopData } = await workshopQuery;
-    const nextWorkshops = ((workshopData as Workshop[]) ?? []).filter((item) => admin || item.is_active !== false);
     setWorkshops(nextWorkshops);
 
-    const storedId = preferredWorkshopId ?? await AsyncStorage.getItem(ACTIVE_WORKSHOP_KEY);
-    const selected = nextWorkshops.find((item) => item.id === storedId)
+    const storedStaffId = preferredWorkshopId ?? await AsyncStorage.getItem(ACTIVE_WORKSHOP_KEY);
+    const selectedStaff = nextWorkshops.find((item) => item.id === storedStaffId)
       ?? nextWorkshops.find((item) => item.is_active !== false)
       ?? nextWorkshops[0]
       ?? null;
+    if (selectedStaff) await AsyncStorage.setItem(ACTIVE_WORKSHOP_KEY, selectedStaff.id);
+    setWorkshop(selectedStaff);
 
-    if (selected) await AsyncStorage.setItem(ACTIVE_WORKSHOP_KEY, selected.id);
-    setWorkshop(selected);
-
-    const selectedMembership = selected
-      ? nextMemberships.find((item) => item.workshop_id === selected.id) ?? (admin ? {
-          workshop_id: selected.id,
+    const selectedMembership = selectedStaff
+      ? nextMemberships.find((item) => item.workshop_id === selectedStaff.id) ?? (admin ? {
+          workshop_id: selectedStaff.id,
           user_id: userId,
           role: 'owner' as MemberRole,
           is_active: true,
@@ -108,8 +123,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } : null)
       : null;
     setMembership(selectedMembership);
+
+    const nextCustomerWorkshops = ((customerWorkshopResult.data as CustomerWorkshopLink[] | null) ?? []);
+    setCustomerWorkshops(nextCustomerWorkshops);
+    const storedCustomerId = preferredCustomerWorkshopId ?? await AsyncStorage.getItem(ACTIVE_CUSTOMER_WORKSHOP_KEY);
+    const selectedCustomer = nextCustomerWorkshops.find((item) => item.workshop_id === storedCustomerId)
+      ?? nextCustomerWorkshops[0]
+      ?? null;
+    if (selectedCustomer) await AsyncStorage.setItem(ACTIVE_CUSTOMER_WORKSHOP_KEY, selectedCustomer.workshop_id);
+    setCustomerWorkshop(selectedCustomer);
     setLoading(false);
-  }, []);
+  }, [clearState]);
 
   useEffect(() => {
     refreshWorkspace();
@@ -121,10 +145,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       session,
       profile,
+      accountMode: profile?.account_mode ?? 'staff',
       workshop,
       workshops,
       membership,
       memberships,
+      customerWorkshop,
+      customerWorkshops,
       isAdmin: Boolean(profile?.is_admin),
       loading,
       signIn: async (email, password) => {
@@ -133,11 +160,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await refreshWorkspace();
         return null;
       },
-      signUp: async (fullName, phone, email, password) => {
+      signUp: async (fullName, phone, email, password, accountMode = 'staff') => {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { full_name: fullName.trim(), phone: phone.trim() } },
+          options: { data: { full_name: fullName.trim(), phone: phone.trim(), account_mode: accountMode } },
         });
         if (error) return error.message;
         if (!data.session) return 'Hesabın oluşturuldu. E-posta doğrulamasını tamamladıktan sonra giriş yap.';
@@ -146,18 +173,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       signOut: async () => {
         await supabase.auth.signOut();
-        await AsyncStorage.removeItem(ACTIVE_WORKSHOP_KEY);
+        await Promise.all([
+          AsyncStorage.removeItem(ACTIVE_WORKSHOP_KEY),
+          AsyncStorage.removeItem(ACTIVE_CUSTOMER_WORKSHOP_KEY),
+        ]);
         setSession(null);
-        setProfile(null);
-        setWorkshops([]);
-        setMemberships([]);
-        setWorkshop(null);
-        setMembership(null);
+        clearState();
       },
       refreshWorkspace,
       selectWorkshop: async (workshopId) => {
         await AsyncStorage.setItem(ACTIVE_WORKSHOP_KEY, workshopId);
-        await refreshWorkspace(workshopId);
+        await refreshWorkspace(workshopId, customerWorkshop?.workshop_id ?? null);
+      },
+      selectCustomerWorkshop: async (workshopId) => {
+        await AsyncStorage.setItem(ACTIVE_CUSTOMER_WORKSHOP_KEY, workshopId);
+        await refreshWorkspace(workshop?.id ?? null, workshopId);
+      },
+      setAccountMode: async (mode) => {
+        const { error } = await supabase.rpc('set_profile_account_mode', { p_mode: mode });
+        if (error) return error.message;
+        await refreshWorkspace(workshop?.id ?? null, customerWorkshop?.workshop_id ?? null);
+        return null;
       },
       createWorkshop: async (name, phone, address) => {
         const admin = Boolean(profile?.is_admin);
@@ -168,13 +204,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           p_address: address.trim() || null,
         });
         if (error) return error.message;
-        await refreshWorkspace(data ? String(data) : null);
+        await supabase.rpc('set_profile_account_mode', { p_mode: 'staff' });
+        await refreshWorkspace(data ? String(data) : null, customerWorkshop?.workshop_id ?? null);
         return null;
       },
       joinWorkshop: async (code) => {
         const { data, error } = await supabase.rpc('join_workshop_by_code', { p_code: code.trim().toUpperCase() });
         if (error) return error.message;
-        await refreshWorkspace(data ? String(data) : null);
+        await supabase.rpc('set_profile_account_mode', { p_mode: 'staff' });
+        await refreshWorkspace(data ? String(data) : null, customerWorkshop?.workshop_id ?? null);
         return null;
       },
       createInviteCode: async (role) => {
@@ -188,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { code: String(data) };
       },
     }),
-    [session, profile, workshop, workshops, membership, memberships, loading, refreshWorkspace],
+    [session, profile, workshop, workshops, membership, memberships, customerWorkshop, customerWorkshops, loading, refreshWorkspace, clearState],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
