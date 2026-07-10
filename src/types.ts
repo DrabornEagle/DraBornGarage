@@ -28,6 +28,10 @@ export type CustomerClaimMethod = 'phone' | 'tracking_code' | 'qr' | 'mechanic_a
 export type CustomerClaimStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'cancelled';
 export type AppointmentStatus = 'pending' | 'confirmed' | 'arrived' | 'converted' | 'cancelled' | 'no_show';
 export type AppointmentSource = 'customer' | 'mechanic' | 'owner' | 'admin';
+export type ExtraWorkStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+export type ExtraApprovalMethod = 'app' | 'in_person' | 'phone' | 'whatsapp' | 'staff_rejected';
+export type WorkNoteVisibility = 'staff' | 'customer';
+export type WorkNoteCategory = 'general' | 'diagnosis' | 'test' | 'customer_update' | 'internal';
 
 export interface Profile {
   id: string;
@@ -112,9 +116,67 @@ export interface CustomerMotorcycle {
 }
 
 export interface CustomerServiceItem {
+  id?: string;
   title: string;
+  description?: string | null;
   price: number;
   completed: boolean;
+  started_at?: string | null;
+  completed_at?: string | null;
+  extra_request_id?: string | null;
+  included_in_total?: boolean;
+}
+
+export interface CustomerServicePart {
+  id: string;
+  part_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  used_at?: string | null;
+  extra_request_id?: string | null;
+  included_in_total?: boolean;
+}
+
+export interface ExtraWorkRequest {
+  id: string;
+  work_order_id?: string;
+  workshop_id?: string;
+  title: string;
+  description?: string | null;
+  labor_amount: number;
+  parts_amount: number;
+  total_amount: number;
+  status: ExtraWorkStatus;
+  approval_method?: ExtraApprovalMethod | null;
+  resume_status?: WorkOrderStatus;
+  response_note?: string | null;
+  responded_at?: string | null;
+  created_at: string;
+  can_respond?: boolean;
+}
+
+export interface WorkOrderNote {
+  id: string;
+  work_order_id?: string;
+  category: WorkNoteCategory;
+  visibility?: WorkNoteVisibility;
+  note: string;
+  author_id?: string;
+  author_name?: string | null;
+  created_at: string;
+}
+
+export interface WorkOrderEvent {
+  id: string;
+  work_order_id?: string;
+  event_type: string;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  old_status?: WorkOrderStatus | null;
+  new_status?: WorkOrderStatus | null;
+  note?: string | null;
+  created_at: string;
 }
 
 export interface CustomerServiceRecord {
@@ -138,9 +200,23 @@ export interface CustomerServiceRecord {
   payment_status: PaymentStatus;
   arrived_at: string;
   started_at?: string | null;
+  testing_started_at?: string | null;
+  ready_at?: string | null;
   completed_at?: string | null;
   delivered_at?: string | null;
+  pending_approval_count: number;
   service_items: CustomerServiceItem[];
+}
+
+export interface CustomerServiceDetail extends CustomerServiceRecord {
+  diagnosis?: string | null;
+  labor_amount: number;
+  parts_amount: number;
+  services: CustomerServiceItem[];
+  parts: CustomerServicePart[];
+  extra_requests: ExtraWorkRequest[];
+  notes: WorkOrderNote[];
+  events: WorkOrderEvent[];
 }
 
 export interface CustomerClaim {
