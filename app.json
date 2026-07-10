@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "DraBornGarage",
+    "slug": "draborngarage",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.draborneagle.draborngarage"
+    },
+    "android": {
+      "package": "com.draborneagle.draborngarage",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    }
+  }
+}
