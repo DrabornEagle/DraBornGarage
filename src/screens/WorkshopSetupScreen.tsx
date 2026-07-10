@@ -42,11 +42,11 @@ export function WorkshopSetupScreen() {
             </AnimatedPressable>
           </View>
 
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Yeni bir motosiklet servisi oluştur veya sana gönderilen ekip davet koduyla mevcut işletmeye katıl.</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Yeni bir motosiklet/oto servisi oluştur veya sana gönderilen rol bazlı davet koduyla mevcut işletmeye katıl.</Text>
 
           <View style={styles.choiceRow}>
-            <ChoiceCard active={mode === 'create'} icon="business" title="İşletme oluştur" text="İlk sahibi ol, ekibini sonra davet et." onPress={() => setMode('create')} />
-            <ChoiceCard active={mode === 'join'} icon="people" title="Ekibe katıl" text="Usta veya ortak sahibi davet koduyla katıl." onPress={() => setMode('join')} />
+            <ChoiceCard active={mode === 'create'} icon="business" title="İşletme oluştur" text="İşletme Sahibi + Usta olarak başla, ekibini sonra davet et." onPress={() => setMode('create')} />
+            <ChoiceCard active={mode === 'join'} icon="people" title="Ekibe katıl" text="Usta, Çırak veya işletme sahibi koduyla katıl." onPress={() => setMode('join')} />
           </View>
 
           <GlassCard style={styles.form}>
@@ -60,7 +60,7 @@ export function WorkshopSetupScreen() {
             ) : (
               <>
                 <FormField label="Davet kodu" value={code} onChangeText={(value) => setCode(value.toUpperCase())} autoCapitalize="characters" placeholder="Örn. A7F3K9P2" />
-                <Text style={[styles.help, { color: colors.textMuted }]}>Kod rolünü belirler: usta kodu özel Usta Paneli, ortak sahibi kodu İşletme Sahibi Paneli açar.</Text>
+                <Text style={[styles.help, { color: colors.textMuted }]}>Kod rolünü otomatik belirler: Usta, Çırak, İşletme Sahibi veya İşletme Sahibi + Usta.</Text>
                 <PrimaryButton title="İşletmeye Katıl" onPress={submit} loading={loading} />
               </>
             )}
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   logout: { width: 46, height: 46, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   subtitle: { fontSize: 15, lineHeight: 22 },
   choiceRow: { flexDirection: 'row', gap: 12 },
-  choice: { flex: 1, borderWidth: 1, borderRadius: 22, padding: 16, minHeight: 155, gap: 10 },
+  choice: { flex: 1, borderWidth: 1, borderRadius: 22, padding: 16, minHeight: 166, gap: 10 },
   choiceTitle: { fontSize: 16, fontWeight: '900' },
   choiceText: { fontSize: 12, lineHeight: 17 },
   form: { gap: 16 },
