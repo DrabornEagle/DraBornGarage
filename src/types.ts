@@ -1,4 +1,5 @@
 export type ThemeMode = 'system' | 'light' | 'dark' | 'carbon' | 'racing' | 'electric' | 'sunset';
+export type AccountMode = 'staff' | 'customer';
 export type MemberRole = 'owner' | 'owner_mechanic' | 'mechanic' | 'apprentice';
 export type WorkOrderStatus =
   | 'opened'
@@ -23,6 +24,10 @@ export type ServiceType = 'appointment' | 'quick' | 'dropoff';
 export type CustomerWaitingStatus = 'waiting_shop' | 'left_vehicle' | 'return_later' | 'third_party_delivery';
 export type PriceType = 'estimated' | 'fixed';
 export type AvailabilityStatus = 'available' | 'busy' | 'off';
+export type CustomerClaimMethod = 'phone' | 'tracking_code' | 'qr' | 'mechanic_approval' | 'staff_manual';
+export type CustomerClaimStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'cancelled';
+export type AppointmentStatus = 'pending' | 'confirmed' | 'arrived' | 'converted' | 'cancelled' | 'no_show';
+export type AppointmentSource = 'customer' | 'mechanic' | 'owner' | 'admin';
 
 export interface Profile {
   id: string;
@@ -30,6 +35,7 @@ export interface Profile {
   phone?: string | null;
   avatar_url?: string | null;
   is_admin?: boolean;
+  account_mode?: AccountMode;
 }
 
 export interface Workshop {
@@ -40,6 +46,11 @@ export interface Workshop {
   logo_url?: string | null;
   is_active?: boolean;
   demo_batch_id?: string | null;
+  timezone?: string;
+  appointments_enabled?: boolean;
+  appointment_auto_confirm?: boolean;
+  appointment_booking_days?: number;
+  appointment_min_notice_minutes?: number;
 }
 
 export interface WorkshopMember {
@@ -73,9 +84,174 @@ export interface Motorcycle {
   odometer?: number | null;
 }
 
+export interface CustomerWorkshopLink {
+  link_id: string;
+  workshop_id: string;
+  workshop_name: string;
+  workshop_phone?: string | null;
+  workshop_address?: string | null;
+  customer_id: string;
+  customer_name: string;
+  linked_at?: string | null;
+  link_method: CustomerClaimMethod;
+}
+
+export interface CustomerMotorcycle {
+  id: string;
+  customer_id: string;
+  brand: string;
+  model: string;
+  year?: number | null;
+  plate?: string | null;
+  color?: string | null;
+  odometer?: number | null;
+  service_count: number;
+  active_service_count: number;
+  last_service_at?: string | null;
+  latest_status?: WorkOrderStatus | null;
+}
+
+export interface CustomerServiceItem {
+  title: string;
+  price: number;
+  completed: boolean;
+}
+
+export interface CustomerServiceRecord {
+  id: string;
+  workshop_id: string;
+  workshop_name: string;
+  motorcycle_id: string;
+  brand: string;
+  model: string;
+  plate?: string | null;
+  status: WorkOrderStatus;
+  service_type: ServiceType;
+  complaint: string;
+  price_type?: PriceType | null;
+  estimated_price_min?: number | null;
+  estimated_price_max?: number | null;
+  quoted_price?: number | null;
+  total_amount: number;
+  amount_received: number;
+  remaining_amount: number;
+  payment_status: PaymentStatus;
+  arrived_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  delivered_at?: string | null;
+  service_items: CustomerServiceItem[];
+}
+
+export interface CustomerClaim {
+  id: string;
+  workshop_id: string;
+  workshop_name: string;
+  motorcycle_id: string;
+  brand: string;
+  model: string;
+  plate?: string | null;
+  method: CustomerClaimMethod;
+  status: CustomerClaimStatus;
+  created_at: string;
+  reviewed_at?: string | null;
+  review_note?: string | null;
+}
+
+export interface StaffCustomerClaim {
+  id: string;
+  user_id: string;
+  claimant_name: string;
+  claimant_phone?: string | null;
+  customer_id: string;
+  customer_name: string;
+  motorcycle_id: string;
+  brand: string;
+  model: string;
+  plate?: string | null;
+  method: CustomerClaimMethod;
+  status: CustomerClaimStatus;
+  submitted_phone?: string | null;
+  created_at: string;
+}
+
+export interface AppointmentMechanic {
+  mechanic_id: string;
+  full_name: string;
+  role?: string;
+  availability_status: AvailabilityStatus;
+}
+
+export interface AvailableSlot {
+  slot_start: string;
+  slot_end: string;
+  slot_label: string;
+}
+
+export interface WorkingHours {
+  id: string;
+  mechanic_id: string;
+  mechanic_name: string;
+  day_of_week: number;
+  is_working: boolean;
+  start_time: string;
+  end_time: string;
+  break_start?: string | null;
+  break_end?: string | null;
+  slot_minutes: number;
+}
+
+export interface MechanicTimeOff {
+  id: string;
+  mechanic_id: string;
+  mechanic_name: string;
+  starts_at: string;
+  ends_at: string;
+  reason?: string | null;
+  created_at: string;
+}
+
+export interface Appointment {
+  id: string;
+  workshop_id: string;
+  workshop_name?: string;
+  customer_id: string;
+  customer_name?: string;
+  customer_phone?: string | null;
+  motorcycle_id: string;
+  brand: string;
+  model: string;
+  plate?: string | null;
+  mechanic_id: string;
+  mechanic_name: string;
+  service_title: string;
+  customer_note?: string | null;
+  staff_note?: string | null;
+  scheduled_start: string;
+  scheduled_end: string;
+  status: AppointmentStatus;
+  source: AppointmentSource;
+  cancellation_reason?: string | null;
+  work_order_id?: string | null;
+  created_at: string;
+}
+
+export interface AppointmentEvent {
+  id: string;
+  event_type: string;
+  actor_name?: string | null;
+  old_status?: string | null;
+  new_status?: string | null;
+  old_start?: string | null;
+  new_start?: string | null;
+  note?: string | null;
+  created_at: string;
+}
+
 export interface WorkOrderListItem {
   id: string;
   workshop_id?: string;
+  appointment_id?: string | null;
   status: WorkOrderStatus;
   payment_status: PaymentStatus;
   service_type: ServiceType;
