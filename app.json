@@ -3,7 +3,7 @@
     "name": "DraBornGarage",
     "slug": "draborngarage",
     "scheme": "draborngarage",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,6 +13,14 @@
         {
           "cameraPermission": "DraBornGarage servis QR kodlarını taramak için kameraya erişsin.",
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "DraBornGarage platform ödeme dekontunu seçebilmek için fotoğraflarına erişsin.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ]
     ],
