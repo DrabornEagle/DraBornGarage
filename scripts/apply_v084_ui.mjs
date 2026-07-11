@@ -7,7 +7,11 @@ const write = (file, content) => fs.writeFileSync(path.join(root, file), content
 
 function replaceOnce(file, before, after) {
   const source = read(file);
-  const index = source.indexOf(before);
+  let index = source.indexOf(before);
+  if (index < 0 && before.startsWith('  ')) {
+    before = before.slice(2);
+    index = source.indexOf(before);
+  }
   if (index < 0) {
     if (source.includes(after)) return;
     throw new Error(`${file}: target not found: ${before.slice(0, 180)}`);
