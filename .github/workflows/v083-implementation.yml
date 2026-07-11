@@ -7,6 +7,7 @@ on:
     paths:
       - scripts/apply_v083.mjs
       - scripts/fix_v083.mjs
+      - scripts/sync_v083_sql.mjs
       - .github/workflows/v083-implementation.yml
 
 concurrency:
@@ -39,6 +40,9 @@ jobs:
       - name: Apply v0.8.3 follow-up fixes
         run: node scripts/fix_v083.mjs
 
+      - name: Synchronize applied v0.8.3 SQL
+        run: node scripts/sync_v083_sql.mjs
+
       - name: Persist generated v0.8.3 files
         run: |
           git config user.name "github-actions[bot]"
@@ -47,7 +51,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Generated changes are already committed."
           else
-            git commit -m "fix: finalize v0.8.3 tax and plate linking"
+            git commit -m "fix: synchronize v0.8.3 migration with Supabase"
             git pull --rebase origin feature/v0.8.3-customer-motor-tax-linking
             git push origin HEAD:feature/v0.8.3-customer-motor-tax-linking
           fi
