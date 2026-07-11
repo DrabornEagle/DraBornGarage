@@ -1,46 +1,10 @@
-name: One-time v0.8.0 Final Run Documentation
+name: One-time v0.8.0 Final Run Documentation (completed)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/one-time-v080-final-run-docs.yml
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  update:
+  completed:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-      - name: Record final validation
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          function replace(path, from, to) {
-            let text = fs.readFileSync(path, 'utf8');
-            if (!text.includes(from)) throw new Error(`Marker missing in ${path}`);
-            text = text.replace(from, to);
-            fs.writeFileSync(path, text);
-          }
-          replace(
-            'docs/V0.8_CHECKLIST.md',
-            '- [ ] Final GitHub Actions run numarası belgeye işlenecek',
-            '- [x] Final GitHub Actions `Validate DraBornGarage` run #310 başarılı'
-          );
-          replace(
-            'docs/V0.8.0_VALIDATION_REPORT.md',
-            'Final doğrulama run numarası sürüm kapanışında ayrıca işlenecektir.',
-            'Final doğrulama:\n\n- Workflow: `Validate DraBornGarage`\n- Run: `#310`\n- Bağımlılık kurulumu: başarılı\n- TypeScript kontrolü: başarılı\n- Android JavaScript bundle: başarılı\n- Sonuç: `success`'
-          );
-          NODE
-      - name: Commit
-        run: |
-          git config user.name "DraBornGarage CI"
-          git config user.email "actions@users.noreply.github.com"
-          git add docs/V0.8_CHECKLIST.md docs/V0.8.0_VALIDATION_REPORT.md
-          git commit -m "docs: finalize v0.8.0 validation run"
-          git push origin main
+      - run: echo "v0.8.0 final validation documentation completed."
