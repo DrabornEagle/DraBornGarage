@@ -41,10 +41,43 @@ jobs:
           cache: npm
 
       - name: Apply v0.8.4 core changes
-        run: node scripts/apply_v084_core.mjs
+        id: core
+        continue-on-error: true
+        run: |
+          set +e
+          node scripts/apply_v084_core.mjs > v084-core.log 2>&1
+          code=$?
+          cat v084-core.log
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Apply v0.8.4 UI changes
-        run: node scripts/apply_v084_ui.mjs
+        id: ui
+        if: steps.core.outputs.exit_code == '0'
+        continue-on-error: true
+        run: |
+          set +e
+          node scripts/apply_v084_ui.mjs > v084-ui.log 2>&1
+          code=$?
+          cat v084-ui.log
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload generation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: draborngarage-v084-generation-logs
+          path: |
+            v084-core.log
+            v084-ui.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Enforce generation result
+        run: |
+          test "${{ steps.core.outputs.exit_code }}" = "0"
+          test "${{ steps.ui.outputs.exit_code }}" = "0"
 
       - name: Persist generated v0.8.4 files
         run: |
