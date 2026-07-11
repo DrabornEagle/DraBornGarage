@@ -1,49 +1,10 @@
-name: One-time v0.5.0 Checklist Finalize
+name: One-time v0.5.0 Checklist Finalize (completed)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/one-time-v050-checklist-finalize.yml
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  update:
+  completed:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Finalize checklist
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = 'docs/V0.5_CHECKLIST.md';
-          let text = fs.readFileSync(path, 'utf8');
-          const pairs = [
-            ['- [x] Supabase `v0_5_customer_receivables_and_demo` migration uygulandı', '- [x] Supabase `v0_5_customer_receivables_and_demo` migration uygulandı\n- [x] Supabase `v0_5_security_and_fk_indexes` migration uygulandı'],
-            ['- [x] GitHub Actions `Validate DraBornGarage` run #219 başarılı', '- [x] GitHub Actions `Validate DraBornGarage` final run #222 başarılı'],
-            ['- [ ] Rollback SQL transaction dry-run', '- [x] Rollback SQL transaction dry-run'],
-            ['- [ ] Supabase güvenlik danışmanı son kontrol', '- [x] Supabase güvenlik danışmanı son kontrol'],
-            ['- [ ] Supabase performans danışmanı son kontrol', '- [x] Supabase performans danışmanı son kontrol'],
-            ['Kod, migration, rol güvenliği ve otomatik test tamamlandı. Rollback transaction testi ve Supabase danışman kontrolleri tamamlandıktan sonra yalnız fiziksel Expo Go testleri açık kalır.', 'Kod, migration, rollback transaction testi, rol güvenliği, foreign-key indeksleri ve otomatik test tamamlandı. Yalnız fiziksel Expo Go testleri açık kalır.'],
-          ];
-          for (const [from,to] of pairs) {
-            if (!text.includes(from)) throw new Error(`Expected text missing: ${from}`);
-            text = text.replace(from,to);
-          }
-          text += '\n\n> Supabase güvenlik danışmanındaki kalan `SECURITY DEFINER` uyarıları, uygulamanın rol/yetki kontrolü yapan ve istemci tarafından çağrılması gereken RPC uçları için beklenen uyarılardır. Doğrudan çağrılmaması gereken v0.5 yardımcı fonksiyonunun yetkisi kaldırılmıştır. Performans danışmanında eksik foreign-key indeksi kalmamış; yalnız yeni geliştirme veritabanında henüz kullanılmamış indeks bilgi mesajları kalmıştır.\n';
-          fs.writeFileSync(path, text);
-          NODE
-
-      - name: Commit checklist
-        run: |
-          git config user.name "DraBornGarage CI"
-          git config user.email "actions@users.noreply.github.com"
-          git add docs/V0.5_CHECKLIST.md
-          git diff --cached --quiet || git commit -m "docs: complete v0.5 automated validation checklist"
-          git push origin main
+      - run: echo "v0.5.0 checklist finalization completed."
