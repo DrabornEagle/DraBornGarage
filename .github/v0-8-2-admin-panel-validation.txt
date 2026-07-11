@@ -1,0 +1,1 @@
+Validate DraBornGarage v0.8.2 dedicated Admin panel, role navigation, TypeScript and Android bundle.
