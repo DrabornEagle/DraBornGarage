@@ -9,9 +9,9 @@ import { useTheme } from '../context/ThemeContext';
 import { shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
 import { CustomerMotorcycle } from '../types';
-import { CustomerLinkPanel } from './CustomerLinkPanel';
+import { CustomerLockedState } from './CustomerLockedState';
 
-export function CustomerMotorcyclesScreen() {
+export function CustomerMotorcyclesScreen({ onStartLink }: { onStartLink: () => void }) {
   const { colors } = useTheme();
   const { customerWorkshop } = useAuth();
   const [items, setItems] = useState<CustomerMotorcycle[]>([]);
@@ -24,7 +24,7 @@ export function CustomerMotorcyclesScreen() {
   }, [customerWorkshop]);
   useEffect(() => { load(); }, [load]);
 
-  if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content}><ScreenHeader eyebrow="MOTORLARIM" title="Garajım" subtitle="Önce motorunu bir işletmeyle eşleştir." /><CustomerLinkPanel /></ScrollView>;
+  if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><ScreenHeader eyebrow="MOTORLARIM" title="Garajım" subtitle="Bağlı motorların ve servis geçmişin burada görünür." /><CustomerLockedState title="Henüz bağlı motorun yok" description="Motorunu bir kez güvenli biçimde eşleştirdiğinde bu ekranda tüm motorlarını ve servis durumlarını görebileceksin." icon="bicycle" onStartLink={onStartLink} /></ScrollView>;
 
   return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
     <ScreenHeader eyebrow="MOTORLARIM" title="Garajım" subtitle={`${customerWorkshop.workshop_name} işletmesine kayıtlı motorların.`} />
@@ -42,5 +42,5 @@ function Stat({ value, label, accent }: { value: string; label: string; accent?:
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 14 }, card: { gap: 13 }, top: { flexDirection: 'row', alignItems: 'center', gap: 10 }, icon: { width: 53, height: 53, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1, minWidth: 0 }, title: { fontSize: 17, fontWeight: '900' }, meta: { fontSize: 11, marginTop: 4 }, stats: { flexDirection: 'row', gap: 8 }, stat: { flex: 1, minHeight: 70, borderRadius: 16, padding: 10, justifyContent: 'center' }, statValue: { fontSize: 17, fontWeight: '900' }, statLabel: { fontSize: 9, marginTop: 4 }, footer: { flexDirection: 'row', alignItems: 'center', gap: 7 }, footerText: { fontSize: 11 }, empty: { alignItems: 'center', gap: 9, paddingVertical: 30 }, emptyTitle: { fontSize: 17, fontWeight: '900' },
+  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 32, gap: 14 }, card: { gap: 13 }, top: { flexDirection: 'row', alignItems: 'center', gap: 10 }, icon: { width: 53, height: 53, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1, minWidth: 0 }, title: { fontSize: 17, fontWeight: '900' }, meta: { fontSize: 11, marginTop: 4 }, stats: { flexDirection: 'row', gap: 8 }, stat: { flex: 1, minHeight: 70, borderRadius: 16, padding: 10, justifyContent: 'center' }, statValue: { fontSize: 17, fontWeight: '900' }, statLabel: { fontSize: 9, marginTop: 4 }, footer: { flexDirection: 'row', alignItems: 'center', gap: 7 }, footerText: { fontSize: 11 }, empty: { alignItems: 'center', gap: 9, paddingVertical: 30 }, emptyTitle: { fontSize: 17, fontWeight: '900' },
 });
