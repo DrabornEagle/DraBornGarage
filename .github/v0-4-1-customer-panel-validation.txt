@@ -1,0 +1,1 @@
+Validate DraBornGarage v0.4.1 customer panel layout, safe-area navigation, locked states, TypeScript and Android bundle.
