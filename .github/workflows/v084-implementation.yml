@@ -8,6 +8,7 @@ on:
       - scripts/prepare_v084_generators.mjs
       - scripts/apply_v084_core.mjs
       - scripts/apply_v084_ui.mjs
+      - scripts/finalize_v084_generated.mjs
       - .github/workflows/v084-implementation.yml
   pull_request:
     branches:
@@ -16,6 +17,7 @@ on:
       - scripts/prepare_v084_generators.mjs
       - scripts/apply_v084_core.mjs
       - scripts/apply_v084_ui.mjs
+      - scripts/finalize_v084_generated.mjs
       - .github/workflows/v084-implementation.yml
 
 concurrency:
@@ -68,6 +70,10 @@ jobs:
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Normalize generated v0.8.4 source
+        if: steps.core.outputs.exit_code == '0' && steps.ui.outputs.exit_code == '0'
+        run: node scripts/finalize_v084_generated.mjs
+
       - name: Upload generation diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -92,7 +98,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Generated changes are already committed."
           else
-            git commit -m "feat: complete v0.8.4 approval calendar and modern UI"
+            git commit -m "fix: finalize v0.8.4 generated source"
             git pull --rebase origin feature/v0.8.4-approval-calendar-modern-ui
             git push origin HEAD:feature/v0.8.4-approval-calendar-modern-ui
           fi
