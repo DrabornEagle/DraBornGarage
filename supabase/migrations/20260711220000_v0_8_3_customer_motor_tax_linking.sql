@@ -247,7 +247,7 @@ as $$
 declare
   normalized_plate text := public.normalize_plate(p_plate);
   account_rec record;
-  customer_rec record;
+  customer_id_value uuid;
   motorcycle_id_value uuid;
   claim_id_value uuid;
 begin
@@ -265,31 +265,29 @@ begin
 
   if account_rec.id is null then raise exception 'Bu plakaya ait müşteri hesabı bulunamadı'; end if;
 
-  select c.id as customer_id, c.full_name as customer_name, m.id as motorcycle_id
-  into customer_rec
+  select c.id, m.id
+  into customer_id_value, motorcycle_id_value
   from public.motorcycles m
   join public.customers c on c.id = m.customer_id and c.workshop_id = m.workshop_id
   where m.workshop_id = p_workshop_id and public.normalize_plate(m.plate) = normalized_plate
   order by m.created_at desc
   limit 1;
 
-  if customer_rec.customer_id is null then
+  if customer_id_value is null then
     insert into public.customers(workshop_id, full_name, phone, note, created_by)
     values (p_workshop_id, account_rec.full_name, account_rec.phone, 'Müşteri hesabından plaka ile oluşturuldu', auth.uid())
-    returning id into customer_rec.customer_id;
+    returning id into customer_id_value;
 
     insert into public.motorcycles(workshop_id, customer_id, brand, model, plate, created_by)
     values (
       p_workshop_id,
-      customer_rec.customer_id,
+      customer_id_value,
       coalesce(nullif(trim(account_rec.customer_motorcycle_brand), ''), 'Belirtilmedi'),
       coalesce(nullif(trim(account_rec.customer_motorcycle_model), ''), 'Belirtilmedi'),
       normalized_plate,
       auth.uid()
     )
     returning id into motorcycle_id_value;
-  else
-    motorcycle_id_value := customer_rec.motorcycle_id;
   end if;
 
   update public.customer_claims
@@ -303,18 +301,18 @@ begin
       submitted_plate, reviewed_by, reviewed_at, review_note
     )
     values (
-      p_user_id, p_workshop_id, customer_rec.customer_id, motorcycle_id_value,
+      p_user_id, p_workshop_id, customer_id_value, motorcycle_id_value,
       'staff_manual', 'approved', normalized_plate, auth.uid(), now(), 'Usta plaka ile doğrudan eşleştirdi'
     )
     returning id into claim_id_value;
   end if;
 
-  perform public.approve_customer_link(p_user_id, customer_rec.customer_id, p_workshop_id, 'staff_manual', auth.uid());
+  perform public.approve_customer_link(p_user_id, customer_id_value, p_workshop_id, 'staff_manual', auth.uid());
   update public.profiles set account_mode = 'customer', customer_plate = normalized_plate, updated_at = now() where id = p_user_id;
 
   return jsonb_build_object(
     'status', 'approved',
-    'customer_id', customer_rec.customer_id,
+    'customer_id', customer_id_value,
     'motorcycle_id', motorcycle_id_value,
     'claim_id', claim_id_value
   );
