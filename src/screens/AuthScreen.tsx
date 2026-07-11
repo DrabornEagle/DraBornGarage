@@ -58,7 +58,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.7.0 PLATFORM ÖDEME MERKEZİ HAZIR</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.0 BİLDİRİM MERKEZİ HAZIR</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -68,14 +68,14 @@ export function AuthScreen() {
                   <Ionicons name="construct" size={39} color="#fff" />
                 </LinearGradient>
               </Animated.View>
-              <Animated.View style={[styles.miniGear, { backgroundColor: colors.cardStrong, borderColor: colors.border, transform: [{ rotate: ringRotate }] }]}><Ionicons name="shield-checkmark" size={21} color={colors.orange} /></Animated.View>
+              <Animated.View style={[styles.miniGear, { backgroundColor: colors.cardStrong, borderColor: colors.border, transform: [{ rotate: ringRotate }] }]}><Ionicons name="notifications" size={21} color={colors.orange} /></Animated.View>
             </View>
             <Text style={[styles.brandTitle, { color: colors.text }]}>DraBornGarage</Text>
-            <Text style={[styles.brandText, { color: colors.textMuted }]}>Servis, alacak, Usta raporu ve platform hizmet bedeli takibini aynı premium garaj merkezinde buluşturur.</Text>
+            <Text style={[styles.brandText, { color: colors.textMuted }]}>Servis, randevu, alacak ve platform hareketlerini canlı bildirimler ve zamanlı hatırlatmalarla tek premium garaj merkezinde buluşturur.</Text>
             <View style={styles.featureRow}>
-              <Feature icon="card" label="Platform Ödemesi" color={colors.orange} />
+              <Feature icon="notifications" label="Akıllı Bildirim" color={colors.orange} />
               <Feature icon="construct" label="Canlı Servis" color={colors.green} />
-              <Feature icon="calendar" label="Akıllı Takvim" color={colors.cyan} />
+              <Feature icon="calendar" label="Zamanlı Hatırlatma" color={colors.cyan} />
             </View>
           </View>
 
@@ -96,8 +96,8 @@ export function AuthScreen() {
               <>
                 <Text style={[styles.label, { color: colors.textMuted }]}>HESAP TÜRÜ</Text>
                 <View style={styles.accountRow}>
-                  <AccountCard active={registerMode === 'customer'} title="Müşteri" subtitle="Motor, onay, randevu ve servis takibi" icon="bicycle" accent={colors.cyan} onPress={() => setRegisterMode('customer')} />
-                  <AccountCard active={registerMode === 'staff'} title="İşletme / Usta" subtitle="Servis, onay, takvim ve ekip yönetimi" icon="construct" accent={colors.orange} onPress={() => setRegisterMode('staff')} />
+                  <AccountCard active={registerMode === 'customer'} title="Müşteri" subtitle="Motor, onay, randevu, servis ve bildirim takibi" icon="bicycle" accent={colors.cyan} onPress={() => setRegisterMode('customer')} />
+                  <AccountCard active={registerMode === 'staff'} title="İşletme / Usta" subtitle="Servis, takvim, ekip, alacak ve bildirim yönetimi" icon="construct" accent={colors.orange} onPress={() => setRegisterMode('staff')} />
                 </View>
                 <FormField label="Ad Soyad" value={fullName} onChangeText={setFullName} placeholder="Örn. Ahmet Yılmaz" autoCapitalize="words" />
                 <FormField label="Telefon" value={phone} onChangeText={setPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" />
@@ -106,7 +106,7 @@ export function AuthScreen() {
             <FormField label="E-posta" value={email} onChangeText={setEmail} placeholder="hesap@email.com" keyboardType="email-address" autoCapitalize="none" />
             <FormField label="Şifre" value={password} onChangeText={setPassword} placeholder="En az 6 karakter" secureTextEntry />
             <PrimaryButton title={mode === 'login' ? 'Giriş Yap' : registerMode === 'customer' ? 'Müşteri Hesabımı Oluştur' : 'Personel Hesabımı Oluştur'} onPress={submit} loading={loading} />
-            <View style={[styles.secureStrip, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}28` }]}><Ionicons name="lock-closed" size={16} color={colors.green} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Plaka tek başına eşleştirme yapmaz; telefon, kod, QR veya usta onayı gerekir.</Text></View>
+            <View style={[styles.secureStrip, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}28` }]}><Ionicons name="lock-closed" size={16} color={colors.green} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Her bildirim yalnız ilgili kullanıcıya ve yetkili işletme hesabına gösterilir.</Text></View>
           </GlassCard>
         </ScrollView>
       </KeyboardAvoidingView>
