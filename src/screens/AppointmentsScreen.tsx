@@ -94,8 +94,45 @@ export function AppointmentsScreen() {
     setHistoryAppointments((((data as Appointment[] | null) ?? []).sort((a, b) => +new Date(b.scheduled_start) - +new Date(a.scheduled_start))));
   }, [workshop, filterMechanic]);
 
+  const loadAttention = useCallback(async () => {
+    if (!workshop) return;
+    const from = new Date(); from.setHours(0, 0, 0, 0);
+    const to = new Date(from); to.setDate(to.getDate() + 90);
+    const { data, error } = await supabase.rpc('staff_get_appointments', {
+      p_workshop_id: workshop.id, p_from: from.toISOString(), p_to: to.toISOString(), p_mechanic_id: filterMechanic,
+    });
+    if (error) return;
+    const next = ((data as Appointment[] | null) ?? [])
+      .filter((item) => item.source === 'customer' && item.status === 'pending')
+      .sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+    setAttentionAppointments(next);
+  }, [workshop, filterMechanic]);
+
+  const loadHistory = useCallback(async () => {
+    if (!workshop) return;
+    const to = new Date(); to.setHours(0, 0, 0, 0);
+    const from = new Date(to); from.setDate(from.getDate() - 365);
+    const { data, error } = await supabase.rpc('staff_get_appointments', {
+      p_workshop_id: workshop.id, p_from: from.toISOString(), p_to: to.toISOString(), p_mechanic_id: filterMechanic,
+    });
+    if (error) return;
+    setHistoryAppointments((((data as Appointment[] | null) ?? []).sort((a, b) => +new Date(b.scheduled_start) - +new Date(a.scheduled_start))));
+  }, [workshop, filterMechanic]);
+
   useEffect(() => { loadBase(); }, [loadBase]);
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
+  useEffect(() => { loadAttention(); }, [loadAttention]);
+  useEffect(() => { loadHistory(); }, [loadHistory]);
+
+  useEffect(() => {
+    if (!workshop?.id) return;
+    const channel = supabase.channel(`staff-appointments-${workshop.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `workshop_id=eq.${workshop.id}` }, () => {
+        loadAppointments(); loadAttention(); loadHistory();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, loadAppointments, loadAttention, loadHistory]);
   useEffect(() => { loadAttention(); }, [loadAttention]);
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
@@ -162,6 +199,27 @@ function CalendarTab({ dates, date, setDate, mechanics, filterMechanic, setFilte
     </AnimatedPressable>
     {showHistory && <View style={styles.historyList}>{Object.entries(historyGroups).map(([key, items]) => <View key={key} style={styles.historyDay}><Text style={[styles.historyDayTitle, { color: colors.text }]}>{formatAppointmentDate(items[0].scheduled_start)}</Text>{items.map((item) => <PastAppointmentCard key={item.id} item={item} />)}</View>)}</View>}
   </View>;
+}
+
+function NewAppointmentAttention({ appointments, onOpen }: { appointments: Appointment[]; onOpen: (item: Appointment) => void }) {
+  const { colors } = useTheme();
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => { const loop = Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1, duration: 850, useNativeDriver: true }), Animated.timing(pulse, { toValue: 0, duration: 850, useNativeDriver: true })])); loop.start(); return () => loop.stop(); }, [pulse]);
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] });
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.9] });
+  return <Animated.View style={[styles.attentionWrap, { transform: [{ scale }] }]}>
+    <Animated.View pointerEvents="none" style={[styles.attentionGlow, { backgroundColor: colors.orange, opacity }]} />
+    <GlassCard style={[styles.attentionCard, { borderColor: `${colors.orange}80` }]}>
+      <View style={styles.attentionHeader}><View style={[styles.attentionIcon, { backgroundColor: `${colors.orange}20` }]}><Ionicons name="notifications" size={25} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.attentionTitle, { color: colors.text }]}>Yeni müşteri randevusu</Text><Text style={[styles.attentionMeta, { color: colors.textMuted }]}>{appointments.length} randevu işletme onayı bekliyor. Tarihine gitmek için dokun.</Text></View><View style={[styles.attentionCount, { backgroundColor: colors.orange }]}><Text style={styles.attentionCountText}>{appointments.length}</Text></View></View>
+      {appointments.slice(0, 3).map((item) => <AnimatedPressable key={item.id} onPress={() => onOpen(item)} style={[styles.attentionItem, { backgroundColor: colors.surfaceSoft, borderColor: `${colors.orange}38` }]}><View style={[styles.attentionTime, { backgroundColor: `${colors.orange}15` }]}><Text style={[styles.attentionTimeText, { color: colors.orange }]}>{formatAppointmentTime(item.scheduled_start)}</Text></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.customer_name} • {item.service_title}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{formatAppointmentDate(item.scheduled_start)} • {item.brand} {item.model} • {item.mechanic_name}</Text></View><Ionicons name="arrow-forward-circle" size={22} color={colors.orange} /></AnimatedPressable>)}
+    </GlassCard>
+  </Animated.View>;
+}
+
+function PastAppointmentCard({ item }: { item: Appointment }) {
+  const { colors } = useTheme();
+  const accent = item.status === 'converted' ? colors.primary : item.status === 'cancelled' || item.status === 'no_show' ? colors.red : item.status === 'arrived' ? colors.cyan : colors.green;
+  return <View style={[styles.pastCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.pastTime, { backgroundColor: `${accent}14` }]}><Text style={[styles.pastTimeText, { color: accent }]}>{formatAppointmentTime(item.scheduled_start)}</Text></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.service_title}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{item.customer_name} • {item.brand} {item.model} • {item.plate}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{item.mechanic_name}</Text></View><Text style={[styles.status, { color: accent }]}>{statusLabels[item.status]}</Text></View>;
 }
 
 function NewAppointmentAttention({ appointments, onOpen }: { appointments: Appointment[]; onOpen: (item: Appointment) => void }) {
