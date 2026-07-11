@@ -1,0 +1,47 @@
+name: One-time v0.7.0 Final Polish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/one-time-v070-final-polish.yml
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply final labels and checklist updates
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          function patch(path, from, to) {
+            let text = fs.readFileSync(path, 'utf8');
+            if (!text.includes(from)) throw new Error(`Marker missing in ${path}`);
+            text = text.replace(from, to);
+            fs.writeFileSync(path, text);
+          }
+          patch('src/components/PlatformFeesDashboard.tsx', 'En yakın/eskİ ödeme', 'En eski ödeme');
+          patch(
+            'docs/V0.7_CHECKLIST.md',
+            '- [x] Admin genel görünüm alias düzeltmesi uygulandı\n- [x] GitHub migration dosyaları eklendi',
+            '- [x] Admin genel görünüm alias düzeltmesi uygulandı\n- [x] Platform foreign-key indeks ve RLS performans optimizasyonu uygulandı\n- [x] GitHub migration dosyaları eklendi'
+          );
+          patch(
+            'docs/V0.7_CHECKLIST.md',
+            '- [x] Storage policy rollback dry-run\n- [x] TypeScript kontrolü',
+            '- [x] Storage policy rollback dry-run\n- [x] Supabase güvenlik danışmanı kontrolü\n- [x] Supabase performans danışmanı kontrolü\n- [x] Yeni foreign-key ve RLS performans uyarıları giderildi\n- [x] TypeScript kontrolü'
+          );
+          NODE
+      - name: Commit
+        run: |
+          git config user.name "DraBornGarage CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/components/PlatformFeesDashboard.tsx docs/V0.7_CHECKLIST.md
+          git commit -m "fix: finalize v0.7 labels and advisor checklist"
+          git push origin main
