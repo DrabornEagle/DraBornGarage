@@ -5,6 +5,7 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { PlatformFeesDashboard } from '../components/PlatformFeesDashboard';
 import { ReportsDashboard } from '../components/ReportsDashboard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useAuth } from '../context/AuthContext';
@@ -35,6 +36,7 @@ export function TeamScreen() {
   const [editPhone, setEditPhone] = useState(workshop?.phone ?? '');
   const [editAddress, setEditAddress] = useState(workshop?.address ?? '');
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
+  const [ownerSection, setOwnerSection] = useState<'reports' | 'platform' | 'team'>('platform');
 
   useEffect(() => {
     setEditName(workshop?.name ?? '');
@@ -126,11 +128,30 @@ export function TeamScreen() {
     );
   }
 
+  if (ownerSection === 'reports') {
+    return (
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScreenHeader eyebrow={isAdmin ? 'ADMIN RAPORLARI' : 'İŞLETME RAPORLARI'} title="İşletme ve Usta Raporları" subtitle="İşletme toplamları, Usta bazlı kayıtlı işlem tutarları, tahsilatlar ve iş geçmişi." />
+        <OwnerCenterSwitch value={ownerSection} onChange={setOwnerSection} />
+        <ReportsDashboard />
+      </ScrollView>
+    );
+  }
+
+  if (ownerSection === 'platform') {
+    return (
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScreenHeader eyebrow="PLATFORM HİZMET BEDELİ" title="Platform Ödeme Merkezi" subtitle="İşlem başı bedel, dönem borcu, devreden borç, Nakit/IBAN ödeme bildirimi, dekont ve Admin onayı." />
+        <OwnerCenterSwitch value={ownerSection} onChange={setOwnerSection} />
+        <PlatformFeesDashboard />
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <ScreenHeader eyebrow={isAdmin ? 'ADMIN RAPORLARI' : 'İŞLETME RAPORLARI'} title={isAdmin ? 'Platform, Raporlar ve İşletmeler' : 'İşletme Raporları ve Ekip'} subtitle={isAdmin ? 'Seçili işletmenin kayıtlı tutarlarını, tahsilatlarını, alacaklarını ve personelini yönet.' : 'İşletme toplamları, usta bazlı kayıtlı tutarlar ve ekip yönetimi.'} />
-
-      <ReportsDashboard />
+      <ScreenHeader eyebrow={isAdmin ? 'ADMIN YÖNETİMİ' : 'İŞLETME YÖNETİMİ'} title="İşletme ve Ekip" subtitle="İşletme bilgileri, işletme seçimi, personel davetleri ve roller." />
+      <OwnerCenterSwitch value={ownerSection} onChange={setOwnerSection} />
 
       {isAdmin && (
         <>
@@ -185,8 +206,21 @@ export function TeamScreen() {
   );
 }
 
+function OwnerCenterSwitch({ value, onChange }: { value: 'reports' | 'platform' | 'team'; onChange: (value: 'reports' | 'platform' | 'team') => void }) {
+  const { colors } = useTheme();
+  const items: { key: 'reports' | 'platform' | 'team'; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { key: 'reports', label: 'Raporlar', icon: 'stats-chart' },
+    { key: 'platform', label: 'Platform', icon: 'card' },
+    { key: 'team', label: 'Ekip', icon: 'people' },
+  ];
+  return <View style={[styles.ownerSwitch, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>{items.map((item) => { const active = value === item.key; return <AnimatedPressable key={item.key} onPress={() => onChange(item.key)} style={[styles.ownerSwitchButton, active && { backgroundColor: colors.cardStrong, borderColor: colors.primary }]}><Ionicons name={item.icon} size={17} color={active ? colors.primary : colors.textMuted} /><Text style={[styles.ownerSwitchText, { color: active ? colors.text : colors.textMuted }]}>{item.label}</Text></AnimatedPressable>; })}</View>;
+}
+
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 17 },
+  ownerSwitch: { minHeight: 56, borderWidth: 1, borderRadius: 19, padding: 5, flexDirection: 'row', gap: 5 },
+  ownerSwitchButton: { flex: 1, minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  ownerSwitchText: { fontSize: 10.5, fontWeight: '900' },
   heroCard: { alignItems: 'center', gap: 10, paddingVertical: 25 },
   bigIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   totalLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
