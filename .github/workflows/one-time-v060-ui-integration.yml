@@ -1,0 +1,75 @@
+name: One-time v0.6.0 UI Integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/one-time-v060-ui-integration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Patch v0.6 screens
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          function replace(path, from, to) {
+            let text = fs.readFileSync(path, 'utf8');
+            if (!text.includes(from)) throw new Error(`Expected text missing in ${path}: ${from.slice(0, 120)}`);
+            text = text.replace(from, to);
+            fs.writeFileSync(path, text);
+          }
+
+          let team = fs.readFileSync('src/screens/TeamScreen.tsx', 'utf8');
+          if (!team.includes("import { ReportsDashboard } from '../components/ReportsDashboard';")) {
+            team = team.replace("import { PrimaryButton } from '../components/PrimaryButton';", "import { PrimaryButton } from '../components/PrimaryButton';\nimport { ReportsDashboard } from '../components/ReportsDashboard';");
+          }
+          const branchStart = team.indexOf('  if (!isOwner) {');
+          const ownerReturn = team.indexOf('\n  return (\n    <ScrollView contentContainerStyle={styles.content}>', branchStart);
+          if (branchStart < 0 || ownerReturn < 0) throw new Error('TeamScreen branch markers missing');
+          const personalBranch = `  if (!isOwner) {\n    return (\n      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>\n        <ScreenHeader eyebrow=\"KİŞİSEL USTA PANELİ\" title=\"İş ve Tutar Raporlarım\" subtitle=\"Yalnızca kendi yaptığın işler, kaydettiğin işlem tutarları, kullandığın parçalar ve tahsil ettiğin ödemeler.\" />\n        <ReportsDashboard />\n      </ScrollView>\n    );\n  }\n`;
+          team = team.slice(0, branchStart) + personalBranch + team.slice(ownerReturn);
+          team = team.replace(
+            "<ScreenHeader eyebrow={isAdmin ? 'ADMIN' : 'İŞLETME YÖNETİMİ'} title={isAdmin ? 'Platform ve İşletmeler' : 'Ekip ve Yetkiler'} subtitle={isAdmin ? 'Tüm işletmeleri ayrı ayrı seç, düzenle, aktif/pasif yap ve personeli yönet.' : 'Kendi işletmendeki Usta ve Çırak hesaplarını yönet.'} />",
+            "<ScreenHeader eyebrow={isAdmin ? 'ADMIN RAPORLARI' : 'İŞLETME RAPORLARI'} title={isAdmin ? 'Platform, Raporlar ve İşletmeler' : 'İşletme Raporları ve Ekip'} subtitle={isAdmin ? 'Seçili işletmenin kayıtlı tutarlarını, tahsilatlarını, alacaklarını ve personelini yönet.' : 'İşletme toplamları, usta bazlı kayıtlı tutarlar ve ekip yönetimi.'} />\n\n      <ReportsDashboard />"
+          );
+          fs.writeFileSync('src/screens/TeamScreen.tsx', team);
+
+          replace('src/AppShell.tsx',
+            "{ key: 'team', label: isAdmin ? 'Admin' : isOwner ? 'Ekip' : 'Kazancım', icon: isAdmin ? 'shield-checkmark-outline' : isOwner ? 'shield-outline' : 'stats-chart-outline', activeIcon: isAdmin ? 'shield-checkmark' : isOwner ? 'shield' : 'stats-chart', accent: colors.green, accent2: colors.cyan },",
+            "{ key: 'team', label: 'Rapor', icon: 'stats-chart-outline', activeIcon: 'stats-chart', accent: colors.green, accent2: colors.cyan },"
+          );
+
+          let settings = fs.readFileSync('src/screens/SettingsScreen.tsx', 'utf8');
+          settings = settings.replace("Alert.alert('v0.5 test verileri yüklensin mi?', 'Müşteri, motor, servis, ek işlem onayı, borç, kısmi ödeme, geciken alacak ve ödeme sözü örnekleri eklenir.'", "Alert.alert('v0.6 test verileri yüklensin mi?', 'Müşteri, motor, servis, alacak ve rapor ekranları için bugün, hafta ve ay dönemlerine dağıtılmış örnek kayıtlar eklenir.'");
+          settings = settings.replace("    const v05Result = await supabase.rpc('create_v05_demo_data', { p_workshop_id: workshop.id });\n    setLoading(false);\n    if (v05Result.error) return Alert.alert('v0.5 demo yüklenemedi', v05Result.error.message);", "    const v05Result = await supabase.rpc('create_v05_demo_data', { p_workshop_id: workshop.id });\n    if (v05Result.error) { setLoading(false); return Alert.alert('v0.5 demo yüklenemedi', v05Result.error.message); }\n    const v06Result = await supabase.rpc('create_v06_demo_data', { p_workshop_id: workshop.id });\n    setLoading(false);\n    if (v06Result.error) return Alert.alert('v0.6 demo yüklenemedi', v06Result.error.message);");
+          settings = settings.replace("Alert.alert('v0.5 demo hazır', 'Geciken, bugün ödeme günü olan, gelecek tarihli, kısmi ödenen ve tamamen kapanan alacak örnekleri eklendi. Alacak sekmesini ve müşteri ödeme ekranını test edebilirsin.');", "Alert.alert('v0.6 demo hazır', 'Bugün, hafta ve ay raporlarında görünecek motor, işlem, parça, Nakit, IBAN ve alacak örnekleri hazırlandı. Rapor sekmesini test edebilirsin.');");
+          settings = settings.replace('Geçici v0.5 Test Verileri', 'Geçici v0.6 Test Verileri');
+          settings = settings.replace('v0.5 Test Verilerini Yükle', 'v0.6 Test Verilerini Yükle');
+          settings = settings.replace('v0.5.0 • Veresiye, alacak ve kısmi ödeme takibi', 'v0.6.0 • Usta gelir kayıtları ve işletme raporları');
+          settings = settings.replace('backup/v0.4.1-before-v0.5.0', 'backup/v0.5.0-before-v0.6.0');
+          settings = settings.replace('rollback_v0_5_0_to_v0_4_1.sql', 'rollback_v0_6_0_to_v0_5_0.sql');
+          fs.writeFileSync('src/screens/SettingsScreen.tsx', settings);
+
+          replace('src/screens/AuthScreen.tsx', 'GARAGE OS • v0.5.0 ALACAK TAKİBİ HAZIR', 'GARAGE OS • v0.6.0 RAPOR MERKEZİ HAZIR');
+          replace('src/screens/AuthScreen.tsx', 'Servis, ek işlem onayı, parça ve müşteri takibini aynı premium garaj merkezinde buluşturur.', 'Servis, alacak, usta iş geçmişi ve işletme raporlarını aynı premium garaj merkezinde buluşturur.');
+          replace('src/screens/AuthScreen.tsx', '<Feature icon="shield-checkmark" label="Ek İşlem Onayı" color={colors.orange} />', '<Feature icon="analytics" label="İşletme Raporu" color={colors.orange} />');
+          NODE
+
+      - name: Commit integration
+        run: |
+          git config user.name "DraBornGarage CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add src
+          git diff --cached --quiet || git commit -m "feat: integrate v0.6 reports across staff panels"
+          git push origin main
