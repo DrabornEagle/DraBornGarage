@@ -60,7 +60,7 @@ export function AppShell() {
       { key: 'appointments', label: 'Takvim', icon: 'calendar-outline', activeIcon: 'calendar', accent: colors.cyan, accent2: colors.primary2 },
       { key: 'customers', label: 'Müşteri', icon: 'people-outline', activeIcon: 'people', accent: colors.primary2, accent2: colors.cyan },
       { key: 'receivables', label: 'Alacak', icon: 'wallet-outline', activeIcon: 'wallet', accent: colors.red, accent2: colors.orange },
-      { key: 'team', label: isAdmin ? 'Admin' : isOwner ? 'Ekip' : 'Kazancım', icon: isAdmin ? 'shield-checkmark-outline' : isOwner ? 'shield-outline' : 'stats-chart-outline', activeIcon: isAdmin ? 'shield-checkmark' : isOwner ? 'shield' : 'stats-chart', accent: colors.green, accent2: colors.cyan },
+      { key: 'team', label: 'Rapor', icon: 'stats-chart-outline', activeIcon: 'stats-chart', accent: colors.green, accent2: colors.cyan },
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;

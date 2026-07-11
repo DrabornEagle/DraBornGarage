@@ -58,7 +58,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.5.0 ALACAK TAKİBİ HAZIR</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.6.0 RAPOR MERKEZİ HAZIR</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -71,9 +71,9 @@ export function AuthScreen() {
               <Animated.View style={[styles.miniGear, { backgroundColor: colors.cardStrong, borderColor: colors.border, transform: [{ rotate: ringRotate }] }]}><Ionicons name="shield-checkmark" size={21} color={colors.orange} /></Animated.View>
             </View>
             <Text style={[styles.brandTitle, { color: colors.text }]}>DraBornGarage</Text>
-            <Text style={[styles.brandText, { color: colors.textMuted }]}>Servis, ek işlem onayı, parça ve müşteri takibini aynı premium garaj merkezinde buluşturur.</Text>
+            <Text style={[styles.brandText, { color: colors.textMuted }]}>Servis, alacak, usta iş geçmişi ve işletme raporlarını aynı premium garaj merkezinde buluşturur.</Text>
             <View style={styles.featureRow}>
-              <Feature icon="shield-checkmark" label="Ek İşlem Onayı" color={colors.orange} />
+              <Feature icon="analytics" label="İşletme Raporu" color={colors.orange} />
               <Feature icon="construct" label="Canlı Servis" color={colors.green} />
               <Feature icon="calendar" label="Akıllı Takvim" color={colors.cyan} />
             </View>

@@ -5,6 +5,7 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { ReportsDashboard } from '../components/ReportsDashboard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -117,31 +118,19 @@ export function TeamScreen() {
   };
 
   if (!isOwner) {
-    const total = services.reduce((sum, item) => sum + Number(item.price), 0);
     return (
-      <ScrollView contentContainerStyle={styles.content}>
-        <ScreenHeader eyebrow="KİŞİSEL USTA PANELİ" title="Kazanç Geçmişim" subtitle="Yalnızca senin yaptığın ve tutarı kaydedilen servis işlemleri." />
-        <GlassCard style={styles.heroCard}>
-          <View style={[styles.bigIcon, { backgroundColor: `${colors.green}1C` }]}><Ionicons name="wallet" size={27} color={colors.green} /></View>
-          <Text style={[styles.totalLabel, { color: colors.textMuted }]}>KAYDEDİLEN TOPLAM İŞ TUTARI</Text>
-          <Text style={[styles.totalValue, { color: colors.text }]}>{money(total)}</Text>
-          <Text style={[styles.disclaimer, { color: colors.textMuted }]}>Bu değer maaş, komisyon, ortaklık payı veya net kâr hesabı değildir.</Text>
-        </GlassCard>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>İşlem geçmişi</Text>
-        <View style={styles.list}>
-          {services.length === 0 ? <GlassCard><Text style={[styles.empty, { color: colors.textMuted }]}>Henüz tamamlanmış işlem kaydın yok.</Text></GlassCard> : services.map((item) => (
-            <GlassCard key={item.id} style={styles.serviceCard}>
-              <View style={styles.row}><View style={[styles.serviceIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="construct" size={20} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.itemTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{item.work_order?.motorcycle?.brand} {item.work_order?.motorcycle?.model} • {item.work_order?.customer?.full_name}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{shortDate(item.created_at)}</Text></View><Text style={[styles.amount, { color: colors.green }]}>{money(item.price)}</Text></View>
-            </GlassCard>
-          ))}
-        </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScreenHeader eyebrow="KİŞİSEL USTA PANELİ" title="İş ve Tutar Raporlarım" subtitle="Yalnızca kendi yaptığın işler, kaydettiğin işlem tutarları, kullandığın parçalar ve tahsil ettiğin ödemeler." />
+        <ReportsDashboard />
       </ScrollView>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <ScreenHeader eyebrow={isAdmin ? 'ADMIN' : 'İŞLETME YÖNETİMİ'} title={isAdmin ? 'Platform ve İşletmeler' : 'Ekip ve Yetkiler'} subtitle={isAdmin ? 'Tüm işletmeleri ayrı ayrı seç, düzenle, aktif/pasif yap ve personeli yönet.' : 'Kendi işletmendeki Usta ve Çırak hesaplarını yönet.'} />
+      <ScreenHeader eyebrow={isAdmin ? 'ADMIN RAPORLARI' : 'İŞLETME RAPORLARI'} title={isAdmin ? 'Platform, Raporlar ve İşletmeler' : 'İşletme Raporları ve Ekip'} subtitle={isAdmin ? 'Seçili işletmenin kayıtlı tutarlarını, tahsilatlarını, alacaklarını ve personelini yönet.' : 'İşletme toplamları, usta bazlı kayıtlı tutarlar ve ekip yönetimi.'} />
+
+      <ReportsDashboard />
 
       {isAdmin && (
         <>
