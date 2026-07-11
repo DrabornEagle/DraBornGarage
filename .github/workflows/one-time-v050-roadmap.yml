@@ -1,0 +1,85 @@
+name: One-time v0.5.0 Roadmap Update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/one-time-v050-roadmap.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Mark v0.5 complete
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'docs/ROADMAP.md';
+          let text = fs.readFileSync(path, 'utf8');
+
+          const marker = '4. Bu planda v1.1, v1.2, v2.0, v2.1 veya v3.0 bulunmaz.\n';
+          if (!text.includes(marker)) throw new Error('Roadmap marker missing');
+          text = text.replace(marker, marker + '\n**Güncel geliştirme durumu:** v0.1, v0.2, v0.3, v0.4 ve v0.5 uygulama/Supabase tarafında tamamlandı. Güncel sürüm `v0.5.0`dır. Fiziksel Expo Go testleri ilgili checklist belgelerinde ayrıca takip edilir.\n');
+
+          const oldBlock = `- Borç yazıldı
+- Kısmi ödeme
+- Tam ödendi
+- Ödenmedi
+- Ücretsiz / ikram
+- Tahsil edilemedi / iptal
+- Toplam, ödenen ve kalan borç
+- Ödeme sözü tarihi
+- Ödendiği tarih
+- Nakit/IBAN yöntemi
+- Alacaklar ekranı
+- Bugün ödeme günü olanlar
+- Geciken borçlar
+- Müşteri/plaka/tarih filtreleri
+- Ödeme al, kısmi ödeme gir, borcu kapat, not ekle
+- Müşteri tarafında kalan ödeme görünümü
+- Çırağa finansal verileri gizleme`;
+
+          const newBlock = `- [x] Borç / veresiye yazıldı
+- [x] Kısmi ödeme
+- [x] Tam ödendi
+- [x] Ödenmedi
+- [x] Tahsil edilemedi / kapatıldı
+- [x] Toplam, ödenen ve kalan borç
+- [x] Ödeme sözü tarihi
+- [x] Borç yazılma, son ödeme ve kapanış tarihleri
+- [x] Nakit ve IBAN yöntemi
+- [x] Alacaklar ekranı
+- [x] Bugün ödeme günü olanlar
+- [x] Geciken borçlar ve gecikme gün sayısı
+- [x] Açık, kısmi, ödenen ve kapatılan filtreleri
+- [x] Müşteri, telefon ve plaka araması
+- [x] Ödeme al, kısmi ödeme gir, borcu kapat ve yeniden aç
+- [x] Personel özel notu
+- [x] Müşteriye açık ödeme notu ve uygulama içi hatırlatma
+- [x] Tahsilat ve alacak hareket geçmişi
+- [x] Müşteri tarafında kalan ödeme ve ödeme geçmişi
+- [x] Çırağa finansal verileri ve Alacak sekmesini gizleme
+- [x] Çok işletmeli RLS ve rol güvenliği
+
+> Ücretsiz / ikram ödeme durumu genel ürün kararında korunur ancak ayrı bir v0.5 borç durumu değildir; servis toplamının sıfır olması veya v0.6 raporlama aşamasında kayıt türü olarak ele alınacaktır.`;
+
+          if (!text.includes(oldBlock)) throw new Error('v0.5 roadmap block missing');
+          text = text.replace(oldBlock, newBlock);
+          fs.writeFileSync(path, text);
+          NODE
+
+      - name: Commit roadmap
+        run: |
+          git config user.name "DraBornGarage CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/ROADMAP.md
+          git diff --cached --quiet || git commit -m "docs: mark v0.5 receivables roadmap complete"
+          git push origin main
