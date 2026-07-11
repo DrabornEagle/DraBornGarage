@@ -1,0 +1,73 @@
+name: One-time v0.7.0 UI Integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/one-time-v070-ui-integration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch v0.7 screens
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          function replace(path, from, to) {
+            let text = fs.readFileSync(path, 'utf8');
+            if (!text.includes(from)) throw new Error(`Missing marker in ${path}: ${from.slice(0, 100)}`);
+            text = text.replace(from, to);
+            fs.writeFileSync(path, text);
+          }
+
+          let team = fs.readFileSync('src/screens/TeamScreen.tsx', 'utf8');
+          team = team.replace("import { PrimaryButton } from '../components/PrimaryButton';", "import { PrimaryButton } from '../components/PrimaryButton';\nimport { PlatformFeesDashboard } from '../components/PlatformFeesDashboard';");
+          team = team.replace("  const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';", "  const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';\n  const [ownerSection, setOwnerSection] = useState<'reports' | 'platform' | 'team'>('platform');");
+
+          const ownerMarker = `  return (\n    <ScrollView contentContainerStyle={styles.content}>\n      <ScreenHeader eyebrow={isAdmin ? 'ADMIN RAPORLARI' : 'İŞLETME RAPORLARI'} title={isAdmin ? 'Platform, Raporlar ve İşletmeler' : 'İşletme Raporları ve Ekip'} subtitle={isAdmin ? 'Seçili işletmenin kayıtlı tutarlarını, tahsilatlarını, alacaklarını ve personeli yönet.' : 'İşletme toplamları, usta bazlı kayıtlı tutarlar ve ekip yönetimi.'} />\n\n      <ReportsDashboard />`;
+          const ownerMarkerActual = `  return (\n    <ScrollView contentContainerStyle={styles.content}>\n      <ScreenHeader eyebrow={isAdmin ? 'ADMIN RAPORLARI' : 'İŞLETME RAPORLARI'} title={isAdmin ? 'Platform, Raporlar ve İşletmeler' : 'İşletme Raporları ve Ekip'} subtitle={isAdmin ? 'Seçili işletmenin kayıtlı tutarlarını, tahsilatlarını, alacaklarını ve personelini yönet.' : 'İşletme toplamları, usta bazlı kayıtlı tutarlar ve ekip yönetimi.'} />\n\n      <ReportsDashboard />`;
+          if (!team.includes(ownerMarkerActual)) throw new Error('Team owner return marker missing');
+          const conditionalViews = `  if (ownerSection === 'reports') {\n    return (\n      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>\n        <ScreenHeader eyebrow={isAdmin ? 'ADMIN RAPORLARI' : 'İŞLETME RAPORLARI'} title=\"İşletme ve Usta Raporları\" subtitle=\"İşletme toplamları, Usta bazlı kayıtlı işlem tutarları, tahsilatlar ve iş geçmişi.\" />\n        <OwnerCenterSwitch value={ownerSection} onChange={setOwnerSection} />\n        <ReportsDashboard />\n      </ScrollView>\n    );\n  }\n\n  if (ownerSection === 'platform') {\n    return (\n      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>\n        <ScreenHeader eyebrow=\"PLATFORM HİZMET BEDELİ\" title=\"Platform Ödeme Merkezi\" subtitle=\"İşlem başı bedel, dönem borcu, devreden borç, Nakit/IBAN ödeme bildirimi, dekont ve Admin onayı.\" />\n        <OwnerCenterSwitch value={ownerSection} onChange={setOwnerSection} />\n        <PlatformFeesDashboard />\n      </ScrollView>\n    );\n  }\n\n  return (\n    <ScrollView contentContainerStyle={styles.content}>\n      <ScreenHeader eyebrow={isAdmin ? 'ADMIN YÖNETİMİ' : 'İŞLETME YÖNETİMİ'} title=\"İşletme ve Ekip\" subtitle=\"İşletme bilgileri, işletme seçimi, personel davetleri ve roller.\" />\n      <OwnerCenterSwitch value={ownerSection} onChange={setOwnerSection} />`;
+          team = team.replace(ownerMarkerActual, conditionalViews);
+
+          const helperMarker = `\nconst styles = StyleSheet.create({`;
+          const helper = `\nfunction OwnerCenterSwitch({ value, onChange }: { value: 'reports' | 'platform' | 'team'; onChange: (value: 'reports' | 'platform' | 'team') => void }) {\n  const { colors } = useTheme();\n  const items: { key: 'reports' | 'platform' | 'team'; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [\n    { key: 'reports', label: 'Raporlar', icon: 'stats-chart' },\n    { key: 'platform', label: 'Platform', icon: 'card' },\n    { key: 'team', label: 'Ekip', icon: 'people' },\n  ];\n  return <View style={[styles.ownerSwitch, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>{items.map((item) => { const active = value === item.key; return <AnimatedPressable key={item.key} onPress={() => onChange(item.key)} style={[styles.ownerSwitchButton, active && { backgroundColor: colors.cardStrong, borderColor: colors.primary }]}><Ionicons name={item.icon} size={17} color={active ? colors.primary : colors.textMuted} /><Text style={[styles.ownerSwitchText, { color: active ? colors.text : colors.textMuted }]}>{item.label}</Text></AnimatedPressable>; })}</View>;\n}\n`;
+          if (!team.includes(helperMarker)) throw new Error('Team styles marker missing');
+          team = team.replace(helperMarker, helper + helperMarker);
+          team = team.replace(`  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 17 },`, `  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 17 },\n  ownerSwitch: { minHeight: 56, borderWidth: 1, borderRadius: 19, padding: 5, flexDirection: 'row', gap: 5 },\n  ownerSwitchButton: { flex: 1, minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },\n  ownerSwitchText: { fontSize: 10.5, fontWeight: '900' },`);
+          fs.writeFileSync('src/screens/TeamScreen.tsx', team);
+
+          replace('src/AppShell.tsx',
+            `{ key: 'team', label: 'Rapor', icon: 'stats-chart-outline', activeIcon: 'stats-chart', accent: colors.green, accent2: colors.cyan },`,
+            `{ key: 'team', label: isOwner ? 'Merkez' : 'Rapor', icon: isOwner ? 'apps-outline' : 'stats-chart-outline', activeIcon: isOwner ? 'apps' : 'stats-chart', accent: colors.green, accent2: colors.cyan },`
+          );
+
+          let settings = fs.readFileSync('src/screens/SettingsScreen.tsx', 'utf8');
+          settings = settings.replace("Alert.alert('v0.6 test verileri yüklensin mi?', 'Müşteri, motor, servis, alacak ve rapor ekranları için bugün, hafta ve ay dönemlerine dağıtılmış örnek kayıtlar eklenir.'", "Alert.alert('v0.7 test verileri yüklensin mi?', 'Müşteri, servis, alacak, rapor ve platform hizmet bedeli ekranları için örnek kayıtlar eklenir.'");
+          settings = settings.replace("    const v06Result = await supabase.rpc('create_v06_demo_data', { p_workshop_id: workshop.id });\n    setLoading(false);\n    if (v06Result.error) return Alert.alert('v0.6 demo yüklenemedi', v06Result.error.message);", "    const v06Result = await supabase.rpc('create_v06_demo_data', { p_workshop_id: workshop.id });\n    if (v06Result.error) { setLoading(false); return Alert.alert('v0.6 demo yüklenemedi', v06Result.error.message); }\n    const v07Result = await supabase.rpc('create_v07_demo_data', { p_workshop_id: workshop.id });\n    setLoading(false);\n    if (v07Result.error) return Alert.alert('v0.7 demo yüklenemedi', v07Result.error.message);");
+          settings = settings.replace("Alert.alert('v0.6 demo hazır', 'Bugün, hafta ve ay raporlarında görünecek motor, işlem, parça, Nakit, IBAN ve alacak örnekleri hazırlandı. Rapor sekmesini test edebilirsin.');", "Alert.alert('v0.7 demo hazır', 'Platform ücret kayıtları, devreden borç, onaylanmış kısmi ödeme, Admin onayı bekleyen bildirim ve reddedilmiş ödeme örneği hazırlandı. Merkez → Platform ekranını test edebilirsin.');");
+          settings = settings.replace('Geçici v0.6 Test Verileri', 'Geçici v0.7 Test Verileri');
+          settings = settings.replace('v0.6 Test Verilerini Yükle', 'v0.7 Test Verilerini Yükle');
+          settings = settings.replace('v0.6.0 • Usta gelir kayıtları ve işletme raporları', 'v0.7.0 • Platform hizmet bedeli ve ödeme onayı');
+          settings = settings.replace('backup/v0.5.0-before-v0.6.0', 'backup/v0.6.0-before-v0.7.0');
+          settings = settings.replace('rollback_v0_6_0_to_v0_5_0.sql', 'rollback_v0_7_0_to_v0_6_0.sql');
+          fs.writeFileSync('src/screens/SettingsScreen.tsx', settings);
+
+          replace('src/screens/AuthScreen.tsx', 'GARAGE OS • v0.6.0 RAPOR MERKEZİ HAZIR', 'GARAGE OS • v0.7.0 PLATFORM ÖDEME MERKEZİ HAZIR');
+          replace('src/screens/AuthScreen.tsx', 'Servis, alacak, usta iş geçmişi ve işletme raporlarını aynı premium garaj merkezinde buluşturur.', 'Servis, alacak, Usta raporu ve platform hizmet bedeli takibini aynı premium garaj merkezinde buluşturur.');
+          replace('src/screens/AuthScreen.tsx', '<Feature icon="analytics" label="İşletme Raporu" color={colors.orange} />', '<Feature icon="card" label="Platform Ödemesi" color={colors.orange} />');
+          NODE
+      - name: Commit integration
+        run: |
+          git config user.name "DraBornGarage CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add src
+          git diff --cached --quiet || git commit -m "feat: integrate v0.7 platform payment center"
+          git push origin main
