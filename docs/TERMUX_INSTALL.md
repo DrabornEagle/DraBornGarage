@@ -2,22 +2,24 @@
 
 Bu akışta Python, patch, JDK, Perl, `/tmp` veya Git kullanılmaz.
 
-# v0.4.1 güncellemesi
+# v0.5.0 güncellemesi
 
-- **Kurulan yeni sürüm:** `v0.4.1`
-- **Kurulumdan önce yedeklenen sürüm:** `v0.4.0`
-- **GitHub geri dönüş yedeği:** `backup/v0.4.0-before-v0.4.1-customer-panel-fix`
-- **Telefonda oluşturulan yerel yedek:** `DraBornGarage-v0.4.0-local-backup`
+- **Kurulan yeni sürüm:** `v0.5.0`
+- **Kurulumdan önce yedeklenen sürüm:** `v0.4.1`
+- **GitHub geri dönüş yedeği:** `backup/v0.4.1-before-v0.5.0`
+- **Telefonda oluşturulan yerel yedek:** `DraBornGarage-v0.4.1-local-backup`
 
-## v0.4.0 sürümünü yedekleyip v0.4.1 sürümünü kurma
+## v0.4.1 sürümünü yedekleyip v0.5.0 sürümünü kurma
+
+Mevcut `.env` dosyası ve çalışan v0.4.1 klasörü korunur.
 
 ```bash
 cd ~
 
-KURULAN_SURUM="v0.4.1"
-YEDEKLENEN_SURUM="v0.4.0"
-YEDEK_KLASORU="$HOME/DraBornGarage-v0.4.0-local-backup"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.4.1.zip"
+KURULAN_SURUM="v0.5.0"
+YEDEKLENEN_SURUM="v0.4.1"
+YEDEK_KLASORU="$HOME/DraBornGarage-v0.4.1-local-backup"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.5.0.zip"
 
 printf '\n========================================\n'
 printf 'KURULAN YENİ SÜRÜM: %s\n' "$KURULAN_SURUM"
@@ -78,21 +80,23 @@ cd ~/DraBornGarage
 npx expo start -c --tunnel --go
 ```
 
-# v0.4.1 sürümünden v0.4.0 sürümüne geri alma
+# v0.5.0 sürümünden v0.4.1 sürümüne geri alma
 
-- **Geri dönülen sürüm:** `v0.4.0`
-- **Geri alma öncesinde korunan sürüm:** `v0.4.1`
-- **Sabit GitHub yedeği:** `backup/v0.4.0-before-v0.4.1-customer-panel-fix`
-- **Telefonda korunan v0.4.1 klasörü:** `DraBornGarage-v0.4.1-before-rollback`
+- **Geri dönülen sürüm:** `v0.4.1`
+- **Geri alma öncesinde korunan sürüm:** `v0.5.0`
+- **Sabit GitHub yedeği:** `backup/v0.4.1-before-v0.5.0`
+- **Telefonda korunan v0.5.0 klasörü:** `DraBornGarage-v0.5.0-before-rollback`
+
+## Uygulama kodunu geri alma
 
 ```bash
 cd ~
 
-GERI_DONULEN_SURUM="v0.4.0"
-KORUNAN_MEVCUT_SURUM="v0.4.1"
-MEVCUT_SURUM_YEDEGI="$HOME/DraBornGarage-v0.4.1-before-rollback"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.4.0.zip"
-ACILAN_KLASOR="$HOME/DraBornGarage-backup-v0.4.0-before-v0.4.1-customer-panel-fix"
+GERI_DONULEN_SURUM="v0.4.1"
+KORUNAN_MEVCUT_SURUM="v0.5.0"
+MEVCUT_SURUM_YEDEGI="$HOME/DraBornGarage-v0.5.0-before-rollback"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.4.1.zip"
+ACILAN_KLASOR="$HOME/DraBornGarage-backup-v0.4.1-before-v0.5.0"
 
 printf '\n========================================\n'
 printf 'GERİ DÖNÜLEN SÜRÜM: %s\n' "$GERI_DONULEN_SURUM"
@@ -115,7 +119,7 @@ curl -L \
   --retry-delay 3 \
   --connect-timeout 30 \
   --max-time 600 \
-  "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/backup/v0.4.0-before-v0.4.1-customer-panel-fix.zip" \
+  "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/backup/v0.4.1-before-v0.5.0.zip" \
   -o "$ZIP_DOSYASI"
 
 unzip -o "$ZIP_DOSYASI" -d "$HOME"
@@ -131,32 +135,41 @@ fi
 cd "$HOME/DraBornGarage"
 npm install --no-audit --no-fund
 
-printf '\nGERİ ALMA TAMAMLANDI: %s\n' "$GERI_DONULEN_SURUM"
+printf '\nUYGULAMA GERİ ALMA TAMAMLANDI: %s\n' "$GERI_DONULEN_SURUM"
 printf 'KORUNAN ÖNCEKİ SÜRÜM: %s\n\n' "$KORUNAN_MEVCUT_SURUM"
 
 npx expo start -c --go
 ```
 
-## Supabase geri alma
+## Supabase veritabanını v0.4.1 yapısına geri alma
 
-v0.4.1 Supabase yapısını değiştirmez. Kayıt standardı için şu no-op dosyası bulunur:
+Uygulama kodunu geri almak veritabanını otomatik değiştirmez. Supabase Dashboard → **SQL Editor** bölümünde şu dosyanın tamamı çalıştırılır:
 
-`supabase/rollbacks/rollback_v0_4_1_to_v0_4_0.sql`
+`supabase/rollbacks/rollback_v0_5_0_to_v0_4_1.sql`
 
-Uygulama kodunu v0.4.0 yedeğine döndürmek yeterlidir; canlı veriler ve v0.4.0 ek işlem/onay sistemi korunur.
+Rollback işlemi:
 
-## v0.4.1 doğrulandıktan sonra yerel yedeği temizleme
+- v0.5 alacak notlarını ve hareket geçmişini kaldırır
+- ödeme sözü, borç yazılma ve kapanış alanlarını kaldırır
+- müşteri alacak RPC’lerini kaldırır
+- ödeme ve servis toplam fonksiyonlarını v0.4.1 biçimine döndürür
+- temel müşteri, motor, servis, randevu, ek işlem ve ödeme kayıtlarını korur
+- ödeme kayıtlarını silmez; yalnız `collection_source` sınıflandırmasını kaldırır
+
+v0.5’e özel alacak notları ve borç meta verileri kaldırılacağı için SQL çalıştırılmadan önce Supabase Dashboard üzerinden gerçek veritabanı yedeği alınmalıdır.
+
+## v0.5.0 doğrulandıktan sonra yerel yedeği temizleme
 
 ```bash
 cd ~
 rm -rf \
-  "$HOME/DraBornGarage-v0.4.0-local-backup" \
-  "$HOME/DraBornGarage-v0.4.1-before-rollback" \
-  "$HOME/DraBornGarage-v0.4.1.zip" \
-  "$HOME/DraBornGarage-v0.4.0.zip"
+  "$HOME/DraBornGarage-v0.4.1-local-backup" \
+  "$HOME/DraBornGarage-v0.5.0-before-rollback" \
+  "$HOME/DraBornGarage-v0.5.0.zip" \
+  "$HOME/DraBornGarage-v0.4.1.zip"
 ```
 
 ## Bir sonraki sürüm
 
-- v0.4 içindeki yeni küçük değişiklik: `v0.4.2`
-- Yol haritasındaki bir sonraki ana aşama: `v0.5.0`
+- v0.5 içindeki ilk küçük güncelleme: `v0.5.1`
+- Yol haritasındaki sonraki ana aşama: `v0.6.0`
