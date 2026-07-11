@@ -32,6 +32,8 @@ export type ExtraWorkStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 export type ExtraApprovalMethod = 'app' | 'in_person' | 'phone' | 'whatsapp' | 'staff_rejected';
 export type WorkNoteVisibility = 'staff' | 'customer';
 export type WorkNoteCategory = 'general' | 'diagnosis' | 'test' | 'customer_update' | 'internal';
+export type ReceivableStatus = 'not_set' | 'open' | 'closed' | 'cancelled';
+export type ReceivableVisibility = 'staff' | 'customer';
 
 export interface Profile {
   id: string;
@@ -198,6 +200,12 @@ export interface CustomerServiceRecord {
   amount_received: number;
   remaining_amount: number;
   payment_status: PaymentStatus;
+  receivable_status?: ReceivableStatus;
+  debt_promised_date?: string | null;
+  debt_written_at?: string | null;
+  debt_closed_at?: string | null;
+  debt_customer_note?: string | null;
+  last_payment_at?: string | null;
   arrived_at: string;
   started_at?: string | null;
   testing_started_at?: string | null;
@@ -217,6 +225,22 @@ export interface CustomerServiceDetail extends CustomerServiceRecord {
   extra_requests: ExtraWorkRequest[];
   notes: WorkOrderNote[];
   events: WorkOrderEvent[];
+  payments?: CustomerPaymentRecord[];
+  receivable_notes?: CustomerReceivableNote[];
+}
+
+export interface CustomerPaymentRecord {
+  id: string;
+  amount: number;
+  payment_method: PaymentMethod;
+  note?: string | null;
+  paid_at: string;
+}
+
+export interface CustomerReceivableNote {
+  id: string;
+  note: string;
+  created_at: string;
 }
 
 export interface CustomerClaim {
