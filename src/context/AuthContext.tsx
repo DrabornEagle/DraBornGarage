@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { AccountMode, CustomerRegistrationMotor, CustomerWorkshopLink, MemberRole, Profile, Workshop, WorkshopMember } from '../types';
+import { AccountMode, BusinessApplication, BusinessRegistrationData, CustomerRegistrationMotor, CustomerWorkshopLink, MemberRole, Profile, Workshop, WorkshopMember } from '../types';
 
 const ACTIVE_WORKSHOP_KEY = '@draborngarage/active-workshop';
 const ACTIVE_CUSTOMER_WORKSHOP_KEY = '@draborngarage/customer-active-workshop';
@@ -17,10 +17,11 @@ interface AuthContextValue {
   memberships: WorkshopMember[];
   customerWorkshop: CustomerWorkshopLink | null;
   customerWorkshops: CustomerWorkshopLink[];
+  businessApplication: BusinessApplication | null;
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (fullName: string, phone: string, email: string, password: string, accountMode?: AccountMode, customerMotor?: CustomerRegistrationMotor) => Promise<string | null>;
+  signUp: (fullName: string, phone: string, email: string, password: string, accountMode?: AccountMode, customerMotor?: CustomerRegistrationMotor, businessRegistration?: BusinessRegistrationData) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshWorkspace: (preferredWorkshopId?: string | null, preferredCustomerWorkshopId?: string | null) => Promise<void>;
   selectWorkshop: (workshopId: string) => Promise<void>;
@@ -44,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [membership, setMembership] = useState<WorkshopMember | null>(null);
   const [customerWorkshops, setCustomerWorkshops] = useState<CustomerWorkshopLink[]>([]);
   const [customerWorkshop, setCustomerWorkshop] = useState<CustomerWorkshopLink | null>(null);
+  const [businessApplication, setBusinessApplication] = useState<BusinessApplication | null>(null);
   const [loading, setLoading] = useState(true);
 
   const clearState = useCallback(() => {
@@ -54,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMembership(null);
     setCustomerWorkshops([]);
     setCustomerWorkshop(null);
+    setBusinessApplication(null);
   }, []);
 
   const refreshWorkspace = useCallback(async (
@@ -71,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const userId = currentSession.user.id;
-    const [{ data: profileData }, { data: memberData }, customerWorkshopResult] = await Promise.all([
+    const [{ data: profileData }, { data: memberData }, customerWorkshopResult, { data: applicationData }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin, account_mode, customer_plate, customer_motorcycle_brand, customer_motorcycle_model').eq('id', userId).maybeSingle(),
       supabase
         .from('workshop_members')
@@ -80,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('is_active', true)
         .order('joined_at', { ascending: true }),
       supabase.rpc('customer_get_workshops'),
+      supabase.from('business_applications').select('id,user_id,business_name,business_phone,business_address,tax_office,tax_number,status,submitted_at,reviewed_at,review_note,workshop_id').eq('user_id', userId).maybeSingle(),
     ]);
 
     const nextProfile = (profileData as Profile | null) ?? null;
@@ -87,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const admin = Boolean(nextProfile?.is_admin);
     setProfile(nextProfile);
     setMemberships(nextMemberships);
+    setBusinessApplication((applicationData as BusinessApplication | null) ?? null);
 
     let nextWorkshops: Workshop[] = [];
     if (admin) {
@@ -135,16 +140,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, [refreshWorkspace]);
 
+  useEffect(() => {
+    const userId = session?.user.id;
+    if (!userId) return;
+    const channel = supabase.channel(`workspace-access-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, () => refreshWorkspace())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_members', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.user.id, refreshWorkspace]);
+
   const value = useMemo<AuthContextValue>(() => ({
     session,
     profile,
-    accountMode: profile?.account_mode ?? 'staff',
+    accountMode: profile?.account_mode ?? 'customer',
     workshop,
     workshops,
     membership,
     memberships,
     customerWorkshop,
     customerWorkshops,
+    businessApplication,
     isAdmin: Boolean(profile?.is_admin),
     loading,
     signIn: async (email, password) => {
@@ -153,16 +170,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await refreshWorkspace();
       return null;
     },
-    signUp: async (fullName, phone, email, password, accountMode = 'staff', customerMotor) => {
+    signUp: async (fullName, phone, email, password, accountMode = 'customer', customerMotor, businessRegistration) => {
       const customerData = accountMode === 'customer' && customerMotor ? {
         customer_plate: customerMotor.plate.trim().toUpperCase(),
         customer_motorcycle_brand: customerMotor.brand.trim(),
         customer_motorcycle_model: customerMotor.model.trim(),
       } : {};
+      const businessData = accountMode === 'staff' && businessRegistration ? {
+        business_name: businessRegistration.business_name.trim(),
+        business_phone: businessRegistration.business_phone?.trim() || phone.trim() || null,
+        business_address: businessRegistration.business_address?.trim() || null,
+        business_tax_office: businessRegistration.tax_office.trim(),
+        business_tax_number: businessRegistration.tax_number.replace(/\D/g, ''),
+      } : {};
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { full_name: fullName.trim(), phone: phone.trim(), account_mode: accountMode, ...customerData } },
+        options: { data: { full_name: fullName.trim(), phone: phone.trim(), requested_account_mode: accountMode, account_mode: 'customer', ...customerData, ...businessData } },
       });
       if (error) return error.message;
       if (!data.session) return 'Hesabın oluşturuldu. E-posta doğrulamasını tamamladıktan sonra giriş yap.';
@@ -217,7 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error: error.message };
       return { code: String(data) };
     },
-  }), [session, profile, workshop, workshops, membership, memberships, customerWorkshop, customerWorkshops, loading, refreshWorkspace, clearState]);
+  }), [session, profile, workshop, workshops, membership, memberships, customerWorkshop, customerWorkshops, businessApplication, loading, refreshWorkspace, clearState]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

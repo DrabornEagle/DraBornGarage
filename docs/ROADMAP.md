@@ -11,7 +11,7 @@ Geliştirme sırası:
 3. v1.0’dan sonra web sürümü yalnızca opsiyonel olarak değerlendirilir.
 4. Bu planda v1.1, v1.2, v2.0, v2.1 veya v3.0 bulunmaz.
 
-**Güncel geliştirme durumu:** v0.1–v0.8 uygulama ve Supabase tarafında tamamlandı. Güncel sürüm `v0.8.3`dür. Fiziksel Expo Go ve ayrı gerçek rol hesabı testleri ilgili checklist belgelerinde ayrıca takip edilir.
+**Güncel geliştirme durumu:** v0.1–v0.8 uygulama ve Supabase tarafında tamamlandı. Güncel sürüm `v0.8.4`dür. Fiziksel Expo Go ve ayrı gerçek rol hesabı testleri ilgili checklist belgelerinde ayrıca takip edilir.
 
 ## v0.1 — Çok İşletmeli Çekirdek Sistem ✅
 
@@ -210,6 +210,18 @@ Expo Go Android üzerinde yerel bildirimler kullanılır. Uzaktan push bildirimi
 - [x] İşletme oluştururken Vergi Dairesi ve Vergi Numarası
 - [x] Admin işletme oluşturma/düzenleme ekranında vergi bilgileri
 - [x] RLS/SECURITY DEFINER yetki kontrolleri, migration ve rollback
+
+## v0.8.4 — İşletme Onayı, Takvim Dikkat Merkezi ve Modern Servis Detayı ✅
+
+- [x] Admin onaylı işletme başvurusu
+- [x] Vergi bilgileri kayıt formu
+- [x] Bekleyen başvuru müşteri paneli
+- [x] Yeni randevu animasyonlu uyarısı
+- [x] Güncel Takvim + geçmiş randevu arşivi
+- [x] Açılır/kapanır iş emri kategorileri
+- [x] Okunabilirlik iyileştirmesi
+- [x] Modern animasyonlu motosiklet ikonu
+- [x] Otomatik ana Admin hesabı
 
 ## v0.9 — Google Play Uyum, Test ve Pilot
 
