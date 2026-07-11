@@ -1,66 +1,10 @@
-name: One-time v0.4.1 Customer Panel Fix
+name: One-time v0.4.1 Customer Panel Fix (completed)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/one-time-v041-customer-panel-fix.yml
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  fix:
+  completed:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Patch customer screens
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-
-          function patch(path, replacements) {
-            let text = fs.readFileSync(path, 'utf8');
-            for (const [from, to] of replacements) {
-              if (!text.includes(from)) {
-                throw new Error(`Expected text not found in ${path}: ${from}`);
-              }
-              text = text.replace(from, to);
-            }
-            fs.writeFileSync(path, text);
-          }
-
-          patch('src/customer/CustomerAppointmentsScreen.tsx', [
-            ["import { CustomerLinkPanel } from './CustomerLinkPanel';", "import { CustomerLockedState } from './CustomerLockedState';"],
-            ["export function CustomerAppointmentsScreen() {", "export function CustomerAppointmentsScreen({ onStartLink }: { onStartLink: () => void }) {"],
-            ["if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content}><ScreenHeader eyebrow=\"RANDEVU\" title=\"Randevularım\" subtitle=\"Önce motorunu bir işletmeyle eşleştir.\" /><CustomerLinkPanel /></ScrollView>;", "if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><ScreenHeader eyebrow=\"RANDEVU\" title=\"Randevularım\" subtitle=\"Randevu oluşturmak için önce motorunu güvenle eşleştir.\" /><CustomerLockedState title=\"Randevu sistemi henüz kilitli\" description=\"Motorunu eşleştirdikten sonra uygun ustaları, tarihleri ve boş saatleri bu ekrandan seçebilirsin.\" icon=\"calendar\" onStartLink={onStartLink} /></ScrollView>;"],
-            ["paddingBottom: 120", "paddingBottom: 32"],
-          ]);
-
-          patch('src/customer/CustomerServicesScreen.tsx', [
-            ["import { CustomerLinkPanel } from './CustomerLinkPanel';", "import { CustomerLockedState } from './CustomerLockedState';"],
-            ["export function CustomerServicesScreen() {", "export function CustomerServicesScreen({ onStartLink }: { onStartLink: () => void }) {"],
-            ["if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content}><ScreenHeader eyebrow=\"SERVİSLERİM\" title=\"Servis Takibi\" subtitle=\"Önce motorunu bir işletmeyle eşleştir.\" /><CustomerLinkPanel /></ScrollView>;", "if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><ScreenHeader eyebrow=\"SERVİSLERİM\" title=\"Servis Takibi\" subtitle=\"Servis kayıtlarını görmek için önce motorunu eşleştir.\" /><CustomerLockedState title=\"Servis takibi henüz kilitli\" description=\"Motorunu eşleştirdiğinde aktif servis, ek işlem onayları, kullanılan parçalar ve servis geçmişin burada görünür.\" icon=\"construct\" onStartLink={onStartLink} /></ScrollView>;"],
-            ["paddingBottom: 120", "paddingBottom: 32"],
-          ]);
-
-          patch('src/customer/CustomerHomeScreen.tsx', [
-            ["paddingBottom: 120", "paddingBottom: 32"],
-          ]);
-
-          patch('src/customer/CustomerAccountScreen.tsx', [
-            ["paddingBottom: 120", "paddingBottom: 32"],
-          ]);
-          NODE
-
-      - name: Commit fixes
-        run: |
-          git config user.name "DraBornGarage CI"
-          git config user.email "actions@users.noreply.github.com"
-          git add src/customer
-          git diff --cached --quiet || git commit -m "fix: repair customer panel locked states and bottom spacing"
-          git push origin main
+      - run: echo "v0.4.1 customer panel patch completed."
