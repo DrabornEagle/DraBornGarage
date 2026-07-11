@@ -29,7 +29,7 @@ export function CustomerLockedState({
         <Ionicons name="shield-checkmark" size={18} color={colors.cyan} />
         <Text style={[styles.noticeText, { color: colors.textSoft }]}>Plaka tek başına yeterli değildir. Telefon, takip kodu, QR veya usta onayı kullanılır.</Text>
       </View>
-      <PrimaryButton title="Motorumu Eşleştir" onPress={onStartLink} />
+      <View style={styles.buttonWrap}><PrimaryButton title="Motorumu Eşleştir" onPress={onStartLink} /></View>
     </GlassCard>
   );
 }
@@ -41,4 +41,5 @@ const styles = StyleSheet.create({
   description: { fontSize: 12, lineHeight: 19, textAlign: 'center', maxWidth: 320 },
   notice: { width: '100%', borderWidth: 1, borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
   noticeText: { flex: 1, fontSize: 10.5, lineHeight: 16 },
+  buttonWrap: { width: '100%' },
 });
