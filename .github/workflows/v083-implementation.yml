@@ -63,3 +63,13 @@ jobs:
           rm -rf dist
           npm run test:bundle
           rm -rf dist
+
+      - name: Upload validated database files
+        uses: actions/upload-artifact@v4
+        with:
+          name: draborngarage-v083-sql
+          path: |
+            supabase/migrations/20260711220000_v0_8_3_customer_motor_tax_linking.sql
+            supabase/rollbacks/20260711220000_v0_8_3_customer_motor_tax_linking_rollback.sql
+          if-no-files-found: error
+          retention-days: 7
