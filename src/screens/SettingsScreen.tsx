@@ -41,16 +41,18 @@ export function SettingsScreen() {
   }, [workshop, isOwner]);
   useEffect(() => { loadDemo(); }, [loadDemo]);
 
-  const createDemo = () => workshop && Alert.alert('v0.4 test verileri yüklensin mi?', 'Müşteri, motor, servis, ek işlem onayı, parça, not ve çok işletmeli örnek kayıtlar eklenir.', [{ text: 'Vazgeç' }, { text: 'Yükle', onPress: async () => {
+  const createDemo = () => workshop && Alert.alert('v0.5 test verileri yüklensin mi?', 'Müşteri, motor, servis, ek işlem onayı, borç, kısmi ödeme, geciken alacak ve ödeme sözü örnekleri eklenir.', [{ text: 'Vazgeç' }, { text: 'Yükle', onPress: async () => {
     setLoading(true);
     const baseResult = await supabase.rpc('create_demo_data', { p_workshop_id: workshop.id });
     if (baseResult.error) { setLoading(false); return Alert.alert('Temel demo yüklenemedi', baseResult.error.message); }
     const v04Result = await supabase.rpc('create_v04_demo_data', { p_workshop_id: workshop.id });
+    if (v04Result.error) { setLoading(false); return Alert.alert('v0.4 demo yüklenemedi', v04Result.error.message); }
+    const v05Result = await supabase.rpc('create_v05_demo_data', { p_workshop_id: workshop.id });
     setLoading(false);
-    if (v04Result.error) return Alert.alert('v0.4 demo yüklenemedi', v04Result.error.message);
+    if (v05Result.error) return Alert.alert('v0.5 demo yüklenemedi', v05Result.error.message);
     await refreshWorkspace(workshop.id);
     await loadDemo();
-    Alert.alert('v0.4 demo hazır', 'Onay bekleyen, telefon/WhatsApp ile onaylanan ve reddedilen ek işlem örnekleri eklendi. Müşteri görünümüne geçerek uygulama onayını test edebilirsin.');
+    Alert.alert('v0.5 demo hazır', 'Geciken, bugün ödeme günü olan, gelecek tarihli, kısmi ödenen ve tamamen kapanan alacak örnekleri eklendi. Alacak sekmesini ve müşteri ödeme ekranını test edebilirsin.');
   } }]);
 
   const clearDemo = () => workshop && Alert.alert('Demo temizlensin mi?', 'Gerçek kayıtlar etkilenmez.', [{ text: 'Vazgeç' }, { text: 'Temizle', style: 'destructive', onPress: async () => { setLoading(true); const { data, error } = await supabase.rpc('clear_demo_data', { p_workshop_id: workshop.id }); setLoading(false); if (error) return Alert.alert('Temizlenemedi', error.message); await refreshWorkspace((data as any)?.root_workshop_id ?? null); setDemo(EMPTY_DEMO); } }]);
@@ -64,13 +66,13 @@ export function SettingsScreen() {
     <Text style={[styles.sectionTitle, { color: colors.text }]}>Garaj Temaları</Text>
     <View style={styles.themeList}>{THEMES.map((item) => { const active = mode === item.value; return <AnimatedPressable key={item.value} onPress={() => setMode(item.value)} style={[styles.theme, { backgroundColor: active ? `${colors.primary}14` : colors.card, borderColor: active ? colors.primary : colors.border }]}><LinearGradient colors={item.preview} style={styles.preview}><Ionicons name={item.icon} size={22} color="#fff" /></LinearGradient><View style={styles.copy}><Text style={[styles.themeTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.themeSub, { color: colors.textMuted }]}>{item.subtitle}</Text></View><Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={active ? colors.primary : colors.textMuted} /></AnimatedPressable>; })}</View>
 
-    {isOwner && <><Text style={[styles.sectionTitle, { color: colors.text }]}>Test Atölyesi</Text><GlassCard style={styles.demoCard}><View style={styles.demoHeader}><Ionicons name="flask" size={28} color={demo.active ? colors.green : colors.orange} /><View style={styles.copy}><Text style={[styles.demoTitle, { color: colors.text }]}>Geçici v0.4 Test Verileri</Text><Text style={[styles.demoText, { color: colors.textMuted }]}>{demo.customer_count} müşteri • {demo.work_order_count} servis • {(demo.workshop_count ?? 0) + (demo.active ? 1 : 0)} işletme</Text></View></View>{demo.active ? <PrimaryButton title="Demo Verilerini Temizle" onPress={clearDemo} loading={loading} secondary /> : <PrimaryButton title="v0.4 Test Verilerini Yükle" onPress={createDemo} loading={loading} />}</GlassCard></>}
+    {isOwner && <><Text style={[styles.sectionTitle, { color: colors.text }]}>Test Atölyesi</Text><GlassCard style={styles.demoCard}><View style={styles.demoHeader}><Ionicons name="flask" size={28} color={demo.active ? colors.green : colors.orange} /><View style={styles.copy}><Text style={[styles.demoTitle, { color: colors.text }]}>Geçici v0.5 Test Verileri</Text><Text style={[styles.demoText, { color: colors.textMuted }]}>{demo.customer_count} müşteri • {demo.work_order_count} servis • {(demo.workshop_count ?? 0) + (demo.active ? 1 : 0)} işletme</Text></View></View>{demo.active ? <PrimaryButton title="Demo Verilerini Temizle" onPress={clearDemo} loading={loading} secondary /> : <PrimaryButton title="v0.5 Test Verilerini Yükle" onPress={createDemo} loading={loading} />}</GlassCard></>}
 
     <Text style={[styles.sectionTitle, { color: colors.text }]}>İşletme ve Randevu</Text>
     <GlassCard style={styles.info}><Info icon="business" label="İşletme" value={workshop?.name || '-'} /><Info icon="calendar" label="Randevu sistemi" value={workshop?.appointments_enabled === false ? 'Kapalı' : 'Açık'} /><Info icon="checkmark-done" label="Müşteri talebi" value={workshop?.appointment_auto_confirm ? 'Otomatik onay' : 'Usta onayı'} /><Info icon="today" label="Rezervasyon ufku" value={`${workshop?.appointment_booking_days ?? 30} gün`} /><Info icon="time" label="Minimum bildirim" value={`${workshop?.appointment_min_notice_minutes ?? 60} dakika`} /></GlassCard>
 
     <Text style={[styles.sectionTitle, { color: colors.text }]}>Uygulama</Text>
-    <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v0.4.1 • Müşteri paneli yerleşim ve navigasyon düzeltmesi" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v0.4.0-before-v0.4.1-customer-panel-fix" /><Info icon="refresh" label="Veritabanı geri alma" value="rollback_v0_4_1_to_v0_4_0.sql" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go • SDK 54" /><Info icon="cube" label="APK/AAB planı" value="v1.0" /></GlassCard>
+    <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v0.5.0 • Veresiye, alacak ve kısmi ödeme takibi" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v0.4.1-before-v0.5.0" /><Info icon="refresh" label="Veritabanı geri alma" value="rollback_v0_5_0_to_v0_4_1.sql" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go • SDK 54" /><Info icon="cube" label="APK/AAB planı" value="v1.0" /></GlassCard>
 
     <AnimatedPressable onPress={() => Alert.alert('Çıkış yapılsın mı?', '', [{ text: 'Vazgeç' }, { text: 'Çıkış', style: 'destructive', onPress: signOut }])} style={[styles.logout, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}35` }]}><Ionicons name="log-out-outline" size={21} color={colors.red} /><Text style={[styles.logoutText, { color: colors.red }]}>Hesaptan Çıkış Yap</Text></AnimatedPressable>
   </ScrollView>;

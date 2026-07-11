@@ -13,6 +13,7 @@ import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
 import { CustomerServiceDetail, CustomerServiceRecord, ExtraWorkRequest, WorkOrderStatus } from '../types';
 import { CustomerLockedState } from './CustomerLockedState';
+import { CustomerReceivableCard } from './CustomerReceivableCard';
 
 type Filter = 'all' | 'active' | 'approval' | 'ready' | 'history';
 const timeline: WorkOrderStatus[] = ['received', 'queued', 'precheck', 'price_entered', 'approval_waiting', 'repair_started', 'extra_approval_waiting', 'parts_waiting', 'testing', 'ready', 'delivered'];
@@ -114,6 +115,8 @@ function ServiceDetail({ orderId, onBack }: { orderId: string; onBack: () => voi
     </>}
 
     <GlassCard style={styles.summary}><Text style={[styles.summaryTitle, { color: colors.text }]}>{detail.complaint}</Text>{detail.diagnosis && <Text style={[styles.diagnosis, { color: colors.textSoft }]}>Tespit: {detail.diagnosis}</Text>}<Text style={[styles.meta, { color: colors.textMuted }]}>{shortDate(detail.arrived_at)}</Text><View style={styles.priceGrid}><Price label="İŞÇİLİK" value={money(detail.labor_amount)} /><Price label="PARÇA" value={money(detail.parts_amount)} /><Price label="TOPLAM" value={money(detail.total_amount)} accent={colors.green} /></View><View style={styles.priceGrid}><Price label="ÖDENEN" value={money(detail.amount_received)} accent={colors.green} /><Price label="KALAN" value={money(detail.remaining_amount)} accent={detail.remaining_amount > 0 ? colors.orange : colors.green} /><Price label="HAZIR" value={dateTime(detail.ready_at)} /></View></GlassCard>
+
+    <CustomerReceivableCard detail={detail as any} />
 
     <Text style={[styles.sectionTitle, { color: colors.text }]}>Servis Süreci</Text>
     <GlassCard>{timeline.map((status, index) => { const reached = current >= index || detail.status === 'delivered'; return <View key={status} style={styles.timelineRow}><View style={[styles.dot, { backgroundColor: reached ? (detail.status === status ? colors.orange : colors.green) : colors.surfaceSoft, borderColor: reached ? colors.green : colors.border }]}>{reached && <Ionicons name="checkmark" size={12} color="#fff" />}</View><View style={styles.copy}><Text style={[styles.timelineText, { color: reached ? colors.text : colors.textMuted }]}>{statusLabels[status]}</Text>{status === 'repair_started' && detail.started_at && <Text style={[styles.meta, { color: colors.textMuted }]}>{dateTime(detail.started_at)}</Text>}{status === 'testing' && detail.testing_started_at && <Text style={[styles.meta, { color: colors.textMuted }]}>{dateTime(detail.testing_started_at)}</Text>}{status === 'ready' && detail.ready_at && <Text style={[styles.meta, { color: colors.textMuted }]}>{dateTime(detail.ready_at)}</Text>}</View></View>; })}</GlassCard>

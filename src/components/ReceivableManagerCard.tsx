@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
+import { AnimatedPressable } from './AnimatedPressable';
 import { FormField } from './FormField';
 import { GlassCard } from './GlassCard';
 import { PrimaryButton } from './PrimaryButton';
@@ -135,7 +136,7 @@ export function ReceivableManagerCard({ orderId, onChanged }: { orderId: string;
 
 function Metric({ label, value, accent }: { label: string; value: string; accent?: string }) { const { colors } = useTheme(); return <View style={[styles.metric, { backgroundColor: colors.surfaceSoft }]}><Text style={[styles.metricLabel, { color: colors.textMuted }]}>{label}</Text><Text numberOfLines={1} style={[styles.metricValue, { color: accent ?? colors.text }]}>{value}</Text></View>; }
 
-function PrimaryChoice({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) { const { colors } = useTheme(); const { AnimatedPressable } = require('./AnimatedPressable') as typeof import('./AnimatedPressable'); return <AnimatedPressable onPress={onPress} style={[styles.toggleItem, active && { backgroundColor: colors.cardStrong }]}><Text style={[styles.toggleText, { color: active ? colors.text : colors.textMuted }]}>{label}</Text></AnimatedPressable>; }
+function PrimaryChoice({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) { const { colors } = useTheme(); return <AnimatedPressable onPress={onPress} style={[styles.toggleItem, active && { backgroundColor: colors.cardStrong }]}><Text style={[styles.toggleText, { color: active ? colors.text : colors.textMuted }]}>{label}</Text></AnimatedPressable>; }
 
 const styles = StyleSheet.create({
   root: { gap: 12 },

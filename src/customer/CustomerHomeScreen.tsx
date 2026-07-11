@@ -37,6 +37,8 @@ export function CustomerHomeScreen({ onOpenServices, onOpenAppointments }: { onO
   const upcoming = useMemo(() => appointments.filter((item) => ['pending', 'confirmed', 'arrived'].includes(item.status) && new Date(item.scheduled_end) >= new Date()).sort((a, b) => +new Date(a.scheduled_start) - +new Date(b.scheduled_start))[0], [appointments]);
   const remaining = active.reduce((sum, item) => sum + Number(item.remaining_amount || 0), 0);
   const pendingApprovalCount = services.reduce((sum, item) => sum + Number(item.pending_approval_count || 0), 0);
+  const openDebt = services.filter((item) => (item as any).receivable_status === 'open' && Number(item.remaining_amount || 0) > 0);
+  const openDebtAmount = openDebt.reduce((sum, item) => sum + Number(item.remaining_amount || 0), 0);
 
   const refresh = async () => { setRefreshing(true); await refreshWorkspace(undefined, customerWorkshop?.workshop_id ?? null); await load(); setRefreshing(false); };
 
@@ -50,6 +52,12 @@ export function CustomerHomeScreen({ onOpenServices, onOpenAppointments }: { onO
         <View><Text style={styles.heroLabel}>AKTİF SERVİS</Text><Text style={styles.heroValue}>{active.length}</Text></View>
         <View style={styles.heroRight}><Text style={styles.heroLabel}>KALAN ÖDEME</Text><Text style={styles.heroAmount}>{money(remaining)}</Text></View>
       </LinearGradient>
+
+      {openDebtAmount > 0 && <AnimatedPressable onPress={onOpenServices} style={[styles.approvalCard, { backgroundColor: `${colors.red}12`, borderColor: `${colors.red}50` }]}>
+        <View style={[styles.icon, { backgroundColor: `${colors.red}18` }]}><Ionicons name="wallet" size={25} color={colors.red} /></View>
+        <View style={styles.copy}><Text style={[styles.approvalTitle, { color: colors.text }]}>Kalan ödemen {money(openDebtAmount)}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{openDebt.length} servis için borç / veresiye kaydı bulunuyor.</Text></View>
+        <Ionicons name="chevron-forward" size={21} color={colors.red} />
+      </AnimatedPressable>}
 
       {pendingApprovalCount > 0 && <AnimatedPressable onPress={onOpenServices} style={[styles.approvalCard, { backgroundColor: `${colors.orange}14`, borderColor: `${colors.orange}58` }]}>
         <View style={[styles.icon, { backgroundColor: `${colors.orange}1C` }]}><Ionicons name="shield-half" size={25} color={colors.orange} /></View>

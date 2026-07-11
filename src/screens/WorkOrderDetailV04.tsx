@@ -5,6 +5,7 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { ReceivableManagerCard } from '../components/ReceivableManagerCard';
 import { StatusPill, statusLabels } from '../components/StatusPill';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -13,7 +14,6 @@ import { supabase } from '../lib/supabase';
 import {
   ExtraApprovalMethod,
   ExtraWorkRequest,
-  PaymentMethod,
   PriceType,
   WorkNoteCategory,
   WorkNoteVisibility,
@@ -74,7 +74,6 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [order, setOrder] = useState<any>(apprenticeData ?? null);
   const [services, setServices] = useState<any[]>([]);
   const [parts, setParts] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
   const [extras, setExtras] = useState<ExtraWorkRequest[]>([]);
   const [notes, setNotes] = useState<WorkOrderNote[]>([]);
   const [events, setEvents] = useState<WorkOrderEvent[]>([]);
@@ -107,18 +106,14 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [noteVisibility, setNoteVisibility] = useState<WorkNoteVisibility>('staff');
   const [noteCategory, setNoteCategory] = useState<WorkNoteCategory>('general');
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [paymentAmount, setPaymentAmount] = useState('');
-
   const approvedExtras = useMemo(() => extras.filter((item) => item.status === 'approved'), [extras]);
 
   const load = useCallback(async () => {
     if (isApprentice) return;
-    const [orderResult, servicesResult, partsResult, paymentsResult, extrasResult, notesResult, eventsResult] = await Promise.all([
+    const [orderResult, servicesResult, partsResult, extrasResult, notesResult, eventsResult] = await Promise.all([
       supabase.from('work_orders').select('*,customer:customers(*),motorcycle:motorcycles(*),mechanic:profiles!work_orders_assigned_mechanic_id_fkey(full_name)').eq('id', orderId).single(),
       supabase.from('work_order_services').select('*,mechanic:profiles!work_order_services_mechanic_id_fkey(full_name)').eq('work_order_id', orderId).order('created_at'),
       supabase.from('work_order_parts').select('*').eq('work_order_id', orderId).order('created_at'),
-      supabase.from('payments').select('*').eq('work_order_id', orderId).order('paid_at', { ascending: false }),
       supabase.from('work_order_extra_requests').select('*').eq('work_order_id', orderId).order('created_at', { ascending: false }),
       supabase.from('work_order_notes').select('*').eq('work_order_id', orderId).order('created_at', { ascending: false }),
       supabase.from('work_order_events').select('*').eq('work_order_id', orderId).order('created_at', { ascending: false }),
@@ -128,7 +123,6 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     setOrder(next);
     setServices(servicesResult.data ?? []);
     setParts(partsResult.data ?? []);
-    setPayments(paymentsResult.data ?? []);
     setExtras((extrasResult.data as ExtraWorkRequest[]) ?? []);
     setNotes((notesResult.data as WorkOrderNote[]) ?? []);
     setEvents((eventsResult.data as WorkOrderEvent[]) ?? []);
@@ -276,18 +270,6 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
 
   const deleteNote = (id: string) => run(() => supabase.rpc('staff_delete_work_order_note', { p_note_id: id }), 'Not silinemedi');
 
-  const addPayment = async () => {
-    const amount = Number(paymentAmount.replace(',', '.'));
-    if (amount <= 0) return Alert.alert('Geçerli tahsilat tutarı gir');
-    await run(() => supabase.from('payments').insert({
-      work_order_id: orderId,
-      amount,
-      payment_method: paymentMethod,
-      note: paymentMethod === 'cash' ? 'Nakit tahsilat' : 'IBAN / banka transferi',
-    }), 'Tahsilat eklenemedi');
-    setPaymentAmount('');
-  };
-
   return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <Header onBack={onBack} title={`${brand} ${model}`} subtitle={`${order.customer?.full_name || 'Müşteri'} • ${plate || 'Plaka yok'} • Sıra ${order.queue_position ?? '-'}`} status={order.status} />
 
@@ -350,11 +332,8 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     <Section title="Servis hareket geçmişi" subtitle="Durum, ek işlem, parça, not ve işlem hareketleri." />
     <GlassCard style={styles.listCard}>{events.length === 0 ? <Empty text="Hareket kaydı yok." /> : events.map((item, index) => <View key={item.id} style={[styles.eventRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={[styles.eventDot, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="pulse" size={15} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{eventLabel[item.event_type] || item.event_type}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.old_status && item.new_status ? `${statusLabels[item.old_status]} → ${statusLabels[item.new_status]} • ` : ''}{dateTime(item.created_at)}</Text>{item.note && <Text style={[styles.bodySmall, { color: colors.textSoft }]}>{item.note}</Text>}</View></View>)}</GlassCard>
 
-    <Section title="Nakit / IBAN tahsilatları" subtitle={`Alınan ${money(order.amount_received)} • Kalan ${money(Math.max(0, Number(order.total_amount) - Number(order.amount_received)))}`} />
-    <GlassCard style={styles.listCard}>
-      {payments.map((item, index) => <View key={item.id} style={[styles.listItem, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.payment_method === 'transfer' ? 'IBAN / Banka transferi' : 'Nakit'}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{dateTime(item.paid_at)}</Text></View><Text style={[styles.boldAmount, { color: colors.green }]}>{money(item.amount)}</Text></View>)}
-      <View style={[styles.stack, styles.formDivider, { borderTopColor: colors.border }]}><Toggle values={[['cash', 'Nakit'], ['transfer', 'IBAN']]} active={paymentMethod} onChange={(v) => setPaymentMethod(v as PaymentMethod)} /><FormField label="Tahsilat tutarı" value={paymentAmount} onChangeText={setPaymentAmount} keyboardType="decimal-pad" /><PrimaryButton title="Tahsilat Kaydet" onPress={addPayment} loading={saving} /></View>
-    </GlassCard>
+    <Section title="Borç / veresiye ve tahsilat" subtitle="Kalan borç, söz tarihi, Nakit/IBAN tahsilatı ve müşteri ödeme notları." />
+    <ReceivableManagerCard orderId={orderId} onChanged={load} />
   </ScrollView>;
 }
 
