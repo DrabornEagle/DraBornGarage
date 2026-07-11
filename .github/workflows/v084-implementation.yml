@@ -1,25 +1,18 @@
-name: DraBornGarage v0.8.4 Implementation
+name: DraBornGarage v0.8.4 Clean Release
 
 on:
   push:
     branches:
-      - feature/v0.8.4-approval-calendar-modern-ui
+      - feature/v0.8.4-clean-release
     paths:
       - scripts/prepare_v084_generators.mjs
       - scripts/apply_v084_core.mjs
       - scripts/apply_v084_ui.mjs
-      - .github/workflows/v084-implementation.yml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - scripts/prepare_v084_generators.mjs
-      - scripts/apply_v084_core.mjs
-      - scripts/apply_v084_ui.mjs
+      - scripts/finalize_v084_generated.mjs
       - .github/workflows/v084-implementation.yml
 
 concurrency:
-  group: draborngarage-v084-generation
+  group: draborngarage-v084-clean-generation
   cancel-in-progress: true
 
 permissions:
@@ -30,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout feature branch
+      - name: Checkout clean feature branch
         uses: actions/checkout@v4
         with:
-          ref: feature/v0.8.4-approval-calendar-modern-ui
+          ref: feature/v0.8.4-clean-release
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -46,56 +39,22 @@ jobs:
         run: node scripts/prepare_v084_generators.mjs
 
       - name: Apply v0.8.4 core changes
-        id: core
-        continue-on-error: true
-        run: |
-          set +e
-          node scripts/apply_v084_core.mjs > v084-core.log 2>&1
-          code=$?
-          cat v084-core.log
-          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          exit 0
+        run: node scripts/apply_v084_core.mjs
 
       - name: Apply v0.8.4 UI changes
-        id: ui
-        if: steps.core.outputs.exit_code == '0'
-        continue-on-error: true
-        run: |
-          set +e
-          node scripts/apply_v084_ui.mjs > v084-ui.log 2>&1
-          code=$?
-          cat v084-ui.log
-          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          exit 0
+        run: node scripts/apply_v084_ui.mjs
 
-      - name: Upload generation diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: draborngarage-v084-generation-logs
-          path: |
-            v084-core.log
-            v084-ui.log
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Enforce generation result
-        run: |
-          test "${{ steps.core.outputs.exit_code }}" = "0"
-          test "${{ steps.ui.outputs.exit_code }}" = "0"
+      - name: Normalize generated source
+        run: node scripts/finalize_v084_generated.mjs
 
       - name: Persist generated v0.8.4 files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          if git diff --cached --quiet; then
-            echo "Generated changes are already committed."
-          else
-            git commit -m "feat: complete v0.8.4 approval calendar and modern UI"
-            git pull --rebase origin feature/v0.8.4-approval-calendar-modern-ui
-            git push origin HEAD:feature/v0.8.4-approval-calendar-modern-ui
-          fi
+          git commit -m "feat: complete clean v0.8.4 release" || true
+          git pull --rebase origin feature/v0.8.4-clean-release
+          git push origin HEAD:feature/v0.8.4-clean-release
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
@@ -112,7 +71,7 @@ jobs:
       - name: Upload validated database files
         uses: actions/upload-artifact@v4
         with:
-          name: draborngarage-v084-sql
+          name: draborngarage-v084-clean-sql
           path: |
             supabase/migrations/20260712220000_v0_8_4_business_approval.sql
             supabase/rollbacks/20260712220000_v0_8_4_business_approval_rollback.sql
