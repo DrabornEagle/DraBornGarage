@@ -352,7 +352,7 @@ export function PlatformFeesDashboard() {
 
     <LinearGradient colors={[statusAccent, colors.primary2, colors.black]} style={styles.hero}>
       <View style={styles.copy}><Text style={styles.heroEyebrow}>{statusLabel[s.status]}</Text><Text style={styles.heroValue}>{money(number(s.total_outstanding))}</Text><Text style={styles.heroSub}>Toplam kalan platform borcu • {number(s.charge_count)} ücret kaydı</Text></View>
-      <View style={styles.heroRight}><Ionicons name={s.status === 'paid' ? 'checkmark-circle' : s.status === 'overdue' ? 'alert-circle' : 'wallet'} size={34} color="#fff" /><Text style={styles.heroRightText}>{s.oldest_due_date ? `En yakın/eskİ ödeme\n${dateText(s.oldest_due_date)}` : 'Aktif borç\nbulunmuyor'}</Text></View>
+      <View style={styles.heroRight}><Ionicons name={s.status === 'paid' ? 'checkmark-circle' : s.status === 'overdue' ? 'alert-circle' : 'wallet'} size={34} color="#fff" /><Text style={styles.heroRightText}>{s.oldest_due_date ? `En eski ödeme\n${dateText(s.oldest_due_date)}` : 'Aktif borç\nbulunmuyor'}</Text></View>
     </LinearGradient>
 
     <View style={styles.metricGrid}>
