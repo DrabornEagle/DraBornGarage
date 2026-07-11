@@ -81,6 +81,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
 
   const [diagnosis, setDiagnosis] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
@@ -110,6 +111,8 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [noteCategory, setNoteCategory] = useState<WorkNoteCategory>('general');
 
   const approvedExtras = useMemo(() => extras.filter((item) => item.status === 'approved'), [extras]);
+  const toggleSection = (key: string) => setOpenSections((current) => ({ ...current, [key]: !current[key] }));
+  useEffect(() => { if (extras.some((item) => item.status === 'pending')) setOpenSections((current) => current.extras ? current : ({ ...current, extras: true })); }, [extras]);
   const toggleSection = (key: string) => setOpenSections((current) => ({ ...current, [key]: !current[key] }));
   useEffect(() => { if (extras.some((item) => item.status === 'pending')) setOpenSections((current) => current.extras ? current : ({ ...current, extras: true })); }, [extras]);
   const toggleSection = (key: string) => setOpenSections((current) => ({ ...current, [key]: !current[key] }));
@@ -322,7 +325,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     </GlassCard>
     </DetailAccordion>
 
-    <DetailAccordion title="Yapılan İşlemler" subtitle="Planlanan, başlayan ve tamamlanan işçilik kalemlerini yönet." icon="construct" accent={colors.primary2} open={openSections.services} onToggle={() => toggleSection('services')} badge={`${services.length} İşlem`}> subtitle="Her işlem için planlandı, başladı ve tamamlandı saatleri tutulur." />
+    <DetailAccordion title="Yapılan İşlemler" subtitle="Planlanan, başlayan ve tamamlanan işçilik kalemlerini yönet." icon="construct" accent={colors.primary2} open={openSections.services} onToggle={() => toggleSection('services')} badge={`${services.length} İşlem`}>
     <GlassCard style={styles.listCard}>
       {services.length === 0 ? <Empty text="Henüz işlem kalemi yok." /> : services.map((item, index) => <View key={item.id} style={[styles.listItem, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.mechanic?.full_name || 'Usta'} • {item.completed ? 'Tamamlandı' : item.started_at ? 'İşlemde' : 'Planlandı'}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>Başlangıç {dateTime(item.started_at)} • Bitiş {dateTime(item.completed_at)}</Text>{item.extra_request_id && <Text style={[styles.linked, { color: colors.orange }]}>Onaylı ek işlem kapsamında • Toplama tekrar eklenmez</Text>}</View><Text style={[styles.boldAmount, { color: colors.green }]}>{money(item.price)}</Text><View style={styles.verticalActions}>{!item.started_at && <IconAction icon="play" accent={colors.cyan} onPress={() => setServiceState(item.id, 'started')} />}{!item.completed && <IconAction icon="checkmark" accent={colors.green} onPress={() => setServiceState(item.id, 'completed')} />}<IconAction icon="trash" accent={colors.red} onPress={() => deleteService(item.id, item.title)} /></View></View>)}
       <View style={[styles.stack, styles.formDivider, { borderTopColor: colors.border }]}><FormField label="İşlem" value={serviceTitle} onChangeText={setServiceTitle} /><FormField label="Açıklama" value={serviceDescription} onChangeText={setServiceDescription} multiline /><FormField label="Tutar" value={servicePrice} onChangeText={setServicePrice} keyboardType="decimal-pad" /><ExtraLinkPicker extras={approvedExtras} selected={serviceExtraId} onChange={setServiceExtraId} /><PrimaryButton title="İşlem Ekle" onPress={addService} loading={saving} /></View>
@@ -351,16 +354,6 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
       <ReceivableManagerCard orderId={orderId} onChanged={load} />
     </DetailAccordion>
   </ScrollView>;
-}
-
-function DetailAccordion({ title, subtitle, icon, accent, open, onToggle, badge, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; badge?: string; children: React.ReactNode }) {
-  const { colors } = useTheme();
-  return <GlassCard style={styles.accordionCard}><AnimatedPressable onPress={onToggle} style={styles.accordionHeader}><View style={[styles.accordionIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={icon} size={23} color={accent} /></View><View style={styles.copy}><Text style={[styles.accordionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.accordionSub, { color: colors.textMuted }]}>{subtitle}</Text></View>{badge && <View style={[styles.accordionBadge, { backgroundColor: `${accent}12`, borderColor: `${accent}38` }]}><Text style={[styles.accordionBadgeText, { color: accent }]} numberOfLines={1}>{badge}</Text></View>}<Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textMuted} /></AnimatedPressable>{open && <View style={[styles.accordionBody, { borderTopColor: colors.border }]}>{children}</View>}</GlassCard>;
-}
-
-function DetailAccordion({ title, subtitle, icon, accent, open, onToggle, badge, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; badge?: string; children: React.ReactNode }) {
-  const { colors } = useTheme();
-  return <GlassCard style={styles.accordionCard}><AnimatedPressable onPress={onToggle} style={styles.accordionHeader}><View style={[styles.accordionIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={icon} size={23} color={accent} /></View><View style={styles.copy}><Text style={[styles.accordionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.accordionSub, { color: colors.textMuted }]}>{subtitle}</Text></View>{badge && <View style={[styles.accordionBadge, { backgroundColor: `${accent}12`, borderColor: `${accent}38` }]}><Text style={[styles.accordionBadgeText, { color: accent }]} numberOfLines={1}>{badge}</Text></View>}<Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textMuted} /></AnimatedPressable>{open && <View style={[styles.accordionBody, { borderTopColor: colors.border }]}>{children}</View>}</GlassCard>;
 }
 
 function DetailAccordion({ title, subtitle, icon, accent, open, onToggle, badge, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; badge?: string; children: React.ReactNode }) {
