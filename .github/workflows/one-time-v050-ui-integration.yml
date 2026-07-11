@@ -1,0 +1,84 @@
+name: One-time v0.5.0 UI Integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/one-time-v050-ui-integration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Patch v0.5 screens
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          function patch(path, replacements) {
+            let text = fs.readFileSync(path, 'utf8');
+            for (const [from, to] of replacements) {
+              if (!text.includes(from)) throw new Error(`Expected text not found in ${path}: ${from.slice(0, 120)}`);
+              text = text.replace(from, to);
+            }
+            fs.writeFileSync(path, text);
+          }
+
+          patch('src/components/ReceivableManagerCard.tsx', [
+            ["import { FormField } from './FormField';", "import { AnimatedPressable } from './AnimatedPressable';\nimport { FormField } from './FormField';"],
+            ["function PrimaryChoice({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) { const { colors } = useTheme(); const { AnimatedPressable } = require('./AnimatedPressable') as typeof import('./AnimatedPressable'); return <AnimatedPressable", "function PrimaryChoice({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) { const { colors } = useTheme(); return <AnimatedPressable"],
+          ]);
+
+          patch('src/screens/WorkOrderDetailV04.tsx', [
+            ["import { PrimaryButton } from '../components/PrimaryButton';", "import { PrimaryButton } from '../components/PrimaryButton';\nimport { ReceivableManagerCard } from '../components/ReceivableManagerCard';"],
+            ["  PaymentMethod,\n", ""],
+            ["  const [payments, setPayments] = useState<any[]>([]);\n", ""],
+            ["  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');\n  const [paymentAmount, setPaymentAmount] = useState('');\n\n", ""],
+            ["const [orderResult, servicesResult, partsResult, paymentsResult, extrasResult, notesResult, eventsResult] = await Promise.all([", "const [orderResult, servicesResult, partsResult, extrasResult, notesResult, eventsResult] = await Promise.all(["],
+            ["      supabase.from('payments').select('*').eq('work_order_id', orderId).order('paid_at', { ascending: false }),\n", ""],
+            ["    setPayments(paymentsResult.data ?? []);\n", ""],
+            ["  const addPayment = async () => {\n    const amount = Number(paymentAmount.replace(',', '.'));\n    if (amount <= 0) return Alert.alert('Geçerli tahsilat tutarı gir');\n    await run(() => supabase.from('payments').insert({\n      work_order_id: orderId,\n      amount,\n      payment_method: paymentMethod,\n      note: paymentMethod === 'cash' ? 'Nakit tahsilat' : 'IBAN / banka transferi',\n    }), 'Tahsilat eklenemedi');\n    setPaymentAmount('');\n  };\n\n", ""],
+            ["    <Section title=\"Nakit / IBAN tahsilatları\" subtitle={`Alınan ${money(order.amount_received)} • Kalan ${money(Math.max(0, Number(order.total_amount) - Number(order.amount_received)))}`} />\n    <GlassCard style={styles.listCard}>\n      {payments.map((item, index) => <View key={item.id} style={[styles.listItem, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.payment_method === 'transfer' ? 'IBAN / Banka transferi' : 'Nakit'}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{dateTime(item.paid_at)}</Text></View><Text style={[styles.boldAmount, { color: colors.green }]}>{money(item.amount)}</Text></View>)}\n      <View style={[styles.stack, styles.formDivider, { borderTopColor: colors.border }]}><Toggle values={[[\'cash\', \'Nakit\'], [\'transfer\', \'IBAN\']]} active={paymentMethod} onChange={(v) => setPaymentMethod(v as PaymentMethod)} /><FormField label=\"Tahsilat tutarı\" value={paymentAmount} onChangeText={setPaymentAmount} keyboardType=\"decimal-pad\" /><PrimaryButton title=\"Tahsilat Kaydet\" onPress={addPayment} loading={saving} /></View>\n    </GlassCard>", "    <Section title=\"Borç / veresiye ve tahsilat\" subtitle=\"Kalan borç, söz tarihi, Nakit/IBAN tahsilatı ve müşteri ödeme notları.\" />\n    <ReceivableManagerCard orderId={orderId} onChanged={load} />"],
+          ]);
+
+          patch('src/customer/CustomerServicesScreen.tsx', [
+            ["import { CustomerLockedState } from './CustomerLockedState';", "import { CustomerLockedState } from './CustomerLockedState';\nimport { CustomerReceivableCard } from './CustomerReceivableCard';"],
+            ["    <Text style={[styles.sectionTitle, { color: colors.text }]}>Servis Süreci</Text>", "    <CustomerReceivableCard detail={detail as any} />\n\n    <Text style={[styles.sectionTitle, { color: colors.text }]}>Servis Süreci</Text>"],
+          ]);
+
+          patch('src/customer/CustomerHomeScreen.tsx', [
+            ["  const pendingApprovalCount = services.reduce((sum, item) => sum + Number(item.pending_approval_count || 0), 0);", "  const pendingApprovalCount = services.reduce((sum, item) => sum + Number(item.pending_approval_count || 0), 0);\n  const openDebt = services.filter((item) => (item as any).receivable_status === 'open' && Number(item.remaining_amount || 0) > 0);\n  const openDebtAmount = openDebt.reduce((sum, item) => sum + Number(item.remaining_amount || 0), 0);"],
+            ["      {pendingApprovalCount > 0 && <AnimatedPressable", "      {openDebtAmount > 0 && <AnimatedPressable onPress={onOpenServices} style={[styles.approvalCard, { backgroundColor: `${colors.red}12`, borderColor: `${colors.red}50` }]}>\n        <View style={[styles.icon, { backgroundColor: `${colors.red}18` }]}><Ionicons name=\"wallet\" size={25} color={colors.red} /></View>\n        <View style={styles.copy}><Text style={[styles.approvalTitle, { color: colors.text }]}>Kalan ödemen {money(openDebtAmount)}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{openDebt.length} servis için borç / veresiye kaydı bulunuyor.</Text></View>\n        <Ionicons name=\"chevron-forward\" size={21} color={colors.red} />\n      </AnimatedPressable>}\n\n      {pendingApprovalCount > 0 && <AnimatedPressable"],
+          ]);
+
+          patch('src/screens/SettingsScreen.tsx', [
+            ["const createDemo = () => workshop && Alert.alert('v0.4 test verileri yüklensin mi?', 'Müşteri, motor, servis, ek işlem onayı, parça, not ve çok işletmeli örnek kayıtlar eklenir.'", "const createDemo = () => workshop && Alert.alert('v0.5 test verileri yüklensin mi?', 'Müşteri, motor, servis, ek işlem onayı, borç, kısmi ödeme, geciken alacak ve ödeme sözü örnekleri eklenir.'"],
+            ["    const v04Result = await supabase.rpc('create_v04_demo_data', { p_workshop_id: workshop.id });\n    setLoading(false);\n    if (v04Result.error) return Alert.alert('v0.4 demo yüklenemedi', v04Result.error.message);", "    const v04Result = await supabase.rpc('create_v04_demo_data', { p_workshop_id: workshop.id });\n    if (v04Result.error) { setLoading(false); return Alert.alert('v0.4 demo yüklenemedi', v04Result.error.message); }\n    const v05Result = await supabase.rpc('create_v05_demo_data', { p_workshop_id: workshop.id });\n    setLoading(false);\n    if (v05Result.error) return Alert.alert('v0.5 demo yüklenemedi', v05Result.error.message);"],
+            ["Alert.alert('v0.4 demo hazır', 'Onay bekleyen, telefon/WhatsApp ile onaylanan ve reddedilen ek işlem örnekleri eklendi. Müşteri görünümüne geçerek uygulama onayını test edebilirsin.');", "Alert.alert('v0.5 demo hazır', 'Geciken, bugün ödeme günü olan, gelecek tarihli, kısmi ödenen ve tamamen kapanan alacak örnekleri eklendi. Alacak sekmesini ve müşteri ödeme ekranını test edebilirsin.');"],
+            ["Geçici v0.4 Test Verileri", "Geçici v0.5 Test Verileri"],
+            ["v0.4 Test Verilerini Yükle", "v0.5 Test Verilerini Yükle"],
+            ["v0.4.1 • Müşteri paneli yerleşim ve navigasyon düzeltmesi", "v0.5.0 • Veresiye, alacak ve kısmi ödeme takibi"],
+            ["backup/v0.4.0-before-v0.4.1-customer-panel-fix", "backup/v0.4.1-before-v0.5.0"],
+            ["rollback_v0_4_1_to_v0_4_0.sql", "rollback_v0_5_0_to_v0_4_1.sql"],
+          ]);
+
+          patch('src/screens/AuthScreen.tsx', [
+            ["GARAGE OS • v0.4.1 MÜŞTERİ PANELİ DÜZELTİLDİ", "GARAGE OS • v0.5.0 ALACAK TAKİBİ HAZIR"],
+          ]);
+          NODE
+
+      - name: Commit integration
+        run: |
+          git config user.name "DraBornGarage CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add src
+          git diff --cached --quiet || git commit -m "feat: integrate v0.5 receivables across staff and customer panels"
+          git push origin main
