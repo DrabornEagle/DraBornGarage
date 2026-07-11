@@ -11,125 +11,142 @@ Geliştirme sırası:
 3. v1.0’dan sonra web sürümü yalnızca opsiyonel olarak değerlendirilir.
 4. Bu planda v1.1, v1.2, v2.0, v2.1 veya v3.0 bulunmaz.
 
-## v0.1 — Çok İşletmeli Çekirdek Sistem
+**Güncel geliştirme durumu:** v0.1–v0.6 uygulama ve Supabase tarafında tamamlandı. Güncel sürüm `v0.6.0`dır. Fiziksel Expo Go testleri ilgili checklist belgelerinde ayrıca takip edilir.
+
+## v0.1 — Çok İşletmeli Çekirdek Sistem ✅
 
 **Amaç:** DraBornGarage’ın işletme, rol, servis ve temel ödeme altyapısını kurmak.
 
-- Admin paneli
-- İşletme ekleme, düzenleme, seçme ve aktif/pasif yapma
-- Her işletmeyi ayrı görüntüleme
-- İşletme Sahibi rolü
-- İşletme Sahibi + Usta rolü
-- Birden fazla işletme sahibi desteği
-- Usta hesabı
-- Çırak hesabı ve kısıtlı panel
-- Personel ekleme, rol değiştirme ve pasifleştirme
-- Her veriyi işletmeye bağlama
-- Temel İşletme Paneli
-- Temel kişisel Usta Paneli
-- Plakayla kayıtlı motor/müşteri bulma
-- Yeni müşteri ve motorla servis kaydı açma
-- Hızlı Servis / randevusuz gelen motor
-- Bırakılan Motor
-- Randevulu Servis veri tipi
-- Günlük atölye sırası
-- Servis durumlarını değiştirme
-- Net fiyat ve tahmini fiyat
-- Tamire başlamadan önce ücret zorunluluğu
-- Nakit ve IBAN tahsilat kaydı
-- İşlem ve kullanılan parçaları manuel kaydetme
-- İşletme bazlı RLS ve rol güvenliği
+- [x] Admin paneli
+- [x] İşletme ekleme, düzenleme, seçme ve aktif/pasif yapma
+- [x] Her işletmeyi ayrı görüntüleme
+- [x] İşletme Sahibi rolü
+- [x] İşletme Sahibi + Usta rolü
+- [x] Birden fazla işletme sahibi desteği
+- [x] Usta hesabı
+- [x] Çırak hesabı ve kısıtlı panel
+- [x] Personel ekleme, rol değiştirme ve pasifleştirme
+- [x] Her veriyi işletmeye bağlama
+- [x] Temel İşletme Paneli
+- [x] Temel kişisel Usta Paneli
+- [x] Plakayla kayıtlı motor/müşteri bulma
+- [x] Yeni müşteri ve motorla servis kaydı açma
+- [x] Hızlı Servis / randevusuz gelen motor
+- [x] Bırakılan Motor
+- [x] Randevulu Servis veri tipi
+- [x] Günlük atölye sırası
+- [x] Servis durumlarını değiştirme
+- [x] Net fiyat ve tahmini fiyat
+- [x] Tamire başlamadan önce ücret zorunluluğu
+- [x] Nakit ve IBAN tahsilat kaydı
+- [x] İşlem ve kullanılan parçaları manuel kaydetme
+- [x] İşletme bazlı RLS ve rol güvenliği
 
-## v0.2 — Müşteri Hesabı ve Motor Eşleştirme
+## v0.2 — Müşteri Hesabı ve Motor Eşleştirme ✅
 
 **Amaç:** Müşterinin kendi motorunu ve seçtiği işletmedeki servis sürecini takip etmesi.
 
-- Müşteri kayıt/giriş
-- Plaka ile eşleştirme
-- Telefon/kod ile güvenli eşleştirme
-- Servis takip kodu
-- QR kod mantığı
-- Usta ve müşteri onaylı eşleştirme
-- Müşterinin kendi motorlarını görmesi
-- Aktif servis durumu
-- Fiyat bilgisi
-- Servis geçmişi
-- Tekrar gelen müşterinin plakayla otomatik tanınması
-- Tek işletmede otomatik giriş
-- Birden fazla işletmede işletme seçimi
-- Seçilen işletmeye özel geçmiş ve aktif servis
+- [x] Müşteri kayıt/giriş
+- [x] Plaka ile eşleştirme
+- [x] Telefon/kod ile güvenli eşleştirme
+- [x] Servis takip kodu
+- [x] QR kod mantığı
+- [x] Usta ve müşteri onaylı eşleştirme
+- [x] Müşterinin kendi motorlarını görmesi
+- [x] Aktif servis durumu
+- [x] Fiyat bilgisi
+- [x] Servis geçmişi
+- [x] Tekrar gelen müşterinin plakayla otomatik tanınması
+- [x] Tek işletmede otomatik giriş
+- [x] Birden fazla işletmede işletme seçimi
+- [x] Seçilen işletmeye özel geçmiş ve aktif servis
 
-## v0.3 — Randevu, Müsaitlik ve Usta Takvimi
+## v0.3 — Randevu, Müsaitlik ve Usta Takvimi ✅
 
 **Amaç:** Ustaların zamanını ve randevulu/randevusuz iş akışını yönetmek.
 
-- Usta çalışma saatleri
-- Randevu saatleri
-- Müsait/meşgul durumu
-- Belirli gün ve saat kapatma
-- Ustanın manuel randevu eklemesi
-- İşletme sahibinin randevu yönetmesi
-- Admin’in randevu yönetmesi
-- Randevuyu servis kaydına dönüştürme
-- Günlük randevu listesi
-- Randevulu ve randevusuz iş ayrımı
+- [x] Usta çalışma saatleri
+- [x] Randevu saatleri
+- [x] Müsait/meşgul durumu
+- [x] Belirli gün ve saat kapatma
+- [x] Ustanın manuel randevu eklemesi
+- [x] İşletme Sahibinin randevu yönetmesi
+- [x] Admin’in randevu yönetmesi
+- [x] Randevuyu servis kaydına dönüştürme
+- [x] Günlük randevu listesi
+- [x] Randevulu ve randevusuz iş ayrımı
 
-## v0.4 — Ek İşlem, Onay ve Servis Detayları
+## v0.4 — Ek İşlem, Onay ve Servis Detayları ✅
 
 **Amaç:** Tamir sırasında çıkan ek işleri ve müşteri onaylarını kontrollü yönetmek.
 
-- Ek işlem ve ek ücret
-- Uygulamadan onay
-- Müşteri yanında onay verdi
-- Telefonla onay alındı
-- WhatsApp ile onay alındı
-- Reddedildi
-- Onay geçmişi
-- Kullanılan parçalar
-- Ayrıntılı servis notları
-- İşlem başlangıç/bitiş saatleri
-- Parça bekleniyor
-- Test ediliyor
-- Motor hazır akışı
+- [x] Ek işlem ve ek ücret
+- [x] Uygulamadan onay
+- [x] Müşteri yanında onay verdi
+- [x] Telefonla onay alındı
+- [x] WhatsApp ile onay alındı
+- [x] Reddedildi
+- [x] Onay geçmişi
+- [x] Kullanılan parçalar
+- [x] Ayrıntılı servis notları
+- [x] İşlem başlangıç/bitiş saatleri
+- [x] Parça bekleniyor
+- [x] Test ediliyor
+- [x] Motor hazır akışı
 
-## v0.5 — Veresiye / Alacak Takibi
+## v0.5 — Veresiye / Alacak Takibi ✅
 
 **Amaç:** Müşteri borçlarını, kısmi ödemeleri ve ödeme sözlerini takip etmek.
 
-- Borç yazıldı
-- Kısmi ödeme
-- Tam ödendi
-- Ödenmedi
-- Ücretsiz / ikram
-- Tahsil edilemedi / iptal
-- Toplam, ödenen ve kalan borç
-- Ödeme sözü tarihi
-- Ödendiği tarih
-- Nakit/IBAN yöntemi
-- Alacaklar ekranı
-- Bugün ödeme günü olanlar
-- Geciken borçlar
-- Müşteri/plaka/tarih filtreleri
-- Ödeme al, kısmi ödeme gir, borcu kapat, not ekle
-- Müşteri tarafında kalan ödeme görünümü
-- Çırağa finansal verileri gizleme
+- [x] Borç / veresiye yazıldı
+- [x] Kısmi ödeme
+- [x] Tam ödendi
+- [x] Ödenmedi
+- [x] Tahsil edilemedi / kapatıldı
+- [x] Toplam, ödenen ve kalan borç
+- [x] Ödeme sözü tarihi
+- [x] Borç yazılma, son ödeme ve kapanış tarihleri
+- [x] Nakit ve IBAN yöntemi
+- [x] Alacaklar ekranı
+- [x] Bugün ödeme günü olanlar
+- [x] Geciken borçlar ve gecikme gün sayısı
+- [x] Açık, kısmi, ödenen ve kapatılan filtreleri
+- [x] Müşteri, telefon ve plaka araması
+- [x] Ödeme al, kısmi ödeme gir, borcu kapat ve yeniden aç
+- [x] Personel özel notu
+- [x] Müşteriye açık ödeme notu ve uygulama içi hatırlatma
+- [x] Tahsilat ve alacak hareket geçmişi
+- [x] Müşteri tarafında kalan ödeme ve ödeme geçmişi
+- [x] Çırağa finansal verileri ve Alacak sekmesini gizleme
+- [x] Çok işletmeli RLS ve rol güvenliği
 
-## v0.6 — Usta Gelir Kayıtları ve İşletme Raporları
+> Ücretsiz / ikram ayrı bir borç durumu değildir; servis toplamının sıfır olması veya ileride kayıt türü olarak ele alınacaktır.
 
-**Amaç:** Hangi ustanın hangi işten ne kadar tutar kaydettiğini ve işletme toplamını göstermek.
+## v0.6 — Usta Gelir Kayıtları ve İşletme Raporları ✅
 
-- Ustanın kişisel iş geçmişi
-- Günlük, haftalık ve aylık kayıtlı tutar
-- Saat saat gelen motorlar
-- İşlem adı, plaka ve kullanılan parçalar
-- Nakit toplamı
-- IBAN toplamı
-- Borç/veresiye toplamı
-- İşletmenin toplam kaydedilen tutarı
-- Usta bazlı iş sayısı ve tutar
-- Temel raporlar
+**Amaç:** Hangi Ustanın hangi işten ne kadar tutar kaydettiğini ve işletme toplamını göstermek.
 
-Sistem maaş, yüzde, prim, ortak payı veya kazanç bölüşümü hesaplamaz.
+- [x] Ustanın kişisel iş geçmişi
+- [x] Günlük, haftalık, aylık ve tüm zamanlar kayıtlı tutar
+- [x] Saat saat gelen motorlar
+- [x] İşlem adı, plaka ve kullanılan parçalar
+- [x] Ustanın tahsil ettiği Nakit toplamı
+- [x] Ustanın tahsil ettiği IBAN toplamı
+- [x] Ustaya atanmış servislerde açık borç/veresiye toplamı
+- [x] İşletmenin toplam kaydedilen servis tutarı
+- [x] İşçilik ve parça toplamları
+- [x] İşletmenin dönemsel Nakit ve IBAN tahsilatları
+- [x] İşletmenin güncel açık alacak toplamı
+- [x] Usta bazlı iş sayısı ve kayıtlı işlem tutarı
+- [x] Usta bazlı parça ve tahsilat özeti
+- [x] Günlük kayıtlı tutar grafiği
+- [x] Saatlik motor geliş grafiği
+- [x] En çok yapılan işlemler
+- [x] Son servis kayıtları
+- [x] İşletme Sahibi + Usta için İşletme/Kişisel görünüm geçişi
+- [x] Admin, Sahip, Usta ve Çırak rol güvenliği
+
+Sistem maaş, yüzde, prim, komisyon, net kâr, ortak payı veya kazanç bölüşümü hesaplamaz.
 
 ## v0.7 — Platform Hizmet Bedeli Takibi
 
@@ -223,5 +240,5 @@ v1.0; v0.1–v0.9 arasındaki onaylanan özelliklerin kararlı, güvenli ve test
 - DraBornClinic
 - Tam web sürümü
 - Sanal POS, kart veya Google Play içi tamir ödemesi
-- Usta maaş, prim, yüzde veya ortaklık payı hesabı
+- Usta maaş, prim, yüzde, komisyon veya ortaklık payı hesabı
 - v1.1, v1.2, v2.0, v2.1 ve v3.0
