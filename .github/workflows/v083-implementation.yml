@@ -1,0 +1,52 @@
+name: DraBornGarage v0.8.3 Implementation
+
+on:
+  push:
+    branches:
+      - feature/v0.8.3-customer-motor-tax-linking
+    paths:
+      - scripts/apply_v083.mjs
+      - .github/workflows/v083-implementation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v0.8.3-customer-motor-tax-linking
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply v0.8.3 source changes
+        run: node scripts/apply_v083.mjs
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript validation
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle validation
+        run: |
+          rm -rf dist
+          npm run test:bundle
+          rm -rf dist
+
+      - name: Commit generated v0.8.3 changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: complete v0.8.3 customer motor and tax linking" || exit 0
+          git push origin HEAD:feature/v0.8.3-customer-motor-tax-linking
