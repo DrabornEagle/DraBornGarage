@@ -2,6 +2,8 @@ import * as Haptics from 'expo-haptics';
 import React, { useRef } from 'react';
 import { Animated, Pressable, StyleProp, ViewStyle } from 'react-native';
 
+const NativeAnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export function AnimatedPressable({
   children,
   onPress,
@@ -18,7 +20,7 @@ export function AnimatedPressable({
     Animated.spring(scale, { toValue: value, useNativeDriver: true, speed: 32, bounciness: 5 }).start();
 
   return (
-    <Pressable
+    <NativeAnimatedPressable
       disabled={disabled}
       onPressIn={() => animate(0.97)}
       onPressOut={() => animate(1)}
@@ -26,10 +28,9 @@ export function AnimatedPressable({
         Haptics.selectionAsync().catch(() => undefined);
         onPress?.();
       }}
+      style={[style, { transform: [{ scale }], opacity: disabled ? 0.5 : 1 }]}
     >
-      <Animated.View style={[style, { transform: [{ scale }], opacity: disabled ? 0.5 : 1 }]}>
-        {children}
-      </Animated.View>
-    </Pressable>
+      {children}
+    </NativeAnimatedPressable>
   );
 }
