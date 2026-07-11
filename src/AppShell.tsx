@@ -11,12 +11,13 @@ import { AppointmentsScreen } from './screens/AppointmentsScreen';
 import { CustomersScreen } from './screens/CustomersScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { NewWorkOrderScreen } from './screens/NewWorkOrderScreen';
+import { ReceivablesScreen } from './screens/ReceivablesScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { TeamScreen } from './screens/TeamScreen';
 import { WorkOrdersScreen } from './screens/WorkOrdersScreen';
 import { ServiceType } from './types';
 
-type Tab = 'home' | 'orders' | 'appointments' | 'customers' | 'team' | 'settings';
+type Tab = 'home' | 'orders' | 'appointments' | 'customers' | 'receivables' | 'team' | 'settings';
 
 type TabItem = {
   key: Tab;
@@ -46,9 +47,11 @@ export function AppShell() {
         ? <AppointmentsScreen />
         : tab === 'customers'
           ? <CustomersScreen />
-          : tab === 'team'
-            ? <TeamScreen />
-            : <SettingsScreen />;
+          : tab === 'receivables'
+            ? <ReceivablesScreen />
+            : tab === 'team'
+              ? <TeamScreen />
+              : <SettingsScreen />;
 
   const tabs = useMemo<TabItem[]>(() => {
     const all: TabItem[] = [
@@ -56,8 +59,9 @@ export function AppShell() {
       { key: 'orders', label: isApprentice ? 'Görevler' : 'İşler', icon: 'construct-outline', activeIcon: 'construct', accent: colors.orange, accent2: colors.red },
       { key: 'appointments', label: 'Takvim', icon: 'calendar-outline', activeIcon: 'calendar', accent: colors.cyan, accent2: colors.primary2 },
       { key: 'customers', label: 'Müşteri', icon: 'people-outline', activeIcon: 'people', accent: colors.primary2, accent2: colors.cyan },
-      { key: 'team', label: isAdmin ? 'Admin' : isOwner ? 'Ekip' : 'Kazancım', icon: isAdmin ? 'shield-checkmark-outline' : isOwner ? 'shield-outline' : 'wallet-outline', activeIcon: isAdmin ? 'shield-checkmark' : isOwner ? 'shield' : 'wallet', accent: colors.green, accent2: colors.cyan },
-      { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.red, accent2: colors.orange },
+      { key: 'receivables', label: 'Alacak', icon: 'wallet-outline', activeIcon: 'wallet', accent: colors.red, accent2: colors.orange },
+      { key: 'team', label: isAdmin ? 'Admin' : isOwner ? 'Ekip' : 'Kazancım', icon: isAdmin ? 'shield-checkmark-outline' : isOwner ? 'shield-outline' : 'stats-chart-outline', activeIcon: isAdmin ? 'shield-checkmark' : isOwner ? 'shield' : 'stats-chart', accent: colors.green, accent2: colors.cyan },
+      { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
   }, [colors, isAdmin, isOwner, isApprentice]);
@@ -69,7 +73,7 @@ export function AppShell() {
         <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
           <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}> 
             <View style={styles.railRow} pointerEvents="none">
-              {[colors.orange, colors.black, colors.cyan, colors.black, colors.green, colors.black].map((color, index) => (
+              {[colors.orange, colors.black, colors.cyan, colors.black, colors.green, colors.black, colors.red].map((color, index) => (
                 <View key={`${color}-${index}`} style={[styles.railBlock, { backgroundColor: color }]} />
               ))}
             </View>
@@ -81,11 +85,11 @@ export function AppShell() {
                     <View style={styles.navIconShell}>
                       {active ? (
                         <LinearGradient colors={[item.accent, item.accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.activeIcon}>
-                          <Ionicons name={item.activeIcon} size={21} color="#fff" />
+                          <Ionicons name={item.activeIcon} size={20} color="#fff" />
                         </LinearGradient>
                       ) : (
                         <View style={[styles.inactiveIcon, { backgroundColor: `${item.accent}12`, borderColor: `${item.accent}28` }]}> 
-                          <Ionicons name={item.icon} size={20} color={item.accent} />
+                          <Ionicons name={item.icon} size={19} color={item.accent} />
                         </View>
                       )}
                     </View>
@@ -126,9 +130,9 @@ const styles = StyleSheet.create({
   railBlock: { flex: 1, height: 10, transform: [{ skewX: '-24deg' }], marginHorizontal: 1 },
   navInner: { minHeight: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 1, paddingTop: 7, paddingBottom: 7 },
   navItem: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  navIconShell: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  activeIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 8, elevation: 6 },
-  inactiveIcon: { width: 37, height: 37, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  navLabel: { fontSize: 7.8, fontWeight: '900', textAlign: 'center' },
-  activeLine: { width: 17, height: 2.5, borderRadius: 3 },
+  navIconShell: { width: 39, height: 39, alignItems: 'center', justifyContent: 'center' },
+  activeIcon: { width: 37, height: 37, borderRadius: 13, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 8, elevation: 6 },
+  inactiveIcon: { width: 35, height: 35, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  navLabel: { fontSize: 6.9, fontWeight: '900', textAlign: 'center' },
+  activeLine: { width: 15, height: 2.5, borderRadius: 3 },
 });
