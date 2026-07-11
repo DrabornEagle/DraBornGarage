@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -97,7 +98,7 @@ export function WorkOrdersScreen({ onNewOrder }: { onNewOrder: () => void }) {
         return <AnimatedPressable key={order.id} onPress={() => setSelected(order)} style={[styles.card, { backgroundColor: colors.card, borderColor: order.status === 'extra_approval_waiting' ? colors.orange : colors.border }]}>
           <View style={styles.cardTop}>
             <View style={[styles.queueBadge, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Text style={[styles.queueText, { color: colors.orange }]}>{order.queue_position ?? '-'}</Text></View>
-            <View style={[styles.icon, { backgroundColor: order.status === 'extra_approval_waiting' ? `${colors.orange}1C` : `${colors.primary2}1C` }]}><Ionicons name={order.status === 'extra_approval_waiting' ? 'shield-half' : 'bicycle'} size={25} color={order.status === 'extra_approval_waiting' ? colors.orange : colors.primary2} /></View>
+            <View style={[styles.icon, { backgroundColor: order.status === 'extra_approval_waiting' ? `${colors.orange}1C` : `${colors.primary2}1C` }]}>{order.status === 'extra_approval_waiting' ? <Ionicons name="shield-half" size={25} color={colors.orange} /> : <AnimatedMotorcycleIcon size={29} color={colors.primary2} />}</View>
             <View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>{brand} {model}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{plate || 'Plaka yok'}{order.customer?.full_name ? ` • ${order.customer.full_name}` : ''}</Text>{order.status === 'extra_approval_waiting' && <Text style={[styles.approvalText, { color: colors.orange }]}>Müşteri ek işlem onayı bekleniyor</Text>}</View>
             <StatusPill status={order.status} />
           </View>
@@ -124,15 +125,15 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 0 },
   title: { fontSize: 15, fontWeight: '900' },
   meta: { fontSize: 11, marginTop: 3 },
-  approvalText: { fontSize: 9.5, fontWeight: '900', marginTop: 4 },
+  approvalText: { fontSize: 10.5, fontWeight: '900', marginTop: 4 },
   complaint: { fontSize: 13, lineHeight: 19 },
   divider: { height: 1 },
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  smallLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  smallLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
   smallValue: { fontSize: 12, fontWeight: '800', marginTop: 4 },
   amountWrap: { alignItems: 'flex-end' },
   amount: { fontSize: 17, fontWeight: '900' },
-  payment: { fontSize: 10, fontWeight: '900', marginTop: 3 },
+  payment: { fontSize: 11, fontWeight: '900', marginTop: 3 },
   empty: { alignItems: 'center', gap: 11, paddingVertical: 28 },
   emptyTitle: { fontSize: 18, fontWeight: '900' },
   emptyText: { textAlign: 'center', lineHeight: 20 },

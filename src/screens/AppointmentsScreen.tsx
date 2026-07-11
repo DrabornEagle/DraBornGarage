@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Animated, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
@@ -36,8 +36,11 @@ export function AppointmentsScreen() {
   const [filterMechanic, setFilterMechanic] = useState<string | null>(isOwner ? null : membership?.user_id ?? null);
   const [refreshing, setRefreshing] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
+  const [attentionAppointments, setAttentionAppointments] = useState<Appointment[]>([]);
+  const [historyAppointments, setHistoryAppointments] = useState<Appointment[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
-  const dates = useMemo(() => daysFromToday(21, -7), []);
+  const dates = useMemo(() => daysFromToday(30), []);
 
   const loadBase = useCallback(async () => {
     if (!workshop) return;
@@ -66,8 +69,45 @@ export function AppointmentsScreen() {
     setAppointments((data as Appointment[] | null) ?? []);
   }, [workshop, date, filterMechanic]);
 
+  const loadAttention = useCallback(async () => {
+    if (!workshop) return;
+    const from = new Date(); from.setHours(0, 0, 0, 0);
+    const to = new Date(from); to.setDate(to.getDate() + 90);
+    const { data, error } = await supabase.rpc('staff_get_appointments', {
+      p_workshop_id: workshop.id, p_from: from.toISOString(), p_to: to.toISOString(), p_mechanic_id: filterMechanic,
+    });
+    if (error) return;
+    const next = ((data as Appointment[] | null) ?? [])
+      .filter((item) => item.source === 'customer' && item.status === 'pending')
+      .sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+    setAttentionAppointments(next);
+  }, [workshop, filterMechanic]);
+
+  const loadHistory = useCallback(async () => {
+    if (!workshop) return;
+    const to = new Date(); to.setHours(0, 0, 0, 0);
+    const from = new Date(to); from.setDate(from.getDate() - 365);
+    const { data, error } = await supabase.rpc('staff_get_appointments', {
+      p_workshop_id: workshop.id, p_from: from.toISOString(), p_to: to.toISOString(), p_mechanic_id: filterMechanic,
+    });
+    if (error) return;
+    setHistoryAppointments((((data as Appointment[] | null) ?? []).sort((a, b) => +new Date(b.scheduled_start) - +new Date(a.scheduled_start))));
+  }, [workshop, filterMechanic]);
+
   useEffect(() => { loadBase(); }, [loadBase]);
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
+  useEffect(() => { loadAttention(); }, [loadAttention]);
+  useEffect(() => { loadHistory(); }, [loadHistory]);
+
+  useEffect(() => {
+    if (!workshop?.id) return;
+    const channel = supabase.channel(`staff-appointments-${workshop.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `workshop_id=eq.${workshop.id}` }, () => {
+        loadAppointments(); loadAttention(); loadHistory();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, loadAppointments, loadAttention, loadHistory]);
 
   const stats = {
     total: appointments.length,
@@ -76,7 +116,7 @@ export function AppointmentsScreen() {
     arrived: appointments.filter((item) => item.status === 'arrived').length,
   };
 
-  const refresh = async () => { setRefreshing(true); await Promise.all([loadBase(), loadAppointments()]); setRefreshing(false); };
+  const refresh = async () => { setRefreshing(true); await Promise.all([loadBase(), loadAppointments(), loadAttention(), loadHistory()]); setRefreshing(false); };
   const openEdit = (item: Appointment) => { setEditing(item); setTab('new'); };
 
   return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
@@ -88,29 +128,61 @@ export function AppointmentsScreen() {
 
     {tab === 'calendar' && <CalendarTab
       dates={dates} date={date} setDate={setDate} mechanics={mechanics} filterMechanic={filterMechanic} setFilterMechanic={setFilterMechanic}
-      isOwner={isOwner} stats={stats} appointments={appointments} reload={loadAppointments} onEdit={openEdit}
+      isOwner={isOwner} stats={stats} appointments={appointments} reload={async () => { await Promise.all([loadAppointments(), loadAttention(), loadHistory()]); }} onEdit={openEdit}
+      attentionAppointments={attentionAppointments} historyAppointments={historyAppointments} showHistory={showHistory} setShowHistory={setShowHistory}
     />}
     {tab === 'new' && <AppointmentForm
       workshopId={workshop?.id ?? ''} membershipId={membership?.user_id ?? ''} isOwner={isOwner} canWork={canWork}
       mechanics={mechanics} customers={customers} motorcycles={motorcycles} initialDate={date} editing={editing}
-      onSaved={async () => { setEditing(null); setTab('calendar'); await loadAppointments(); }} onCancel={() => { setEditing(null); setTab('calendar'); }}
+      onSaved={async () => { setEditing(null); setTab('calendar'); await Promise.all([loadAppointments(), loadAttention(), loadHistory()]); }} onCancel={() => { setEditing(null); setTab('calendar'); }}
     />}
     {tab === 'schedule' && <ScheduleTab workshop={workshop} membershipId={membership?.user_id ?? ''} isOwner={isOwner} canWork={canWork} mechanics={mechanics} refreshWorkspace={refreshWorkspace} />}
   </ScrollView>;
 }
 
-function CalendarTab({ dates, date, setDate, mechanics, filterMechanic, setFilterMechanic, isOwner, stats, appointments, reload, onEdit }: {
+function CalendarTab({ dates, date, setDate, mechanics, filterMechanic, setFilterMechanic, isOwner, stats, appointments, reload, onEdit, attentionAppointments, historyAppointments, showHistory, setShowHistory }: {
   dates: Date[]; date: Date; setDate: (d: Date) => void; mechanics: AppointmentMechanic[]; filterMechanic: string | null; setFilterMechanic: (id: string | null) => void; isOwner: boolean;
   stats: { total: number; pending: number; confirmed: number; arrived: number }; appointments: Appointment[]; reload: () => Promise<void>; onEdit: (item: Appointment) => void;
+  attentionAppointments: Appointment[]; historyAppointments: Appointment[]; showHistory: boolean; setShowHistory: (value: boolean) => void;
 }) {
   const { colors } = useTheme();
+  const historyGroups = historyAppointments.reduce<Record<string, Appointment[]>>((groups, item) => { const key = dateKey(new Date(item.scheduled_start)); (groups[key] ||= []).push(item); return groups; }, {});
   return <View style={styles.sectionGap}>
+    {attentionAppointments.length > 0 && <NewAppointmentAttention appointments={attentionAppointments} onOpen={(item) => setDate(new Date(item.scheduled_start))} />}
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateRow}>{dates.map((item) => { const active = dateKey(item) === dateKey(date); return <AnimatedPressable key={dateKey(item)} onPress={() => setDate(item)} style={[styles.dateChip, { backgroundColor: active ? colors.primary : colors.card, borderColor: active ? colors.primary : colors.border }]}><Text style={[styles.dateText, { color: active ? '#fff' : colors.text }]}>{formatCalendarDay(item)}</Text></AnimatedPressable>; })}</ScrollView>
     {isOwner && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}><FilterChip active={filterMechanic === null} label="Tüm Ustalar" onPress={() => setFilterMechanic(null)} />{mechanics.map((item) => <FilterChip key={item.mechanic_id} active={filterMechanic === item.mechanic_id} label={item.full_name} onPress={() => setFilterMechanic(item.mechanic_id)} />)}</ScrollView>}
     <View style={styles.statsRow}><MiniStat label="Toplam" value={stats.total} accent={colors.primary} /><MiniStat label="Bekliyor" value={stats.pending} accent={colors.orange} /><MiniStat label="Onaylı" value={stats.confirmed} accent={colors.green} /><MiniStat label="Geldi" value={stats.arrived} accent={colors.cyan} /></View>
     <Text style={[styles.sectionTitle, { color: colors.text }]}>{formatAppointmentDate(date)}</Text>
     {appointments.length === 0 ? <GlassCard style={styles.empty}><Ionicons name="calendar-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Bu gün randevu yok</Text></GlassCard> : appointments.map((item) => <StaffAppointmentCard key={item.id} item={item} reload={reload} onEdit={() => onEdit(item)} />)}
+
+    <AnimatedPressable onPress={() => setShowHistory(!showHistory)} style={[styles.historyToggle, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.historyIcon, { backgroundColor: `${colors.primary}16` }]}><Ionicons name="archive" size={21} color={colors.primary} /></View>
+      <View style={styles.copy}><Text style={[styles.historyTitle, { color: colors.text }]}>Geçmiş Randevular</Text><Text style={[styles.historyMeta, { color: colors.textMuted }]}>{historyAppointments.length} geçmiş randevu • Günlere göre arşiv</Text></View>
+      <Ionicons name={showHistory ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textMuted} />
+    </AnimatedPressable>
+    {showHistory && <View style={styles.historyList}>{Object.entries(historyGroups).map(([key, items]) => <View key={key} style={styles.historyDay}><Text style={[styles.historyDayTitle, { color: colors.text }]}>{formatAppointmentDate(items[0].scheduled_start)}</Text>{items.map((item) => <PastAppointmentCard key={item.id} item={item} />)}</View>)}</View>}
   </View>;
+}
+
+function NewAppointmentAttention({ appointments, onOpen }: { appointments: Appointment[]; onOpen: (item: Appointment) => void }) {
+  const { colors } = useTheme();
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => { const loop = Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1, duration: 850, useNativeDriver: true }), Animated.timing(pulse, { toValue: 0, duration: 850, useNativeDriver: true })])); loop.start(); return () => loop.stop(); }, [pulse]);
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] });
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.9] });
+  return <Animated.View style={[styles.attentionWrap, { transform: [{ scale }] }]}>
+    <Animated.View pointerEvents="none" style={[styles.attentionGlow, { backgroundColor: colors.orange, opacity }]} />
+    <GlassCard style={[styles.attentionCard, { borderColor: `${colors.orange}80` }]}>
+      <View style={styles.attentionHeader}><View style={[styles.attentionIcon, { backgroundColor: `${colors.orange}20` }]}><Ionicons name="notifications" size={25} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.attentionTitle, { color: colors.text }]}>Yeni müşteri randevusu</Text><Text style={[styles.attentionMeta, { color: colors.textMuted }]}>{appointments.length} randevu işletme onayı bekliyor. Tarihine gitmek için dokun.</Text></View><View style={[styles.attentionCount, { backgroundColor: colors.orange }]}><Text style={styles.attentionCountText}>{appointments.length}</Text></View></View>
+      {appointments.slice(0, 3).map((item) => <AnimatedPressable key={item.id} onPress={() => onOpen(item)} style={[styles.attentionItem, { backgroundColor: colors.surfaceSoft, borderColor: `${colors.orange}38` }]}><View style={[styles.attentionTime, { backgroundColor: `${colors.orange}15` }]}><Text style={[styles.attentionTimeText, { color: colors.orange }]}>{formatAppointmentTime(item.scheduled_start)}</Text></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.customer_name} • {item.service_title}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{formatAppointmentDate(item.scheduled_start)} • {item.brand} {item.model} • {item.mechanic_name}</Text></View><Ionicons name="arrow-forward-circle" size={22} color={colors.orange} /></AnimatedPressable>)}
+    </GlassCard>
+  </Animated.View>;
+}
+
+function PastAppointmentCard({ item }: { item: Appointment }) {
+  const { colors } = useTheme();
+  const accent = item.status === 'converted' ? colors.primary : item.status === 'cancelled' || item.status === 'no_show' ? colors.red : item.status === 'arrived' ? colors.cyan : colors.green;
+  return <View style={[styles.pastCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.pastTime, { backgroundColor: `${accent}14` }]}><Text style={[styles.pastTimeText, { color: accent }]}>{formatAppointmentTime(item.scheduled_start)}</Text></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.service_title}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{item.customer_name} • {item.brand} {item.model} • {item.plate}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{item.mechanic_name}</Text></View><Text style={[styles.status, { color: accent }]}>{statusLabels[item.status]}</Text></View>;
 }
 
 function StaffAppointmentCard({ item, reload, onEdit }: { item: Appointment; reload: () => Promise<void>; onEdit: () => void }) {
@@ -266,5 +338,27 @@ function Action({ label, icon, accent, onPress }: { label: string; icon: keyof t
 function SettingToggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) { const { colors } = useTheme(); return <AnimatedPressable onPress={() => onChange(!value)} style={[styles.setting, { backgroundColor: colors.surfaceSoft, borderColor: value ? colors.green : colors.border }]}><Text style={[styles.settingText, { color: colors.text }]}>{label}</Text><View style={[styles.toggle, { backgroundColor: value ? `${colors.green}18` : colors.card, borderColor: value ? colors.green : colors.border }]}><Text style={[styles.toggleText, { color: value ? colors.green : colors.textMuted }]}>{value ? 'AÇIK' : 'KAPALI'}</Text></View></AnimatedPressable>; }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 15 }, tabs: { flexDirection: 'row', gap: 5, padding: 5, borderWidth: 1, borderRadius: 18 }, tab: { flex: 1, minHeight: 48, borderWidth: 1, borderColor: 'transparent', borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 3 }, tabText: { fontSize: 8.5, fontWeight: '900', textAlign: 'center' }, sectionGap: { gap: 14 }, dateRow: { gap: 8, paddingRight: 12 }, dateChip: { minWidth: 90, minHeight: 45, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 9 }, dateText: { fontSize: 10, fontWeight: '900' }, filterRow: { gap: 8, paddingRight: 12 }, filterChip: { minHeight: 40, borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, alignItems: 'center', justifyContent: 'center' }, filterText: { fontSize: 10, fontWeight: '900' }, statsRow: { flexDirection: 'row', gap: 7 }, miniStat: { flex: 1, minHeight: 70, borderWidth: 1, borderRadius: 16, padding: 10, justifyContent: 'center' }, miniValue: { fontSize: 20, fontWeight: '900' }, miniLabel: { fontSize: 8.5, marginTop: 4 }, sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 2 }, empty: { alignItems: 'center', gap: 9, paddingVertical: 30 }, emptyTitle: { fontSize: 17, fontWeight: '900' }, appointmentCard: { gap: 11 }, cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, timeBox: { width: 57, height: 57, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, time: { fontSize: 14, fontWeight: '900' }, timeEnd: { fontSize: 9, marginTop: 3 }, copy: { flex: 1, minWidth: 0 }, cardTitle: { fontSize: 13, fontWeight: '900' }, cardMeta: { fontSize: 9.5, lineHeight: 14, marginTop: 3 }, status: { fontSize: 8, fontWeight: '900', maxWidth: 78, textAlign: 'right' }, note: { borderRadius: 14, padding: 10, flexDirection: 'row', gap: 7 }, noteText: { flex: 1, fontSize: 10.5, lineHeight: 15 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, action: { minHeight: 38, borderWidth: 1, borderRadius: 12, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }, actionText: { fontSize: 9, fontWeight: '900' }, form: { gap: 13 }, formTitle: { fontSize: 19, fontWeight: '900' }, label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 }, listChoices: { gap: 8 }, choice: { minHeight: 56, borderWidth: 1, borderRadius: 15, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }, choiceTitle: { fontSize: 12, fontWeight: '900' }, slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, slot: { minWidth: 68, minHeight: 41, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, slotText: { fontSize: 11, fontWeight: '900' }, emptyText: { fontSize: 11, paddingVertical: 10 }, twoButtons: { flexDirection: 'row', gap: 8 }, flex: { flex: 1 }, hourCard: { gap: 12 }, hourHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, hourDay: { fontSize: 16, fontWeight: '900' }, toggle: { minWidth: 62, minHeight: 32, borderWidth: 1, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 9 }, toggleText: { fontSize: 8.5, fontWeight: '900' }, twoCols: { flexDirection: 'row', gap: 9 }, offCard: { flexDirection: 'row', alignItems: 'center', gap: 10 }, setting: { minHeight: 56, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, settingText: { fontSize: 12, fontWeight: '900' },
+  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 15 }, tabs: { flexDirection: 'row', gap: 5, padding: 5, borderWidth: 1, borderRadius: 18 }, tab: { flex: 1, minHeight: 48, borderWidth: 1, borderColor: 'transparent', borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 3 }, tabText: { fontSize: 10, fontWeight: '900', textAlign: 'center' }, sectionGap: { gap: 14 }, dateRow: { gap: 8, paddingRight: 12 }, dateChip: { minWidth: 90, minHeight: 45, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 9 }, dateText: { fontSize: 11, fontWeight: '900' }, filterRow: { gap: 8, paddingRight: 12 }, filterChip: { minHeight: 40, borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, alignItems: 'center', justifyContent: 'center' }, filterText: { fontSize: 11, fontWeight: '900' }, statsRow: { flexDirection: 'row', gap: 7 }, miniStat: { flex: 1, minHeight: 70, borderWidth: 1, borderRadius: 16, padding: 10, justifyContent: 'center' }, miniValue: { fontSize: 20, fontWeight: '900' }, miniLabel: { fontSize: 10, marginTop: 4 }, sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 2 }, empty: { alignItems: 'center', gap: 9, paddingVertical: 30 }, emptyTitle: { fontSize: 17, fontWeight: '900' }, appointmentCard: { gap: 11 }, cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, timeBox: { width: 57, height: 57, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, time: { fontSize: 14, fontWeight: '900' }, timeEnd: { fontSize: 9, marginTop: 3 }, copy: { flex: 1, minWidth: 0 }, cardTitle: { fontSize: 13, fontWeight: '900' }, cardMeta: { fontSize: 11, lineHeight: 16, marginTop: 3 }, status: { fontSize: 9.5, fontWeight: '900', maxWidth: 78, textAlign: 'right' }, note: { borderRadius: 14, padding: 10, flexDirection: 'row', gap: 7 }, noteText: { flex: 1, fontSize: 10.5, lineHeight: 15 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, action: { minHeight: 38, borderWidth: 1, borderRadius: 12, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }, actionText: { fontSize: 10, fontWeight: '900' }, form: { gap: 13 }, formTitle: { fontSize: 19, fontWeight: '900' }, label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 }, listChoices: { gap: 8 }, choice: { minHeight: 56, borderWidth: 1, borderRadius: 15, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }, choiceTitle: { fontSize: 12, fontWeight: '900' }, slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, slot: { minWidth: 68, minHeight: 41, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, slotText: { fontSize: 11, fontWeight: '900' }, emptyText: { fontSize: 11, paddingVertical: 10 }, twoButtons: { flexDirection: 'row', gap: 8 }, flex: { flex: 1 }, hourCard: { gap: 12 }, hourHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, hourDay: { fontSize: 16, fontWeight: '900' }, toggle: { minWidth: 62, minHeight: 32, borderWidth: 1, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 9 }, toggleText: { fontSize: 8.5, fontWeight: '900' }, twoCols: { flexDirection: 'row', gap: 9 }, offCard: { flexDirection: 'row', alignItems: 'center', gap: 10 }, setting: { minHeight: 56, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },   settingText: { fontSize: 12, fontWeight: '900' },
+  attentionWrap: { position: 'relative' },
+  attentionGlow: { position: 'absolute', left: 10, right: 10, top: 8, bottom: 8, borderRadius: 25, shadowOpacity: 0.85, shadowRadius: 22, elevation: 8 },
+  attentionCard: { gap: 10, borderWidth: 1.5 },
+  attentionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  attentionIcon: { width: 49, height: 49, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  attentionTitle: { fontSize: 16.5, fontWeight: '900' },
+  attentionMeta: { fontSize: 11.5, lineHeight: 17, marginTop: 3 },
+  attentionCount: { minWidth: 31, height: 31, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 7 },
+  attentionCountText: { color: '#fff', fontSize: 13, fontWeight: '900' },
+  attentionItem: { minHeight: 66, borderWidth: 1, borderRadius: 16, padding: 9, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  attentionTime: { minWidth: 54, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  attentionTimeText: { fontSize: 12, fontWeight: '900' },
+  historyToggle: { minHeight: 72, borderWidth: 1, borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  historyIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  historyTitle: { fontSize: 15, fontWeight: '900' },
+  historyMeta: { fontSize: 11, marginTop: 4 },
+  historyList: { gap: 16 },
+  historyDay: { gap: 8 },
+  historyDayTitle: { fontSize: 16, fontWeight: '900' },
+  pastCard: { minHeight: 72, borderWidth: 1, borderRadius: 18, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  pastTime: { width: 52, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  pastTimeText: { fontSize: 12, fontWeight: '900' },
 });

@@ -4,7 +4,7 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.8.2 — Ayrı Admin Paneli ve Expo Go Uyumluluğu**
+**v0.8.4 — Admin Onaylı İşletme Başvurusu, Modern Takvim ve Servis Detayı**
 
 v0.8.0; servis, fiyat, ödeme, ek işlem, randevu, borç/alacak, müşteri eşleştirme ve platform hareketlerini kullanıcıya özel canlı bildirim akışına dönüştürür. Yaklaşan randevu, borç ve platform ödeme kayıtları Expo yerel bildirim sistemiyle telefonda planlanır.
 
@@ -103,6 +103,16 @@ v0.8.0; servis, fiyat, ödeme, ek işlem, randevu, borç/alacak, müşteri eşle
 - Bildirim okuma, toplu okuma ve arşivleme
 - RLS ile kullanıcı ve işletme bazlı güvenlik
 
+### v0.8.4 — İşletme Onayı ve Modern Kullanım
+
+- Admin onaylı işletme başvurusu
+- Vergi Dairesi ve Vergi Numarası
+- Bekleyen başvuru müşteri paneli
+- Yeni randevu dikkat animasyonu ve geçmiş arşivi
+- Açılır/kapanır servis detay kategorileri
+- Modern animasyonlu motosiklet ikonu
+- Ana Admin hesabı: draborneagle@gmail.com
+
 > Expo Go Android üzerinde yerel bildirimler kullanılmaktadır. Uzaktan push bildirimi EAS development build / yayın yapısı gerektirdiği için v1.0 kapsamındadır.
 
 > Sistem Usta maaşı, prim, komisyon, net kâr, ortaklık payı veya kazanç bölüşümü hesaplamaz.
@@ -124,9 +134,9 @@ npm run test:bundle
 
 ## Güncel yedek ve geri dönüş
 
-- **Kurulan sürüm:** `v0.8.2`
-- **Yedeklenen sürüm:** `v0.8.1`
-- **Kod yedeği:** `backup/v0.8.1-before-v0.8.2`
+- **Kurulan sürüm:** `v0.8.4`
+- **Yedeklenen sürüm:** `v0.8.3`
+- **Kod yedeği:** `backup/v0.8.3-before-v0.8.4`
 - **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql`](supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql)
 - **Kurulum ve geri alma:** [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
 - **Zorunlu politika:** [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)

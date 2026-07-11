@@ -78,6 +78,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [notes, setNotes] = useState<WorkOrderNote[]>([]);
   const [events, setEvents] = useState<WorkOrderEvent[]>([]);
   const [saving, setSaving] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
 
   const [diagnosis, setDiagnosis] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
@@ -107,6 +108,8 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [noteCategory, setNoteCategory] = useState<WorkNoteCategory>('general');
 
   const approvedExtras = useMemo(() => extras.filter((item) => item.status === 'approved'), [extras]);
+  const toggleSection = (key: string) => setOpenSections((current) => ({ ...current, [key]: !current[key] }));
+  useEffect(() => { if (extras.some((item) => item.status === 'pending')) setOpenSections((current) => current.extras ? current : ({ ...current, extras: true })); }, [extras]);
 
   const load = useCallback(async () => {
     if (isApprentice) return;
@@ -282,20 +285,21 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
       <View style={styles.timeGrid}><TimeMetric label="GELİŞ" value={dateTime(order.arrived_at)} /><TimeMetric label="BAŞLANGIÇ" value={dateTime(order.started_at)} /><TimeMetric label="TEST" value={dateTime(order.testing_started_at)} /><TimeMetric label="HAZIR" value={dateTime(order.ready_at)} /></View>
     </GlassCard>
 
-    <Section title="Servis durumu" subtitle="Ek onay beklerken tamir, test, hazır ve teslim adımları kilitlenir." />
-    <View style={styles.grid}>{statusFlow.map((status) => <StatusButton key={status} status={status} active={order.status === status} onPress={() => changeStatus(status)} />)}</View>
+    <DetailAccordion title="Servis Durumu" subtitle="Tamir akışını ve motorun güncel aşamasını yönet." icon="speedometer" accent={colors.primary} open={openSections.status} onToggle={() => toggleSection('status')} badge={statusLabels[order.status]}>
+      <View style={styles.grid}>{statusFlow.map((status) => <StatusButton key={status} status={status} active={order.status === status} onPress={() => changeStatus(status)} />)}</View>
+    </DetailAccordion>
 
-    <Section title="Tespit ve dahili servis notu" subtitle="Dahili not müşteri panelinde görünmez." />
-    <GlassCard style={styles.stack}><FormField label="Tespit" value={diagnosis} onChangeText={setDiagnosis} multiline /><FormField label="Dahili atölye notu" value={internalNotes} onChangeText={setInternalNotes} multiline /><PrimaryButton title="Servis Detaylarını Kaydet" onPress={saveDetails} loading={saving} /></GlassCard>
+    <DetailAccordion title="Tespit ve Atölye Notu" subtitle="Arıza tespiti ve yalnız personelin görebileceği dahili notlar." icon="document-text" accent={colors.cyan} open={openSections.details} onToggle={() => toggleSection('details')} badge={diagnosis ? 'Kayıtlı' : 'Bekliyor'}>
+      <FormField label="Tespit" value={diagnosis} onChangeText={setDiagnosis} multiline /><FormField label="Dahili atölye notu" value={internalNotes} onChangeText={setInternalNotes} multiline /><PrimaryButton title="Servis Detaylarını Kaydet" onPress={saveDetails} loading={saving} />
+    </DetailAccordion>
 
-    <Section title="Ücret / tahmini ücret" subtitle="Tamire başlamadan önce zorunludur." />
-    <GlassCard style={styles.stack}>
+    <DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Tamire başlamadan önce net veya tahmini fiyatı kaydet." icon="pricetag" accent={colors.green} open={openSections.price} onToggle={() => toggleSection('price')} badge={order.quoted_price ? money(order.quoted_price) : order.estimated_price_min ? 'Tahmini' : 'Girilmedi'}>
       <Toggle values={[['fixed', 'Net Fiyat'], ['estimated', 'Tahmini Fiyat']]} active={priceType} onChange={(value) => setPriceType(value as PriceType)} />
       {priceType === 'fixed' ? <FormField label="Net fiyat" value={fixedPrice} onChangeText={setFixedPrice} keyboardType="decimal-pad" /> : <View style={styles.twoCol}><View style={styles.flex}><FormField label="En az" value={estimateMin} onChangeText={setEstimateMin} keyboardType="decimal-pad" /></View><View style={styles.flex}><FormField label="En fazla" value={estimateMax} onChangeText={setEstimateMax} keyboardType="decimal-pad" /></View></View>}
       <PrimaryButton title="Ücreti Kaydet" onPress={savePrice} loading={saving} />
-    </GlassCard>
+    </DetailAccordion>
 
-    <Section title="Ek işlem ve müşteri onayı" subtitle="Ek işçilik ve parça bedeli yalnız onaylandığında toplam tutara eklenir." />
+    <DetailAccordion title="Ek İşlem ve Müşteri Onayı" subtitle="Ek işçilik ve parçalar yalnız müşteri onayından sonra toplam tutara eklenir." icon="shield-checkmark" accent={colors.orange} open={openSections.extras} onToggle={() => toggleSection('extras')} badge={extras.some((item) => item.status === 'pending') ? `${extras.filter((item) => item.status === 'pending').length} Bekliyor` : `${extras.length} Kayıt`}>
     {extras.map((item) => <GlassCard key={item.id} style={styles.stack}>
       <View style={styles.row}><View style={[styles.roundIcon, { backgroundColor: item.status === 'approved' ? `${colors.green}18` : item.status === 'pending' ? `${colors.orange}18` : `${colors.red}14` }]}><Ionicons name={item.status === 'approved' ? 'checkmark-circle' : item.status === 'pending' ? 'time' : 'close-circle'} size={24} color={item.status === 'approved' ? colors.green : item.status === 'pending' ? colors.orange : colors.red} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{approvalMethodLabel[item.approval_method || 'app']} • {dateTime(item.created_at)}</Text></View><Text style={[styles.boldAmount, { color: item.status === 'approved' ? colors.green : item.status === 'pending' ? colors.orange : colors.red }]}>{money(item.total_amount)}</Text></View>
       {!!item.description && <Text style={[styles.bodySmall, { color: colors.textSoft }]}>{item.description}</Text>}
@@ -310,31 +314,42 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
       <View style={styles.choiceGrid}>{extraActionOptions.map((item) => <Choice key={item.value} active={extraAction === item.value} title={item.label} icon={item.icon} onPress={() => setExtraAction(item.value)} />)}</View>
       <PrimaryButton title="Ek İşlemi Kaydet" onPress={createExtra} loading={saving} />
     </GlassCard>
+    </DetailAccordion>
 
-    <Section title="Yapılan işlemler" subtitle="Her işlem için planlandı, başladı ve tamamlandı saatleri tutulur." />
+    <DetailAccordion title="Yapılan İşlemler" subtitle="Planlanan, başlayan ve tamamlanan işçilik kalemlerini yönet." icon="construct" accent={colors.primary2} open={openSections.services} onToggle={() => toggleSection('services')} badge={`${services.length} İşlem`}>
     <GlassCard style={styles.listCard}>
       {services.length === 0 ? <Empty text="Henüz işlem kalemi yok." /> : services.map((item, index) => <View key={item.id} style={[styles.listItem, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.mechanic?.full_name || 'Usta'} • {item.completed ? 'Tamamlandı' : item.started_at ? 'İşlemde' : 'Planlandı'}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>Başlangıç {dateTime(item.started_at)} • Bitiş {dateTime(item.completed_at)}</Text>{item.extra_request_id && <Text style={[styles.linked, { color: colors.orange }]}>Onaylı ek işlem kapsamında • Toplama tekrar eklenmez</Text>}</View><Text style={[styles.boldAmount, { color: colors.green }]}>{money(item.price)}</Text><View style={styles.verticalActions}>{!item.started_at && <IconAction icon="play" accent={colors.cyan} onPress={() => setServiceState(item.id, 'started')} />}{!item.completed && <IconAction icon="checkmark" accent={colors.green} onPress={() => setServiceState(item.id, 'completed')} />}<IconAction icon="trash" accent={colors.red} onPress={() => deleteService(item.id, item.title)} /></View></View>)}
       <View style={[styles.stack, styles.formDivider, { borderTopColor: colors.border }]}><FormField label="İşlem" value={serviceTitle} onChangeText={setServiceTitle} /><FormField label="Açıklama" value={serviceDescription} onChangeText={setServiceDescription} multiline /><FormField label="Tutar" value={servicePrice} onChangeText={setServicePrice} keyboardType="decimal-pad" /><ExtraLinkPicker extras={approvedExtras} selected={serviceExtraId} onChange={setServiceExtraId} /><PrimaryButton title="İşlem Ekle" onPress={addService} loading={saving} /></View>
     </GlassCard>
+    </DetailAccordion>
 
-    <Section title="Kullanılan parçalar" subtitle="Parça adı, adet, birim fiyat ve kullanım zamanı saklanır." />
+    <DetailAccordion title="Kullanılan Parçalar" subtitle="Parça adı, adet, birim fiyat ve kullanım zamanını kaydet." icon="hardware-chip" accent={colors.orange} open={openSections.parts} onToggle={() => toggleSection('parts')} badge={`${parts.length} Parça`}>
     <GlassCard style={styles.listCard}>
       {parts.length === 0 ? <Empty text="Parça kullanımı eklenmedi." /> : parts.map((item, index) => <View key={item.id} style={[styles.listItem, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.part_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{Number(item.quantity)} adet × {money(item.unit_price)} • {dateTime(item.used_at)}</Text>{item.extra_request_id && <Text style={[styles.linked, { color: colors.orange }]}>Onaylı ek işlem kapsamında • Toplama tekrar eklenmez</Text>}</View><Text style={[styles.boldAmount, { color: colors.text }]}>{money(item.total_price)}</Text><IconAction icon="trash" accent={colors.red} onPress={() => deletePart(item.id, item.part_name)} /></View>)}
       <View style={[styles.stack, styles.formDivider, { borderTopColor: colors.border }]}><FormField label="Parça" value={partName} onChangeText={setPartName} /><View style={styles.twoCol}><View style={styles.flex}><FormField label="Adet" value={partQty} onChangeText={setPartQty} keyboardType="decimal-pad" /></View><View style={styles.flex}><FormField label="Birim fiyat" value={partPrice} onChangeText={setPartPrice} keyboardType="decimal-pad" /></View></View><ExtraLinkPicker extras={approvedExtras} selected={partExtraId} onChange={setPartExtraId} /><PrimaryButton title="Parça Ekle" onPress={addPart} loading={saving} secondary /></View>
     </GlassCard>
+    </DetailAccordion>
 
-    <Section title="Servis notları" subtitle="Müşteriye açık veya yalnız personelin görebileceği not oluştur." />
+    <DetailAccordion title="Servis Notları" subtitle="Müşteriye açık veya yalnız personele özel notları yönet." icon="chatbox-ellipses" accent={colors.cyan} open={openSections.notes} onToggle={() => toggleSection('notes')} badge={`${notes.length} Not`}>
     <GlassCard style={styles.listCard}>
       {notes.length === 0 ? <Empty text="Henüz servis notu yok." /> : notes.map((item, index) => <View key={item.id} style={[styles.listItem, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={[styles.roundIcon, { backgroundColor: item.visibility === 'customer' ? `${colors.cyan}14` : `${colors.primary}14` }]}><Ionicons name={item.visibility === 'customer' ? 'eye' : 'lock-closed'} size={19} color={item.visibility === 'customer' ? colors.cyan : colors.primary} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{noteCategoryLabel[item.category]}</Text><Text style={[styles.bodySmall, { color: colors.textSoft }]}>{item.note}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.visibility === 'customer' ? 'Müşteri görebilir' : 'Yalnız personel'} • {dateTime(item.created_at)}</Text></View><IconAction icon="trash" accent={colors.red} onPress={() => deleteNote(item.id)} /></View>)}
       <View style={[styles.stack, styles.formDivider, { borderTopColor: colors.border }]}><FormField label="Yeni not" value={noteText} onChangeText={setNoteText} multiline /><Toggle values={[['staff', 'Yalnız Personel'], ['customer', 'Müşteriye Açık']]} active={noteVisibility} onChange={(v) => setNoteVisibility(v as WorkNoteVisibility)} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalChoices}>{(['general','diagnosis','test','customer_update','internal'] as WorkNoteCategory[]).map((value) => <SmallChoice key={value} active={noteCategory === value} label={noteCategoryLabel[value]} onPress={() => setNoteCategory(value)} />)}</ScrollView><PrimaryButton title="Servis Notu Ekle" onPress={addNote} loading={saving} /></View>
     </GlassCard>
+    </DetailAccordion>
 
-    <Section title="Servis hareket geçmişi" subtitle="Durum, ek işlem, parça, not ve işlem hareketleri." />
+    <DetailAccordion title="Servis Hareket Geçmişi" subtitle="Durum, ek işlem, parça, not ve işlem hareketlerinin zaman çizgisi." icon="time" accent={colors.primary} open={openSections.history} onToggle={() => toggleSection('history')} badge={`${events.length} Hareket`}>
     <GlassCard style={styles.listCard}>{events.length === 0 ? <Empty text="Hareket kaydı yok." /> : events.map((item, index) => <View key={item.id} style={[styles.eventRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={[styles.eventDot, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="pulse" size={15} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{eventLabel[item.event_type] || item.event_type}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.old_status && item.new_status ? `${statusLabels[item.old_status]} → ${statusLabels[item.new_status]} • ` : ''}{dateTime(item.created_at)}</Text>{item.note && <Text style={[styles.bodySmall, { color: colors.textSoft }]}>{item.note}</Text>}</View></View>)}</GlassCard>
+    </DetailAccordion>
 
-    <Section title="Borç / veresiye ve tahsilat" subtitle="Kalan borç, söz tarihi, Nakit/IBAN tahsilatı ve müşteri ödeme notları." />
-    <ReceivableManagerCard orderId={orderId} onChanged={load} />
+    <DetailAccordion title="Borç, Veresiye ve Tahsilat" subtitle="Kalan borç, ödeme sözü, Nakit/IBAN tahsilatı ve müşteri notları." icon="wallet" accent={colors.red} open={openSections.receivables} onToggle={() => toggleSection('receivables')} badge={money(Number(order.total_amount || 0) - Number(order.amount_received || 0))}>
+      <ReceivableManagerCard orderId={orderId} onChanged={load} />
+    </DetailAccordion>
   </ScrollView>;
+}
+
+function DetailAccordion({ title, subtitle, icon, accent, open, onToggle, badge, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; badge?: string; children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return <GlassCard style={styles.accordionCard}><AnimatedPressable onPress={onToggle} style={styles.accordionHeader}><View style={[styles.accordionIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={icon} size={23} color={accent} /></View><View style={styles.copy}><Text style={[styles.accordionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.accordionSub, { color: colors.textMuted }]}>{subtitle}</Text></View>{badge && <View style={[styles.accordionBadge, { backgroundColor: `${accent}12`, borderColor: `${accent}38` }]}><Text style={[styles.accordionBadgeText, { color: accent }]} numberOfLines={1}>{badge}</Text></View>}<Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textMuted} /></AnimatedPressable>{open && <View style={[styles.accordionBody, { borderTopColor: colors.border }]}>{children}</View>}</GlassCard>;
 }
 
 function Header({ onBack, title, subtitle, status }: { onBack: () => void; title: string; subtitle: string; status: WorkOrderStatus }) {
@@ -372,23 +387,23 @@ const styles = StyleSheet.create({
   typeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   typeIcon: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontSize: 13, fontWeight: '900' },
-  meta: { fontSize: 9.5, lineHeight: 14, marginTop: 3 },
+  meta: { fontSize: 11, lineHeight: 16, marginTop: 3 },
   body: { fontSize: 14, lineHeight: 21 },
-  bodySmall: { fontSize: 11.5, lineHeight: 17, marginTop: 4 },
-  label: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  bodySmall: { fontSize: 12.5, lineHeight: 17, marginTop: 4 },
+  label: { fontSize: 10.5, fontWeight: '900', letterSpacing: 0.8 },
   divider: { height: 1 },
   metrics: { flexDirection: 'row', gap: 8 },
   metric: { flex: 1 },
   metricValue: { fontSize: 14, fontWeight: '900', marginTop: 4 },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   timeMetric: { width: '48.5%', minHeight: 62, borderRadius: 15, padding: 10, justifyContent: 'center' },
-  timeValue: { fontSize: 10.5, fontWeight: '800', marginTop: 4 },
+  timeValue: { fontSize: 11.5, fontWeight: '800', marginTop: 4 },
   section: { marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '900' },
   sectionSub: { fontSize: 11, lineHeight: 17, marginTop: 4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statusButton: { width: '48.5%', minHeight: 47, borderWidth: 1, borderRadius: 15, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  statusText: { fontSize: 10.5, fontWeight: '900', textAlign: 'center' },
+  statusText: { fontSize: 11.5, fontWeight: '900', textAlign: 'center' },
   notice: { borderWidth: 1, borderRadius: 15, padding: 12, flexDirection: 'row', gap: 9 },
   noticeText: { flex: 1, fontSize: 11, lineHeight: 17 },
   twoCol: { flexDirection: 'row', gap: 9 },
@@ -401,21 +416,29 @@ const styles = StyleSheet.create({
   boldAmount: { fontSize: 13, fontWeight: '900' },
   actionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   action: { minHeight: 39, borderWidth: 1, borderRadius: 12, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionText: { fontSize: 8.5, fontWeight: '900' },
+  actionText: { fontSize: 10, fontWeight: '900' },
   formTitle: { fontSize: 17, fontWeight: '900' },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { width: '48.5%', minHeight: 52, borderWidth: 1, borderRadius: 15, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  choiceText: { flex: 1, fontSize: 9.5, fontWeight: '900' },
+  choiceText: { flex: 1, fontSize: 10.5, fontWeight: '900' },
   listCard: { paddingVertical: 4, paddingHorizontal: 14 },
   listItem: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 13 },
   verticalActions: { gap: 5 },
   iconAction: { width: 34, height: 34, borderWidth: 1, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  linked: { fontSize: 9.5, lineHeight: 14, marginTop: 4, fontWeight: '800' },
+  linked: { fontSize: 10.5, lineHeight: 14, marginTop: 4, fontWeight: '800' },
   formDivider: { borderTopWidth: 1, paddingTop: 14, paddingBottom: 10 },
   empty: { textAlign: 'center', paddingVertical: 18, fontSize: 11.5 },
   horizontalChoices: { gap: 7, paddingRight: 12 },
   smallChoice: { minHeight: 39, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  smallChoiceText: { fontSize: 9.5, fontWeight: '900' },
+  smallChoiceText: { fontSize: 10.5, fontWeight: '900' },
   eventRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, paddingVertical: 12 },
   eventDot: { width: 31, height: 31, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  accordionCard: { padding: 0, overflow: 'hidden' },
+  accordionHeader: { minHeight: 86, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  accordionIcon: { width: 49, height: 49, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  accordionTitle: { fontSize: 16.5, fontWeight: '900' },
+  accordionSub: { fontSize: 11.5, lineHeight: 17, marginTop: 4 },
+  accordionBadge: { maxWidth: 88, minHeight: 30, borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'center' },
+  accordionBadgeText: { fontSize: 9.5, fontWeight: '900' },
+  accordionBody: { borderTopWidth: 1, padding: 14, gap: 12 },
 });

@@ -48,9 +48,9 @@ const STAFF_NOTIFICATION_TAB_MAP: Record<string, Tab> = {
 
 export function AppShell() {
   const { colors, resolvedMode } = useTheme();
-  const { membership, isAdmin } = useAuth();
+  const { membership, isAdmin, workshop } = useAuth();
   const { navigationTarget, consumeNavigationTarget } = useNotifications();
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTab] = useState<Tab>(isAdmin && !workshop ? 'team' : 'home');
   const [newOrderMode, setNewOrderMode] = useState<ServiceType | null>(null);
   const isApprentice = membership?.role === 'apprentice';
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
@@ -99,8 +99,9 @@ export function AppShell() {
       },
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
+    if (isAdmin && !workshop) return all.filter((item) => ['team', 'settings'].includes(item.key));
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
-  }, [colors, isAdmin, isOwner, isApprentice]);
+  }, [colors, isAdmin, isOwner, isApprentice, workshop]);
 
   return (
     <PremiumBackground>
@@ -170,6 +171,6 @@ const styles = StyleSheet.create({
   navIconShell: { width: 39, height: 39, alignItems: 'center', justifyContent: 'center' },
   activeIcon: { width: 37, height: 37, borderRadius: 13, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 8, elevation: 6 },
   inactiveIcon: { width: 35, height: 35, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  navLabel: { fontSize: 6.9, fontWeight: '900', textAlign: 'center' },
+  navLabel: { fontSize: 8, fontWeight: '900', textAlign: 'center' },
   activeLine: { width: 15, height: 2.5, borderRadius: 3 },
 });

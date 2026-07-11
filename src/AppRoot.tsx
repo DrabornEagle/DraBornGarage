@@ -11,13 +11,14 @@ import { WorkshopSetupScreen } from './screens/WorkshopSetupScreen';
 
 export function AppRoot() {
   const { colors } = useTheme();
-  const { loading, session, profile, workshop, membership } = useAuth();
+  const { loading, session, profile, workshop, membership, isAdmin } = useAuth();
 
   if (loading) {
     return <PremiumBackground><View style={styles.loading}><View style={[styles.logo, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="construct" size={34} color={colors.primary} /></View><Text style={[styles.title, { color: colors.text }]}>DraBornGarage</Text><ActivityIndicator color={colors.primary} size="large" /></View></PremiumBackground>;
   }
 
   if (!session) return <AuthScreen />;
+  if (isAdmin) return <AppShell />;
   if (profile?.account_mode === 'customer') return <CustomerShell />;
   if (!workshop || !membership) return <WorkshopSetupScreen />;
   return <AppShell />;
