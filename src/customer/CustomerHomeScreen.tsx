@@ -70,7 +70,7 @@ export function CustomerHomeScreen({ onOpenServices, onOpenAppointments }: { onO
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 15 },
+  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 32, gap: 15 },
   workshops: { gap: 8, paddingRight: 16 },
   workshopChip: { minHeight: 42, maxWidth: 230, borderWidth: 1, borderRadius: 15, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7 },
   workshopText: { flexShrink: 1, fontSize: 11, fontWeight: '900' },

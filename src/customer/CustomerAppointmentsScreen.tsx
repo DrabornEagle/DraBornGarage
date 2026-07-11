@@ -11,13 +11,13 @@ import { useTheme } from '../context/ThemeContext';
 import { dateKey, daysFromToday, formatAppointmentDate, formatAppointmentTime, formatCalendarDay } from '../lib/calendar';
 import { supabase } from '../lib/supabase';
 import { Appointment, AppointmentMechanic, AvailableSlot, CustomerMotorcycle } from '../types';
-import { CustomerLinkPanel } from './CustomerLinkPanel';
+import { CustomerLockedState } from './CustomerLockedState';
 
 const statusText: Record<string, string> = {
   pending: 'Onay Bekliyor', confirmed: 'Onaylandı', arrived: 'Geldin', converted: 'Servise Dönüştü', cancelled: 'İptal', no_show: 'Gelmedi',
 };
 
-export function CustomerAppointmentsScreen() {
+export function CustomerAppointmentsScreen({ onStartLink }: { onStartLink: () => void }) {
   const { colors } = useTheme();
   const { customerWorkshop } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -99,7 +99,7 @@ export function CustomerAppointmentsScreen() {
 
   const refresh = async () => { setRefreshing(true); await load(); await loadSlots(); setRefreshing(false); };
 
-  if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content}><ScreenHeader eyebrow="RANDEVU" title="Randevularım" subtitle="Önce motorunu bir işletmeyle eşleştir." /><CustomerLinkPanel /></ScrollView>;
+  if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><ScreenHeader eyebrow="RANDEVU" title="Randevularım" subtitle="Randevu oluşturmak için önce motorunu güvenle eşleştir." /><CustomerLockedState title="Randevu sistemi henüz kilitli" description="Motorunu eşleştirdikten sonra uygun ustaları, tarihleri ve boş saatleri bu ekrandan seçebilirsin." icon="calendar" onStartLink={onStartLink} /></ScrollView>;
 
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
@@ -140,5 +140,5 @@ function AppointmentCard({ item, onCancel }: { item: Appointment; onCancel?: () 
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 14 }, form: { gap: 13 }, formTitle: { fontSize: 19, fontWeight: '900' }, label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 }, chips: { gap: 8 }, choice: { minHeight: 58, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 8 }, copy: { flex: 1, minWidth: 0 }, choiceTitle: { fontSize: 13, fontWeight: '900' }, choiceSub: { fontSize: 10, marginTop: 3 }, dateRow: { gap: 8, paddingRight: 12 }, dateChip: { minWidth: 90, minHeight: 45, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, dateText: { fontSize: 10, fontWeight: '900' }, slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, slot: { minWidth: 70, minHeight: 42, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, slotText: { fontSize: 12, fontWeight: '900' }, emptyText: { fontSize: 12, paddingVertical: 10 }, sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 }, empty: { alignItems: 'center', gap: 8, paddingVertical: 28 }, emptyTitle: { fontSize: 16, fontWeight: '900' }, card: { gap: 11 }, cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, icon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, cardTitle: { fontSize: 14, fontWeight: '900' }, cardMeta: { fontSize: 10, marginTop: 3 }, status: { fontSize: 9, fontWeight: '900', maxWidth: 85, textAlign: 'right' }, info: { minHeight: 64, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 }, infoTitle: { fontSize: 12, fontWeight: '900' }, infoSub: { fontSize: 10, marginTop: 4 }, cancel: { minHeight: 44, borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, cancelText: { fontSize: 11, fontWeight: '900' },
+  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 32, gap: 14 }, form: { gap: 13 }, formTitle: { fontSize: 19, fontWeight: '900' }, label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 }, chips: { gap: 8 }, choice: { minHeight: 58, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 8 }, copy: { flex: 1, minWidth: 0 }, choiceTitle: { fontSize: 13, fontWeight: '900' }, choiceSub: { fontSize: 10, marginTop: 3 }, dateRow: { gap: 8, paddingRight: 12 }, dateChip: { minWidth: 90, minHeight: 45, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, dateText: { fontSize: 10, fontWeight: '900' }, slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, slot: { minWidth: 70, minHeight: 42, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, slotText: { fontSize: 12, fontWeight: '900' }, emptyText: { fontSize: 12, paddingVertical: 10 }, sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 }, empty: { alignItems: 'center', gap: 8, paddingVertical: 28 }, emptyTitle: { fontSize: 16, fontWeight: '900' }, card: { gap: 11 }, cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, icon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, cardTitle: { fontSize: 14, fontWeight: '900' }, cardMeta: { fontSize: 10, marginTop: 3 }, status: { fontSize: 9, fontWeight: '900', maxWidth: 85, textAlign: 'right' }, info: { minHeight: 64, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 }, infoTitle: { fontSize: 12, fontWeight: '900' }, infoSub: { fontSize: 10, marginTop: 4 }, cancel: { minHeight: 44, borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, cancelText: { fontSize: 11, fontWeight: '900' },
 });

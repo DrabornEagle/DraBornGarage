@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
 import { CustomerServiceDetail, CustomerServiceRecord, ExtraWorkRequest, WorkOrderStatus } from '../types';
-import { CustomerLinkPanel } from './CustomerLinkPanel';
+import { CustomerLockedState } from './CustomerLockedState';
 
 type Filter = 'all' | 'active' | 'approval' | 'ready' | 'history';
 const timeline: WorkOrderStatus[] = ['received', 'queued', 'precheck', 'price_entered', 'approval_waiting', 'repair_started', 'extra_approval_waiting', 'parts_waiting', 'testing', 'ready', 'delivered'];
@@ -26,7 +26,7 @@ function dateTime(value?: string | null) {
   return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
-export function CustomerServicesScreen() {
+export function CustomerServicesScreen({ onStartLink }: { onStartLink: () => void }) {
   const { colors } = useTheme();
   const { customerWorkshop } = useAuth();
   const [items, setItems] = useState<CustomerServiceRecord[]>([]);
@@ -52,7 +52,7 @@ export function CustomerServicesScreen() {
   }), [items, filter]);
 
   if (selectedId) return <ServiceDetail orderId={selectedId} onBack={() => { setSelectedId(null); load(); }} />;
-  if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content}><ScreenHeader eyebrow="SERVİSLERİM" title="Servis Takibi" subtitle="Önce motorunu bir işletmeyle eşleştir." /><CustomerLinkPanel /></ScrollView>;
+  if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><ScreenHeader eyebrow="SERVİSLERİM" title="Servis Takibi" subtitle="Servis kayıtlarını görmek için önce motorunu eşleştir." /><CustomerLockedState title="Servis takibi henüz kilitli" description="Motorunu eşleştirdiğinde aktif servis, ek işlem onayları, kullanılan parçalar ve servis geçmişin burada görünür." icon="construct" onStartLink={onStartLink} /></ScrollView>;
 
   return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
     <ScreenHeader eyebrow="v0.4 SERVİS TAKİBİ" title="Servislerim" subtitle={`${customerWorkshop.workshop_name} içindeki servis, ek işlem onayı ve parça kayıtların.`} />
@@ -136,7 +136,7 @@ function Empty({ text }: { text: string }) { const { colors } = useTheme(); retu
 
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 14 },
+  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 32, gap: 14 },
   filters: { gap: 8, paddingRight: 12 },
   filter: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 15, paddingVertical: 10 },
   filterText: { fontSize: 10.5, fontWeight: '900' },
