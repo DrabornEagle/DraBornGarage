@@ -22,8 +22,8 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
   const { colors } = useTheme();
   const { profile, refreshWorkspace } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
-  const [method, setMethod] = useState<Method>('phone');
-  const [plate, setPlate] = useState('');
+  const [method, setMethod] = useState<Method>('approval');
+  const [plate, setPlate] = useState(profile?.customer_plate ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [code, setCode] = useState('');
   const [qr, setQr] = useState('');
@@ -56,6 +56,7 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
   };
 
   const submit = async () => {
+    if (method !== 'qr' && plate.trim().replace(/[^A-Za-z0-9ÇĞİÖŞÜçğıöşü]/g, '').length < 5) return Alert.alert('Geçerli plaka gir');
     setLoading(true);
     const result = method === 'phone'
       ? await supabase.rpc('customer_claim_by_phone', { p_plate: plate.trim(), p_phone: phone.trim() })
@@ -63,7 +64,7 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
         ? await supabase.rpc('customer_claim_by_tracking_code', { p_code: code.trim(), p_plate: plate.trim() || null })
         : method === 'qr'
           ? await supabase.rpc('customer_claim_by_qr', { p_token: tokenFrom(qr) })
-          : await supabase.rpc('customer_request_mechanic_approval', { p_plate: plate.trim(), p_phone: phone.trim() || null });
+          : await supabase.rpc('customer_request_mechanic_approval', { p_plate: plate.trim() });
     setLoading(false);
     if (result.error) return Alert.alert('Eşleştirme yapılamadı', result.error.message);
     if (method === 'approval') { await loadClaims(); return Alert.alert('Talep gönderildi', 'Usta onayladığında motor hesabında görünecek.'); }
@@ -75,7 +76,7 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
     <View style={styles.root}>
       <GlassCard style={styles.hero}>
         <View style={[styles.heroIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="shield-checkmark" size={28} color={colors.primary} /></View>
-        <View style={styles.copy}><Text style={[styles.heroTitle, { color: colors.text }]}>Motorunu güvenle bağla</Text><Text style={[styles.heroText, { color: colors.textMuted }]}>Plaka tek başına yeterli değildir. Telefon, servis kodu, QR veya usta onayı gerekir.</Text></View>
+        <View style={styles.copy}><Text style={[styles.heroTitle, { color: colors.text }]}>Motorunu güvenle bağla</Text><Text style={[styles.heroText, { color: colors.textMuted }]}>{profile?.customer_motorcycle_brand ? `Kayıtlı motor: ${profile.customer_motorcycle_brand} ${profile.customer_motorcycle_model} • ${profile.customer_plate}` : 'Plakanı yaz, işletmedeki Usta onayladığında motor hesabına bağlansın.'}</Text></View>
       </GlassCard>
 
       <View style={styles.methods}>
@@ -93,7 +94,7 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
         {method !== 'qr' && <FormField label="Plaka" value={plate} onChangeText={(v) => setPlate(v.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" />}
         {method === 'phone' && <FormField label="İşletmede kayıtlı telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />}
         {method === 'tracking' && <FormField label="8 haneli servis takip kodu" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" />}
-        {method === 'approval' && <FormField label="Telefon (opsiyonel)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />}
+        {method === 'approval' && <Text style={[styles.scanText, { color: colors.textMuted }]}>Talep, bu plakayı işletmesinde kayıtlı gören Ustanın Eşleşme Talepleri ekranına düşer.</Text>}
         {method === 'qr' && <><AnimatedPressable onPress={openScanner} style={[styles.scan, { backgroundColor: `${colors.cyan}12`, borderColor: `${colors.cyan}42` }]}><Ionicons name="scan" size={25} color={colors.cyan} /><View style={styles.copy}><Text style={[styles.scanTitle, { color: colors.text }]}>Kamerayla QR Tara</Text><Text style={[styles.scanText, { color: colors.textMuted }]}>Ustanın servis kartındaki QR kodu okut.</Text></View></AnimatedPressable><FormField label="QR bağlantısı" value={qr} onChangeText={setQr} multiline /></>}
         <PrimaryButton title={method === 'approval' ? 'Usta Onayı İste' : 'Motorumu Eşleştir'} onPress={submit} loading={loading} />
       </GlassCard>

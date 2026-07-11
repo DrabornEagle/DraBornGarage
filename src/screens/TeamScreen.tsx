@@ -32,9 +32,13 @@ export function TeamScreen() {
   const [businessName, setBusinessName] = useState('');
   const [businessPhone, setBusinessPhone] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
+  const [businessTaxOffice, setBusinessTaxOffice] = useState('');
+  const [businessTaxNumber, setBusinessTaxNumber] = useState('');
   const [editName, setEditName] = useState(workshop?.name ?? '');
   const [editPhone, setEditPhone] = useState(workshop?.phone ?? '');
   const [editAddress, setEditAddress] = useState(workshop?.address ?? '');
+  const [editTaxOffice, setEditTaxOffice] = useState(workshop?.tax_office ?? '');
+  const [editTaxNumber, setEditTaxNumber] = useState(workshop?.tax_number ?? '');
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
   const [ownerSection, setOwnerSection] = useState<'reports' | 'platform' | 'team'>('platform');
 
@@ -42,7 +46,9 @@ export function TeamScreen() {
     setEditName(workshop?.name ?? '');
     setEditPhone(workshop?.phone ?? '');
     setEditAddress(workshop?.address ?? '');
-  }, [workshop?.id, workshop?.name, workshop?.phone, workshop?.address]);
+    setEditTaxOffice(workshop?.tax_office ?? '');
+    setEditTaxNumber(workshop?.tax_number ?? '');
+  }, [workshop?.id, workshop?.name, workshop?.phone, workshop?.address, workshop?.tax_office, workshop?.tax_number]);
 
   const load = useCallback(async () => {
     if (!workshop || !membership) return;
@@ -70,12 +76,14 @@ export function TeamScreen() {
   };
 
   const createBusiness = async () => {
+    const normalizedTaxNumber = businessTaxNumber.replace(/\D/g, '');
     if (!businessName.trim()) return Alert.alert('İşletme adı gerekli');
+    if (!businessTaxOffice.trim() || ![10, 11].includes(normalizedTaxNumber.length)) return Alert.alert('Vergi bilgileri gerekli', 'Vergi Dairesi ile 10 veya 11 haneli Vergi Numarasını gir.');
     setLoading(true);
-    const error = await createWorkshop(businessName, businessPhone, businessAddress);
+    const error = await createWorkshop(businessName, businessPhone, businessAddress, businessTaxOffice, normalizedTaxNumber);
     setLoading(false);
     if (error) return Alert.alert('İşletme oluşturulamadı', error);
-    setBusinessName(''); setBusinessPhone(''); setBusinessAddress(''); setShowBusinessForm(false);
+    setBusinessName(''); setBusinessPhone(''); setBusinessAddress(''); setBusinessTaxOffice(''); setBusinessTaxNumber(''); setShowBusinessForm(false);
   };
 
   const saveBusiness = async () => {
@@ -86,6 +94,8 @@ export function TeamScreen() {
       p_name: editName.trim(),
       p_phone: editPhone.trim() || null,
       p_address: editAddress.trim() || null,
+      p_tax_office: editTaxOffice.trim(),
+      p_tax_number: editTaxNumber.replace(/\D/g, ''),
     });
     setLoading(false);
     if (error) return Alert.alert('İşletme güncellenemedi', error.message);
@@ -156,7 +166,7 @@ export function TeamScreen() {
       {isAdmin && (
         <>
           <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: colors.text }]}>İşletmeler</Text><AnimatedPressable onPress={() => setShowBusinessForm((value) => !value)} style={[styles.smallAction, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}45` }]}><Ionicons name={showBusinessForm ? 'close' : 'add'} size={18} color={colors.primary} /><Text style={[styles.smallActionText, { color: colors.primary }]}>{showBusinessForm ? 'Kapat' : 'İşletme Ekle'}</Text></AnimatedPressable></View>
-          {showBusinessForm && <GlassCard style={styles.formCard}><FormField label="İşletme adı" value={businessName} onChangeText={setBusinessName} placeholder="Lara Moto Garage" /><FormField label="Telefon" value={businessPhone} onChangeText={setBusinessPhone} keyboardType="phone-pad" /><FormField label="Adres" value={businessAddress} onChangeText={setBusinessAddress} multiline /><PrimaryButton title="İşletmeyi Oluştur" onPress={createBusiness} loading={loading} /></GlassCard>}
+          {showBusinessForm && <GlassCard style={styles.formCard}><FormField label="İşletme adı" value={businessName} onChangeText={setBusinessName} placeholder="Lara Moto Garage" /><FormField label="Telefon" value={businessPhone} onChangeText={setBusinessPhone} keyboardType="phone-pad" /><FormField label="Adres" value={businessAddress} onChangeText={setBusinessAddress} multiline /><FormField label="Vergi Dairesi" value={businessTaxOffice} onChangeText={setBusinessTaxOffice} placeholder="Örn. Muratpaşa Vergi Dairesi" /><FormField label="Vergi Numarası" value={businessTaxNumber} onChangeText={(value) => setBusinessTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} /><PrimaryButton title="İşletmeyi Oluştur" onPress={createBusiness} loading={loading} /></GlassCard>}
           <View style={styles.list}>{workshops.map((item) => <GlassCard key={item.id} style={[styles.businessCard, workshop?.id === item.id && { borderColor: colors.primary }]}><AnimatedPressable onPress={() => selectWorkshop(item.id)} style={styles.businessMain}><View style={[styles.businessIcon, { backgroundColor: item.is_active === false ? `${colors.red}16` : `${colors.primary}18` }]}><Ionicons name="business" size={23} color={item.is_active === false ? colors.red : colors.primary} /></View><View style={styles.copy}><Text style={[styles.memberName, { color: colors.text }]}>{item.name}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{item.address || 'Adres eklenmedi'} • {item.is_active === false ? 'Pasif' : 'Aktif'}</Text></View>{workshop?.id === item.id && <Ionicons name="checkmark-circle" size={23} color={colors.green} />}</AnimatedPressable><AnimatedPressable onPress={() => toggleBusiness(item.id, item.is_active === false)} style={[styles.stateButton, { backgroundColor: item.is_active === false ? `${colors.green}12` : `${colors.red}10`, borderColor: item.is_active === false ? `${colors.green}35` : `${colors.red}35` }]}><Text style={[styles.stateButtonText, { color: item.is_active === false ? colors.green : colors.red }]}>{item.is_active === false ? 'Aktif Yap' : 'Pasif Yap'}</Text></AnimatedPressable></GlassCard>)}</View>
         </>
       )}
@@ -166,6 +176,8 @@ export function TeamScreen() {
         <FormField label="İşletme adı" value={editName} onChangeText={setEditName} />
         <FormField label="Telefon" value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" />
         <FormField label="Adres" value={editAddress} onChangeText={setEditAddress} multiline />
+        <FormField label="Vergi Dairesi" value={editTaxOffice} onChangeText={setEditTaxOffice} placeholder="Örn. Muratpaşa Vergi Dairesi" />
+        <FormField label="Vergi Numarası" value={editTaxNumber} onChangeText={(value) => setEditTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} />
         <PrimaryButton title="İşletme Bilgilerini Güncelle" onPress={saveBusiness} loading={loading} secondary />
       </GlassCard>
 

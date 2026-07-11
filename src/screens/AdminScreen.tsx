@@ -42,15 +42,21 @@ export function AdminScreen() {
   const [businessName, setBusinessName] = useState('');
   const [businessPhone, setBusinessPhone] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
+  const [businessTaxOffice, setBusinessTaxOffice] = useState('');
+  const [businessTaxNumber, setBusinessTaxNumber] = useState('');
   const [editName, setEditName] = useState(workshop?.name ?? '');
   const [editPhone, setEditPhone] = useState(workshop?.phone ?? '');
   const [editAddress, setEditAddress] = useState(workshop?.address ?? '');
+  const [editTaxOffice, setEditTaxOffice] = useState(workshop?.tax_office ?? '');
+  const [editTaxNumber, setEditTaxNumber] = useState(workshop?.tax_number ?? '');
 
   useEffect(() => {
     setEditName(workshop?.name ?? '');
     setEditPhone(workshop?.phone ?? '');
     setEditAddress(workshop?.address ?? '');
-  }, [workshop?.id, workshop?.name, workshop?.phone, workshop?.address]);
+    setEditTaxOffice(workshop?.tax_office ?? '');
+    setEditTaxNumber(workshop?.tax_number ?? '');
+  }, [workshop?.id, workshop?.name, workshop?.phone, workshop?.address, workshop?.tax_office, workshop?.tax_number]);
 
   const load = useCallback(async () => {
     if (!workshop) return;
@@ -73,14 +79,18 @@ export function AdminScreen() {
   useEffect(() => { load(); }, [load]);
 
   const createBusiness = async () => {
+    const normalizedTaxNumber = businessTaxNumber.replace(/\D/g, '');
     if (!businessName.trim()) return Alert.alert('İşletme adı gerekli');
+    if (!businessTaxOffice.trim() || ![10, 11].includes(normalizedTaxNumber.length)) return Alert.alert('Vergi bilgileri gerekli', 'Vergi Dairesi ile 10 veya 11 haneli Vergi Numarasını gir.');
     setLoading(true);
-    const error = await createWorkshop(businessName, businessPhone, businessAddress);
+    const error = await createWorkshop(businessName, businessPhone, businessAddress, businessTaxOffice, normalizedTaxNumber);
     setLoading(false);
     if (error) return Alert.alert('İşletme oluşturulamadı', error);
     setBusinessName('');
     setBusinessPhone('');
     setBusinessAddress('');
+    setBusinessTaxOffice('');
+    setBusinessTaxNumber('');
     setShowBusinessForm(false);
   };
 
@@ -92,6 +102,8 @@ export function AdminScreen() {
       p_name: editName.trim(),
       p_phone: editPhone.trim() || null,
       p_address: editAddress.trim() || null,
+      p_tax_office: editTaxOffice.trim(),
+      p_tax_number: editTaxNumber.replace(/\D/g, ''),
     });
     setLoading(false);
     if (error) return Alert.alert('İşletme güncellenemedi', error.message);
@@ -184,6 +196,8 @@ export function AdminScreen() {
           <FormField label="İşletme adı" value={businessName} onChangeText={setBusinessName} placeholder="Lara Moto Garage" />
           <FormField label="Telefon" value={businessPhone} onChangeText={setBusinessPhone} keyboardType="phone-pad" />
           <FormField label="Adres" value={businessAddress} onChangeText={setBusinessAddress} multiline />
+          <FormField label="Vergi Dairesi" value={businessTaxOffice} onChangeText={setBusinessTaxOffice} />
+          <FormField label="Vergi Numarası" value={businessTaxNumber} onChangeText={(value) => setBusinessTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} />
           <PrimaryButton title="İşletmeyi Oluştur" onPress={createBusiness} loading={loading} />
         </GlassCard>
       )}
@@ -213,6 +227,8 @@ export function AdminScreen() {
         <FormField label="İşletme adı" value={editName} onChangeText={setEditName} />
         <FormField label="Telefon" value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" />
         <FormField label="Adres" value={editAddress} onChangeText={setEditAddress} multiline />
+        <FormField label="Vergi Dairesi" value={editTaxOffice} onChangeText={setEditTaxOffice} />
+        <FormField label="Vergi Numarası" value={editTaxNumber} onChangeText={(value) => setEditTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} />
         <PrimaryButton title="İşletme Bilgilerini Güncelle" onPress={saveBusiness} loading={loading} secondary />
       </GlassCard>
 

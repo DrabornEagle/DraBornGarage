@@ -42,6 +42,9 @@ export interface Profile {
   avatar_url?: string | null;
   is_admin?: boolean;
   account_mode?: AccountMode;
+  customer_plate?: string | null;
+  customer_motorcycle_brand?: string | null;
+  customer_motorcycle_model?: string | null;
 }
 
 export interface Workshop {
@@ -57,6 +60,8 @@ export interface Workshop {
   appointment_auto_confirm?: boolean;
   appointment_booking_days?: number;
   appointment_min_notice_minutes?: number;
+  tax_office?: string | null;
+  tax_number?: string | null;
 }
 
 export interface WorkshopMember {
@@ -256,6 +261,25 @@ export interface CustomerClaim {
   created_at: string;
   reviewed_at?: string | null;
   review_note?: string | null;
+}
+
+export interface StaffRegisteredCustomerMatch {
+  user_id: string;
+  full_name: string;
+  phone?: string | null;
+  registered_plate: string;
+  registered_brand: string;
+  registered_model: string;
+  already_linked: boolean;
+  workshop_customer_id?: string | null;
+  workshop_customer_name?: string | null;
+  workshop_motorcycle_id?: string | null;
+}
+
+export interface CustomerRegistrationMotor {
+  plate: string;
+  brand: string;
+  model: string;
 }
 
 export interface StaffCustomerClaim {

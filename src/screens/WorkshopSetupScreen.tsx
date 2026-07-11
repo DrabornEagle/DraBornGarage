@@ -16,14 +16,18 @@ export function WorkshopSetupScreen() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [taxOffice, setTaxOffice] = useState('');
+  const [taxNumber, setTaxNumber] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
+    const normalizedTaxNumber = taxNumber.replace(/\D/g, '');
     if (mode === 'create' && !name.trim()) return Alert.alert('İşletme adı gerekli');
+    if (mode === 'create' && (!taxOffice.trim() || ![10, 11].includes(normalizedTaxNumber.length))) return Alert.alert('Vergi bilgileri gerekli', 'Vergi Dairesi ile 10 veya 11 haneli Vergi Numarasını gir.');
     if (mode === 'join' && code.trim().length < 6) return Alert.alert('Geçerli bir davet kodu gir');
     setLoading(true);
-    const error = mode === 'create' ? await createWorkshop(name, phone, address) : await joinWorkshop(code);
+    const error = mode === 'create' ? await createWorkshop(name, phone, address, taxOffice, normalizedTaxNumber) : await joinWorkshop(code);
     setLoading(false);
     if (error) Alert.alert('İşlem tamamlanamadı', error);
   };
@@ -52,7 +56,7 @@ export function WorkshopSetupScreen() {
           </View>
 
           <GlassCard style={styles.form}>
-            {mode === 'create' ? <><FormField label="İşletme adı" value={name} onChangeText={setName} placeholder="DraBorn Motor Garage" /><FormField label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><FormField label="Adres" value={address} onChangeText={setAddress} multiline /><PrimaryButton title="Garajımı Oluştur" onPress={submit} loading={loading} /></> : <><FormField label="Davet kodu" value={code} onChangeText={(value) => setCode(value.toUpperCase())} autoCapitalize="characters" placeholder="Örn. A7F3K9P2" /><Text style={[styles.help, { color: colors.textMuted }]}>Kod rolünü otomatik belirler.</Text><PrimaryButton title="İşletmeye Katıl" onPress={submit} loading={loading} /></>}
+            {mode === 'create' ? <><FormField label="İşletme adı" value={name} onChangeText={setName} placeholder="DraBorn Motor Garage" /><FormField label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /><FormField label="Adres" value={address} onChangeText={setAddress} multiline /><FormField label="Vergi Dairesi" value={taxOffice} onChangeText={setTaxOffice} placeholder="Örn. Muratpaşa Vergi Dairesi" autoCapitalize="words" /><FormField label="Vergi Numarası" value={taxNumber} onChangeText={(value) => setTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} placeholder="10 veya 11 hane" /><PrimaryButton title="Garajımı Oluştur" onPress={submit} loading={loading} /></> : <><FormField label="Davet kodu" value={code} onChangeText={(value) => setCode(value.toUpperCase())} autoCapitalize="characters" placeholder="Örn. A7F3K9P2" /><Text style={[styles.help, { color: colors.textMuted }]}>Kod rolünü otomatik belirler.</Text><PrimaryButton title="İşletmeye Katıl" onPress={submit} loading={loading} /></>}
           </GlassCard>
 
           <AnimatedPressable onPress={continueAsCustomer} style={[styles.customerButton, { backgroundColor: `${colors.cyan}12`, borderColor: `${colors.cyan}42` }]}> 
