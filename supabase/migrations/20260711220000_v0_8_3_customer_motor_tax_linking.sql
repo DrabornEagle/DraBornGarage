@@ -218,7 +218,10 @@ begin
     coalesce(p.customer_motorcycle_model, 'Model belirtilmedi'),
     exists (
       select 1 from public.customer_links cl
-      where cl.user_id = p.id and cl.workshop_id = p_workshop_id and cl.status = 'approved'
+      where cl.user_id = p.id
+        and cl.workshop_id = p_workshop_id
+        and cl.customer_id = existing.customer_id
+        and cl.status = 'approved'
     ),
     existing.customer_id,
     existing.customer_name,
