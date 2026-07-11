@@ -117,6 +117,7 @@ npm run test:bundle
 - [`docs/V0.4.0_CHANGELOG.md`](docs/V0.4.0_CHANGELOG.md)
 - [`docs/V0.4.1_CHANGELOG.md`](docs/V0.4.1_CHANGELOG.md)
 - [`docs/V0.5.0_CHANGELOG.md`](docs/V0.5.0_CHANGELOG.md)
+- [`docs/V0.5.0_VALIDATION_REPORT.md`](docs/V0.5.0_VALIDATION_REPORT.md)
 - [`docs/ROADMAP.md`](docs/ROADMAP.md)
 - [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
 - [`supabase/migrations`](supabase/migrations)
