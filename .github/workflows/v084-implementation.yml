@@ -5,6 +5,7 @@ on:
     branches:
       - feature/v0.8.4-approval-calendar-modern-ui
     paths:
+      - scripts/prepare_v084_generators.mjs
       - scripts/apply_v084_core.mjs
       - scripts/apply_v084_ui.mjs
       - .github/workflows/v084-implementation.yml
@@ -12,6 +13,7 @@ on:
     branches:
       - main
     paths:
+      - scripts/prepare_v084_generators.mjs
       - scripts/apply_v084_core.mjs
       - scripts/apply_v084_ui.mjs
       - .github/workflows/v084-implementation.yml
@@ -39,6 +41,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
+      - name: Prepare v0.8.4 generators
+        run: node scripts/prepare_v084_generators.mjs
 
       - name: Apply v0.8.4 core changes
         id: core
