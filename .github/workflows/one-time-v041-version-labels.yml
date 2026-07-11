@@ -1,52 +1,10 @@
-name: One-time v0.4.1 Version Labels
+name: One-time v0.4.1 Version Labels (completed)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/one-time-v041-version-labels.yml
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  update:
+  completed:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Update visible version labels
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-
-          function patch(path, replacements) {
-            let text = fs.readFileSync(path, 'utf8');
-            for (const [from, to] of replacements) {
-              if (!text.includes(from)) throw new Error(`Expected text not found in ${path}: ${from}`);
-              text = text.replace(from, to);
-            }
-            fs.writeFileSync(path, text);
-          }
-
-          patch('src/screens/AuthScreen.tsx', [
-            ['GARAGE OS • v0.4.0 ONAY MERKEZİ HAZIR', 'GARAGE OS • v0.4.1 MÜŞTERİ PANELİ DÜZELTİLDİ'],
-          ]);
-
-          patch('src/screens/SettingsScreen.tsx', [
-            ['v0.4.0 • Ek işlem, müşteri onayı ve servis detayları', 'v0.4.1 • Müşteri paneli yerleşim ve navigasyon düzeltmesi'],
-            ['backup/v0.3.1-before-v0.4.0', 'backup/v0.4.0-before-v0.4.1-customer-panel-fix'],
-            ['rollback_v0_4_0_to_v0_3_1.sql', 'rollback_v0_4_1_to_v0_4_0.sql'],
-          ]);
-          NODE
-
-      - name: Commit labels
-        run: |
-          git config user.name "DraBornGarage CI"
-          git config user.email "actions@users.noreply.github.com"
-          git add src/screens/AuthScreen.tsx src/screens/SettingsScreen.tsx
-          git diff --cached --quiet || git commit -m "chore: display v0.4.1 customer panel fix version"
-          git push origin main
+      - run: echo "v0.4.1 version labels completed."
