@@ -2,24 +2,22 @@
 
 Bu akışta Python, patch, JDK, Perl, `/tmp` veya Git kullanılmaz.
 
-# v0.4.0 güncellemesi
+# v0.4.1 güncellemesi
 
-- **Kurulan yeni sürüm:** `v0.4.0`
-- **Kurulumdan önce yedeklenen sürüm:** `v0.3.1`
-- **GitHub geri dönüş yedeği:** `backup/v0.3.1-before-v0.4.0`
-- **Telefonda oluşturulan yerel yedek:** `DraBornGarage-v0.3.1-local-backup`
+- **Kurulan yeni sürüm:** `v0.4.1`
+- **Kurulumdan önce yedeklenen sürüm:** `v0.4.0`
+- **GitHub geri dönüş yedeği:** `backup/v0.4.0-before-v0.4.1-customer-panel-fix`
+- **Telefonda oluşturulan yerel yedek:** `DraBornGarage-v0.4.0-local-backup`
 
-## v0.3.1 sürümünü yedekleyip v0.4.0 sürümünü kurma
-
-Mevcut `.env` dosyası korunur. Komut başlamadan önce kurulan ve yedeklenen sürümü ekranda gösterir.
+## v0.4.0 sürümünü yedekleyip v0.4.1 sürümünü kurma
 
 ```bash
 cd ~
 
-KURULAN_SURUM="v0.4.0"
-YEDEKLENEN_SURUM="v0.3.1"
-YEDEK_KLASORU="$HOME/DraBornGarage-v0.3.1-local-backup"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.4.0.zip"
+KURULAN_SURUM="v0.4.1"
+YEDEKLENEN_SURUM="v0.4.0"
+YEDEK_KLASORU="$HOME/DraBornGarage-v0.4.0-local-backup"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.4.1.zip"
 
 printf '\n========================================\n'
 printf 'KURULAN YENİ SÜRÜM: %s\n' "$KURULAN_SURUM"
@@ -73,30 +71,28 @@ printf 'GERİ DÖNÜŞ İÇİN KORUNAN SÜRÜM: %s\n\n' "$YEDEKLENEN_SURUM"
 npx expo start -c --go
 ```
 
-## Aynı Wi-Fi’da Expo Go bağlantısı kurulamazsa
+## Aynı Wi-Fi’da Expo Go bağlanmazsa
 
 ```bash
 cd ~/DraBornGarage
 npx expo start -c --tunnel --go
 ```
 
-# v0.4.0 sürümünden v0.3.1 sürümüne geri alma
+# v0.4.1 sürümünden v0.4.0 sürümüne geri alma
 
-- **Geri dönülen sürüm:** `v0.3.1`
-- **Geri alma öncesinde korunan sürüm:** `v0.4.0`
-- **İndirilen sabit GitHub yedeği:** `backup/v0.3.1-before-v0.4.0`
-- **Telefonda korunan v0.4.0 klasörü:** `DraBornGarage-v0.4.0-before-rollback`
-
-## v0.4.0 sürümünü koruyup v0.3.1 sürümünü geri yükleme
+- **Geri dönülen sürüm:** `v0.4.0`
+- **Geri alma öncesinde korunan sürüm:** `v0.4.1`
+- **Sabit GitHub yedeği:** `backup/v0.4.0-before-v0.4.1-customer-panel-fix`
+- **Telefonda korunan v0.4.1 klasörü:** `DraBornGarage-v0.4.1-before-rollback`
 
 ```bash
 cd ~
 
-GERI_DONULEN_SURUM="v0.3.1"
-KORUNAN_MEVCUT_SURUM="v0.4.0"
-MEVCUT_SURUM_YEDEGI="$HOME/DraBornGarage-v0.4.0-before-rollback"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.3.1.zip"
-ACILAN_KLASOR="$HOME/DraBornGarage-backup-v0.3.1-before-v0.4.0"
+GERI_DONULEN_SURUM="v0.4.0"
+KORUNAN_MEVCUT_SURUM="v0.4.1"
+MEVCUT_SURUM_YEDEGI="$HOME/DraBornGarage-v0.4.1-before-rollback"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.4.0.zip"
+ACILAN_KLASOR="$HOME/DraBornGarage-backup-v0.4.0-before-v0.4.1-customer-panel-fix"
 
 printf '\n========================================\n'
 printf 'GERİ DÖNÜLEN SÜRÜM: %s\n' "$GERI_DONULEN_SURUM"
@@ -119,7 +115,7 @@ curl -L \
   --retry-delay 3 \
   --connect-timeout 30 \
   --max-time 600 \
-  "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/backup/v0.3.1-before-v0.4.0.zip" \
+  "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/backup/v0.4.0-before-v0.4.1-customer-panel-fix.zip" \
   -o "$ZIP_DOSYASI"
 
 unzip -o "$ZIP_DOSYASI" -d "$HOME"
@@ -141,41 +137,26 @@ printf 'KORUNAN ÖNCEKİ SÜRÜM: %s\n\n' "$KORUNAN_MEVCUT_SURUM"
 npx expo start -c --go
 ```
 
-## Supabase veritabanını v0.3.1 yapısına geri alma
+## Supabase geri alma
 
-Uygulama kodunu geri almak Supabase şemasını otomatik değiştirmez. Supabase Dashboard → **SQL Editor** bölümünde şu dosyanın tamamı çalıştırılmalıdır:
+v0.4.1 Supabase yapısını değiştirmez. Kayıt standardı için şu no-op dosyası bulunur:
 
-`supabase/rollbacks/rollback_v0_4_0_to_v0_3_1.sql`
+`supabase/rollbacks/rollback_v0_4_1_to_v0_4_0.sql`
 
-Bu rollback:
+Uygulama kodunu v0.4.0 yedeğine döndürmek yeterlidir; canlı veriler ve v0.4.0 ek işlem/onay sistemi korunur.
 
-- v0.4 ek işlem onaylarını ve onay geçmişini kaldırır
-- v0.4 servis hareketleri ve servis notlarını kaldırır
-- işlem başlangıç/bitiş ve parça kullanım bağlantı kolonlarını kaldırır
-- toplam hesaplama, servis durum zamanı ve müşteri servis RPC’lerini v0.3.1 biçimine döndürür
-- müşteri, motosiklet, temel servis, ödeme, randevu ve v0.3 eşleştirme kayıtlarını korur
-
-Ek işlem/onay verileri silineceği için SQL rollback çalıştırılmadan önce Supabase Dashboard üzerinden gerçek veritabanı yedeği alınmalıdır.
-
-## v0.4.0 doğrulandıktan sonra yerel yedeği temizleme
-
-Aşağıdaki komut yalnız geri dönüş yedeğine artık ihtiyaç kalmadığında çalıştırılır:
+## v0.4.1 doğrulandıktan sonra yerel yedeği temizleme
 
 ```bash
 cd ~
 rm -rf \
-  "$HOME/DraBornGarage-v0.3.1-local-backup" \
-  "$HOME/DraBornGarage-v0.4.0-before-rollback" \
-  "$HOME/DraBornGarage-v0.4.0.zip" \
-  "$HOME/DraBornGarage-v0.3.1.zip"
+  "$HOME/DraBornGarage-v0.4.0-local-backup" \
+  "$HOME/DraBornGarage-v0.4.1-before-rollback" \
+  "$HOME/DraBornGarage-v0.4.1.zip" \
+  "$HOME/DraBornGarage-v0.4.0.zip"
 ```
 
-## Bir sonraki güncelleme örneği
+## Bir sonraki sürüm
 
-v0.4.0 üzerine yeni bir değişiklik eklenirse:
-
-- **Yeni sürüm:** `v0.4.1`
-- **Yedeklenen sürüm:** `v0.4.0`
-- **Yedek dalı:** `backup/v0.4.0-before-v0.4.1`
-
-v0.5 ana aşamasına geçilirse yeni sürüm `v0.5.0` olur.
+- v0.4 içindeki yeni küçük değişiklik: `v0.4.2`
+- Yol haritasındaki bir sonraki ana aşama: `v0.5.0`
