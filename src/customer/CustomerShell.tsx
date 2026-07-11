@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { PremiumBackground } from '../components/PremiumBackground';
 import { useTheme } from '../context/ThemeContext';
+import { NotificationBell } from '../notifications/NotificationBell';
+import { useNotifications } from '../notifications/NotificationContext';
 import { CustomerAccountScreen } from './CustomerAccountScreen';
 import { CustomerAppointmentsScreen } from './CustomerAppointmentsScreen';
 import { CustomerHomeScreen } from './CustomerHomeScreen';
@@ -15,11 +17,33 @@ import { CustomerServicesScreen } from './CustomerServicesScreen';
 
 type Tab = 'home' | 'motorcycles' | 'appointments' | 'services' | 'account';
 
+const CUSTOMER_NOTIFICATION_TAB_MAP: Record<string, Tab> = {
+  home: 'home',
+  motorcycles: 'motorcycles',
+  customers: 'motorcycles',
+  appointments: 'appointments',
+  services: 'services',
+  orders: 'services',
+  receivables: 'services',
+  team: 'services',
+  platform: 'services',
+  account: 'account',
+  settings: 'account',
+};
+
 export function CustomerShell() {
   const { colors, resolvedMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const { navigationTarget, consumeNavigationTarget } = useNotifications();
   const [tab, setTab] = useState<Tab>('home');
   const openLinking = () => setTab('home');
+
+  useEffect(() => {
+    if (!navigationTarget) return;
+    const target = navigationTarget.targetTab ? CUSTOMER_NOTIFICATION_TAB_MAP[navigationTarget.targetTab] : undefined;
+    if (target) setTab(target);
+    consumeNavigationTarget();
+  }, [navigationTarget, consumeNavigationTarget]);
 
   const screen = tab === 'home'
     ? <CustomerHomeScreen onOpenServices={() => setTab('services')} onOpenAppointments={() => setTab('appointments')} />
@@ -44,6 +68,7 @@ export function CustomerShell() {
 
   return <PremiumBackground>
     <View style={[styles.flex, { paddingBottom: reservedBottom }]}>{screen}</View>
+    <NotificationBell />
     <View style={[styles.navWrap, { bottom: navBottom, borderColor: `${colors.primary}32`, shadowColor: colors.primary }]}>
       <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
         <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}>
