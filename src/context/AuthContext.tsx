@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const userId = currentSession.user.id;
-    const [{ data: profileData }, { data: memberData }, customerWorkshopResult, { data: applicationData }] = await Promise.all([
+    const [{ data: profileData, error: profileError }, { data: memberData }, customerWorkshopResult, { data: applicationData }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin, account_mode, customer_plate, customer_motorcycle_brand, customer_motorcycle_model').eq('id', userId).maybeSingle(),
       supabase
         .from('workshop_members')
@@ -85,6 +85,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase.rpc('customer_get_workshops'),
       supabase.from('business_applications').select('id,user_id,business_name,business_phone,business_address,tax_office,tax_number,status,submitted_at,reviewed_at,review_note,workshop_id').eq('user_id', userId).maybeSingle(),
     ]);
+
+    if (!profileError && !profileData) {
+      await supabase.auth.signOut({ scope: 'local' });
+      setSession(null);
+      clearState();
+      setLoading(false);
+      return;
+    }
 
     const nextProfile = (profileData as Profile | null) ?? null;
     const nextMemberships = (memberData as WorkshopMember[]) ?? [];
