@@ -8,6 +8,13 @@ on:
       - scripts/apply_v084_core.mjs
       - scripts/apply_v084_ui.mjs
       - .github/workflows/v084-implementation.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/apply_v084_core.mjs
+      - scripts/apply_v084_ui.mjs
+      - .github/workflows/v084-implementation.yml
 
 concurrency:
   group: draborngarage-v084-generation
