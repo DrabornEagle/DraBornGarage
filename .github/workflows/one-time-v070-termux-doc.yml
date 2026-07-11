@@ -1,0 +1,68 @@
+name: One-time v0.7.0 Termux Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/one-time-v070-termux-doc.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Update versioned commands
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'docs/TERMUX_INSTALL.md';
+          let text = fs.readFileSync(path, 'utf8');
+          const replacements = [
+            ['# v0.6.0 güncellemesi', '# v0.7.0 güncellemesi'],
+            ['**Kurulan yeni sürüm:** `v0.6.0`', '**Kurulan yeni sürüm:** `v0.7.0`'],
+            ['**Kurulumdan önce yedeklenen sürüm:** `v0.5.0`', '**Kurulumdan önce yedeklenen sürüm:** `v0.6.0`'],
+            ['`backup/v0.5.0-before-v0.6.0`', '`backup/v0.6.0-before-v0.7.0`'],
+            ['`DraBornGarage-v0.5.0-local-backup`', '`DraBornGarage-v0.6.0-local-backup`'],
+            ['## v0.5.0 sürümünü yedekleyip v0.6.0 sürümünü kurma', '## v0.6.0 sürümünü yedekleyip v0.7.0 sürümünü kurma'],
+            ['Mevcut `.env` dosyası ve çalışan v0.5.0 klasörü korunur.', 'Mevcut `.env` dosyası ve çalışan v0.6.0 klasörü korunur.'],
+            ['KURULAN_SURUM="v0.6.0"', 'KURULAN_SURUM="v0.7.0"'],
+            ['YEDEKLENEN_SURUM="v0.5.0"', 'YEDEKLENEN_SURUM="v0.6.0"'],
+            ['DraBornGarage-v0.5.0-local-backup', 'DraBornGarage-v0.6.0-local-backup'],
+            ['DraBornGarage-v0.6.0.zip', 'DraBornGarage-v0.7.0.zip'],
+            ['# v0.6.0 sürümünden v0.5.0 sürümüne geri alma', '# v0.7.0 sürümünden v0.6.0 sürümüne geri alma'],
+            ['**Geri dönülen sürüm:** `v0.5.0`', '**Geri dönülen sürüm:** `v0.6.0`'],
+            ['**Geri alma öncesinde korunan sürüm:** `v0.6.0`', '**Geri alma öncesinde korunan sürüm:** `v0.7.0`'],
+            ['**Sabit GitHub yedeği:** `backup/v0.5.0-before-v0.6.0`', '**Sabit GitHub yedeği:** `backup/v0.6.0-before-v0.7.0`'],
+            ['**Telefonda korunan v0.6.0 klasörü:** `DraBornGarage-v0.6.0-before-rollback`', '**Telefonda korunan v0.7.0 klasörü:** `DraBornGarage-v0.7.0-before-rollback`'],
+            ['GERI_DONULEN_SURUM="v0.5.0"', 'GERI_DONULEN_SURUM="v0.6.0"'],
+            ['KORUNAN_MEVCUT_SURUM="v0.6.0"', 'KORUNAN_MEVCUT_SURUM="v0.7.0"'],
+            ['DraBornGarage-v0.6.0-before-rollback', 'DraBornGarage-v0.7.0-before-rollback'],
+            ['ZIP_DOSYASI="$HOME/DraBornGarage-v0.5.0.zip"', 'ZIP_DOSYASI="$HOME/DraBornGarage-v0.6.0.zip"'],
+            ['DraBornGarage-backup-v0.5.0-before-v0.6.0', 'DraBornGarage-backup-v0.6.0-before-v0.7.0'],
+            ['backup/v0.5.0-before-v0.6.0.zip', 'backup/v0.6.0-before-v0.7.0.zip'],
+            ['## Supabase veritabanını v0.5.0 yapısına geri alma', '## Supabase veritabanını v0.6.0 yapısına geri alma'],
+            ['`supabase/rollbacks/rollback_v0_6_0_to_v0_5_0.sql`', '`supabase/rollbacks/rollback_v0_7_0_to_v0_6_0.sql`'],
+            ['## v0.6.0 doğrulandıktan sonra yerel yedeği temizleme', '## v0.7.0 doğrulandıktan sonra yerel yedeği temizleme'],
+            ['DraBornGarage-v0.5.0.zip', 'DraBornGarage-v0.6.0.zip'],
+            ['- v0.6 içindeki ilk küçük güncelleme: `v0.6.1`', '- v0.7 içindeki ilk küçük güncelleme: `v0.7.1`'],
+            ['- Yol haritasındaki sonraki ana aşama: `v0.7.0`', '- Yol haritasındaki sonraki ana aşama: `v0.8.0`'],
+          ];
+          for (const [from, to] of replacements) text = text.split(from).join(to);
+          const oldRollback = `Rollback işlemi:\n\n- v0.6 kişisel Usta raporu RPC’sini kaldırır\n- v0.6 İşletme Sahibi/Admin raporu RPC’sini kaldırır\n- v0.6 demo rapor hazırlama RPC’sini kaldırır\n- dört v0.6 rapor indeksini kaldırır\n- v0.5 müşteri, motor, servis, randevu, ek işlem, alacak ve ödeme kayıtlarını korur\n- gerçek iş kayıtlarını silmez\n\nGerçek işletme veya yayın veritabanında SQL çalıştırılmadan önce Supabase Dashboard üzerinden veritabanı yedeği alınmalıdır.`;
+          const newRollback = `Rollback işlemi:\n\n- v0.7 otomatik işlem başı platform ücret trigger’ını kaldırır\n- platform ayar, ücret, dönem, ödeme bildirimi ve dağıtım tablolarını kaldırır\n- Admin onayı ve İşletme Sahibi ödeme RPC’lerini kaldırır\n- dekont Storage erişim politikalarını kaldırır\n- dekont bucket’ı boşsa kaldırır; dosya varsa veri kaybını önlemek için korur\n- v0.6 müşteri, motor, servis, randevu, ödeme, alacak ve rapor kayıtlarını korur\n\nPlatform mali kayıtları kaldırılacağı için gerçek işletme veya yayın veritabanında SQL çalıştırılmadan önce Supabase Dashboard üzerinden veritabanı ve dekont yedeği alınmalıdır.`;
+          if (!text.includes(oldRollback)) throw new Error('Rollback description marker missing');
+          text = text.replace(oldRollback, newRollback);
+          fs.writeFileSync(path, text);
+          NODE
+      - name: Commit
+        run: |
+          git config user.name "DraBornGarage CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/TERMUX_INSTALL.md
+          git commit -m "docs: add exact v0.7.0 install and rollback commands"
+          git push origin main
