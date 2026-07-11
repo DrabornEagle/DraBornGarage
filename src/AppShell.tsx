@@ -9,6 +9,7 @@ import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 import { NotificationBell } from './notifications/NotificationBell';
 import { useNotifications } from './notifications/NotificationContext';
+import { AdminScreen } from './screens/AdminScreen';
 import { AppointmentsScreen } from './screens/AppointmentsScreen';
 import { CustomersScreen } from './screens/CustomersScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -40,6 +41,7 @@ const STAFF_NOTIFICATION_TAB_MAP: Record<string, Tab> = {
   receivables: 'receivables',
   team: 'team',
   platform: 'team',
+  admin: 'team',
   settings: 'settings',
   account: 'settings',
 };
@@ -77,7 +79,7 @@ export function AppShell() {
           : tab === 'receivables'
             ? <ReceivablesScreen />
             : tab === 'team'
-              ? <TeamScreen />
+              ? isAdmin ? <AdminScreen /> : <TeamScreen />
               : <SettingsScreen />;
 
   const tabs = useMemo<TabItem[]>(() => {
@@ -87,11 +89,18 @@ export function AppShell() {
       { key: 'appointments', label: 'Takvim', icon: 'calendar-outline', activeIcon: 'calendar', accent: colors.cyan, accent2: colors.primary2 },
       { key: 'customers', label: 'Müşteri', icon: 'people-outline', activeIcon: 'people', accent: colors.primary2, accent2: colors.cyan },
       { key: 'receivables', label: 'Alacak', icon: 'wallet-outline', activeIcon: 'wallet', accent: colors.red, accent2: colors.orange },
-      { key: 'team', label: isOwner ? 'Merkez' : 'Rapor', icon: isOwner ? 'apps-outline' : 'stats-chart-outline', activeIcon: isOwner ? 'apps' : 'stats-chart', accent: colors.green, accent2: colors.cyan },
+      {
+        key: 'team',
+        label: isAdmin ? 'Admin' : isOwner ? 'Merkez' : 'Rapor',
+        icon: isAdmin ? 'shield-checkmark-outline' : isOwner ? 'apps-outline' : 'stats-chart-outline',
+        activeIcon: isAdmin ? 'shield-checkmark' : isOwner ? 'apps' : 'stats-chart',
+        accent: colors.green,
+        accent2: colors.cyan,
+      },
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
-  }, [colors, isOwner, isApprentice]);
+  }, [colors, isAdmin, isOwner, isApprentice]);
 
   return (
     <PremiumBackground>
