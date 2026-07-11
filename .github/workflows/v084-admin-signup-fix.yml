@@ -1,0 +1,53 @@
+name: DraBornGarage v0.8.4 Admin Signup Fix
+
+on:
+  push:
+    branches:
+      - fix/v0.8.4-primary-admin-signup
+    paths:
+      - scripts/apply_v084_admin_signup_fix.mjs
+      - .github/workflows/v084-admin-signup-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/v0.8.4-primary-admin-signup
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply signup fix
+        run: node scripts/apply_v084_admin_signup_fix.mjs
+
+      - name: Commit fixed source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: simplify primary Admin registration" || true
+          git pull --rebase origin fix/v0.8.4-primary-admin-signup
+          git push origin HEAD:fix/v0.8.4-primary-admin-signup
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript validation
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle validation
+        run: |
+          rm -rf dist
+          npm run test:bundle
+          rm -rf dist
