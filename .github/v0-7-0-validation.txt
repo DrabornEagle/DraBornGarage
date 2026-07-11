@@ -1,0 +1,1 @@
+Validate DraBornGarage v0.7.0 platform service fee tracking, payment reports, receipt picker, TypeScript and Android bundle.
