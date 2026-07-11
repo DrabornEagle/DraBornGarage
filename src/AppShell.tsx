@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { AnimatedPressable } from './components/AnimatedPressable';
 import { PremiumBackground } from './components/PremiumBackground';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
+import { NotificationBell } from './notifications/NotificationBell';
+import { useNotifications } from './notifications/NotificationContext';
 import { AppointmentsScreen } from './screens/AppointmentsScreen';
 import { CustomersScreen } from './screens/CustomersScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -28,9 +30,24 @@ type TabItem = {
   accent2: string;
 };
 
+const STAFF_NOTIFICATION_TAB_MAP: Record<string, Tab> = {
+  home: 'home',
+  orders: 'orders',
+  services: 'orders',
+  motorcycles: 'customers',
+  appointments: 'appointments',
+  customers: 'customers',
+  receivables: 'receivables',
+  team: 'team',
+  platform: 'team',
+  settings: 'settings',
+  account: 'settings',
+};
+
 export function AppShell() {
   const { colors, resolvedMode } = useTheme();
   const { membership, isAdmin } = useAuth();
+  const { navigationTarget, consumeNavigationTarget } = useNotifications();
   const [tab, setTab] = useState<Tab>('home');
   const [newOrderMode, setNewOrderMode] = useState<ServiceType | null>(null);
   const isApprentice = membership?.role === 'apprentice';
@@ -38,6 +55,16 @@ export function AppShell() {
 
   const openOrders = () => setTab('orders');
   const openNew = (mode: ServiceType = 'dropoff') => setNewOrderMode(mode);
+
+  useEffect(() => {
+    if (!navigationTarget) return;
+    const target = navigationTarget.targetTab ? STAFF_NOTIFICATION_TAB_MAP[navigationTarget.targetTab] : undefined;
+    if (target) {
+      const allowedForApprentice = !isApprentice || target === 'home' || target === 'orders' || target === 'settings';
+      setTab(allowedForApprentice ? target : 'home');
+    }
+    consumeNavigationTarget();
+  }, [navigationTarget, consumeNavigationTarget, isApprentice]);
 
   const screen = tab === 'home'
     ? <HomeScreen onNewOrder={openNew} onOpenOrders={openOrders} />
@@ -64,11 +91,12 @@ export function AppShell() {
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
-  }, [colors, isAdmin, isOwner, isApprentice]);
+  }, [colors, isOwner, isApprentice]);
 
   return (
     <PremiumBackground>
       <View style={styles.flex}>{screen}</View>
+      <NotificationBell />
       <View style={[styles.navWrap, { borderColor: `${colors.primary}32`, shadowColor: colors.primary }]}> 
         <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
           <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}> 
