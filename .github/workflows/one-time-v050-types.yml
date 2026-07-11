@@ -1,57 +1,10 @@
-name: One-time v0.5.0 Receivable Types
+name: One-time v0.5.0 Receivable Types (completed)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/one-time-v050-types.yml
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  update:
+  completed:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Add v0.5 TypeScript models
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = 'src/types.ts';
-          let text = fs.readFileSync(path, 'utf8');
-
-          function replace(from, to) {
-            if (!text.includes(from)) throw new Error(`Expected text not found: ${from}`);
-            text = text.replace(from, to);
-          }
-
-          replace(
-            "export type WorkNoteCategory = 'general' | 'diagnosis' | 'test' | 'customer_update' | 'internal';",
-            "export type WorkNoteCategory = 'general' | 'diagnosis' | 'test' | 'customer_update' | 'internal';\nexport type ReceivableStatus = 'not_set' | 'open' | 'closed' | 'cancelled';\nexport type ReceivableVisibility = 'staff' | 'customer';"
-          );
-
-          replace(
-            "  payment_status: PaymentStatus;\n  arrived_at: string;",
-            "  payment_status: PaymentStatus;\n  receivable_status?: ReceivableStatus;\n  debt_promised_date?: string | null;\n  debt_written_at?: string | null;\n  debt_closed_at?: string | null;\n  debt_customer_note?: string | null;\n  last_payment_at?: string | null;\n  arrived_at: string;"
-          );
-
-          replace(
-            "  notes: WorkOrderNote[];\n  events: WorkOrderEvent[];\n}",
-            "  notes: WorkOrderNote[];\n  events: WorkOrderEvent[];\n  payments?: CustomerPaymentRecord[];\n  receivable_notes?: CustomerReceivableNote[];\n}\n\nexport interface CustomerPaymentRecord {\n  id: string;\n  amount: number;\n  payment_method: PaymentMethod;\n  note?: string | null;\n  paid_at: string;\n}\n\nexport interface CustomerReceivableNote {\n  id: string;\n  note: string;\n  created_at: string;\n}"
-          );
-
-          fs.writeFileSync(path, text);
-          NODE
-
-      - name: Commit types
-        run: |
-          git config user.name "DraBornGarage CI"
-          git config user.email "actions@users.noreply.github.com"
-          git add src/types.ts
-          git diff --cached --quiet || git commit -m "feat: add v0.5 receivable TypeScript models"
-          git push origin main
+      - run: echo "v0.5.0 receivable types completed."
