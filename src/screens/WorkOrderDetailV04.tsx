@@ -285,7 +285,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
       <View style={styles.timeGrid}><TimeMetric label="GELİŞ" value={dateTime(order.arrived_at)} /><TimeMetric label="BAŞLANGIÇ" value={dateTime(order.started_at)} /><TimeMetric label="TEST" value={dateTime(order.testing_started_at)} /><TimeMetric label="HAZIR" value={dateTime(order.ready_at)} /></View>
     </GlassCard>
 
-    <DetailAccordion title="Servis Durumu" subtitle="Tamir akışını ve motorun güncel aşamasını yönet." icon="speedometer" accent={colors.primary} open={openSections.status} onToggle={() => toggleSection('status')} badge={statusLabels[order.status]}>
+    <DetailAccordion title="Servis Durumu" subtitle="Tamir akışını ve motorun güncel aşamasını yönet." icon="speedometer" accent={colors.primary} open={openSections.status} onToggle={() => toggleSection('status')} badge={statusLabels[order.status as WorkOrderStatus]}>
       <View style={styles.grid}>{statusFlow.map((status) => <StatusButton key={status} status={status} active={order.status === status} onPress={() => changeStatus(status)} />)}</View>
     </DetailAccordion>
 
