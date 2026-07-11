@@ -6,6 +6,7 @@ on:
       - feature/v0.8.3-customer-motor-tax-linking
     paths:
       - scripts/apply_v083.mjs
+      - scripts/fix_v083.mjs
       - .github/workflows/v083-implementation.yml
 
 concurrency:
@@ -35,6 +36,9 @@ jobs:
       - name: Apply v0.8.3 source changes
         run: node scripts/apply_v083.mjs
 
+      - name: Apply v0.8.3 follow-up fixes
+        run: node scripts/fix_v083.mjs
+
       - name: Persist generated v0.8.3 files
         run: |
           git config user.name "github-actions[bot]"
@@ -43,7 +47,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Generated changes are already committed."
           else
-            git commit -m "feat: complete v0.8.3 customer motor and tax linking"
+            git commit -m "fix: finalize v0.8.3 tax and plate linking"
             git pull --rebase origin feature/v0.8.3-customer-motor-tax-linking
             git push origin HEAD:feature/v0.8.3-customer-motor-tax-linking
           fi
