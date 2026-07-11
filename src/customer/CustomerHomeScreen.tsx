@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
+import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -53,6 +54,9 @@ export function CustomerHomeScreen({ onOpenServices, onOpenAppointments }: { onO
     {businessApplication?.status === 'pending' && <GlassCard style={[styles.applicationCard, { borderColor: `${colors.orange}60`, backgroundColor: `${colors.orange}10` }]}><View style={[styles.applicationIcon, { backgroundColor: `${colors.orange}1C` }]}><Ionicons name="hourglass" size={26} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.applicationTitle, { color: colors.text }]}>İşletme başvurunuz inceleniyor</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{businessApplication.business_name} • Admin onayından sonra işletme paneliniz otomatik açılacak.</Text></View></GlassCard>}
     {businessApplication?.status === 'rejected' && <GlassCard style={[styles.applicationCard, { borderColor: `${colors.red}55`, backgroundColor: `${colors.red}0D` }]}><View style={[styles.applicationIcon, { backgroundColor: `${colors.red}18` }]}><Ionicons name="close-circle" size={26} color={colors.red} /></View><View style={styles.copy}><Text style={[styles.applicationTitle, { color: colors.text }]}>İşletme başvurunuz sonuçlandı</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{businessApplication.review_note || 'Başvuru şu anda onaylanmadı.'}</Text></View></GlassCard>}
 
+    {businessApplication?.status === 'pending' && <GlassCard style={[styles.applicationCard, { borderColor: `${colors.orange}60`, backgroundColor: `${colors.orange}10` }]}><View style={[styles.applicationIcon, { backgroundColor: `${colors.orange}1C` }]}><Ionicons name="hourglass" size={26} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.applicationTitle, { color: colors.text }]}>İşletme başvurunuz inceleniyor</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{businessApplication.business_name} • Admin onayından sonra işletme paneliniz otomatik açılacak.</Text></View></GlassCard>}
+    {businessApplication?.status === 'rejected' && <GlassCard style={[styles.applicationCard, { borderColor: `${colors.red}55`, backgroundColor: `${colors.red}0D` }]}><View style={[styles.applicationIcon, { backgroundColor: `${colors.red}18` }]}><Ionicons name="close-circle" size={26} color={colors.red} /></View><View style={styles.copy}><Text style={[styles.applicationTitle, { color: colors.text }]}>İşletme başvurunuz sonuçlandı</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{businessApplication.review_note || 'Başvuru şu anda onaylanmadı.'}</Text></View></GlassCard>}
+
     {customerWorkshops.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.workshops}>{customerWorkshops.map((item) => { const selected = item.workshop_id === customerWorkshop?.workshop_id; return <AnimatedPressable key={item.workshop_id} onPress={() => selectCustomerWorkshop(item.workshop_id)} style={[styles.workshopChip, { backgroundColor: selected ? colors.primary : colors.card, borderColor: selected ? colors.primary : colors.border }]}><Ionicons name="business" size={16} color={selected ? '#fff' : colors.cyan} /><Text style={[styles.workshopText, { color: selected ? '#fff' : colors.text }]}>{item.workshop_name}</Text></AnimatedPressable>; })}</ScrollView>}
 
     {!customerWorkshop ? <CustomerLinkPanel /> : <>
@@ -95,6 +99,9 @@ const styles = StyleSheet.create({
   heroValue: { color: '#fff', fontSize: 45, fontWeight: '900', marginTop: 5 },
   heroRight: { alignItems: 'flex-end' },
   heroAmount: { color: '#fff', fontSize: 20, fontWeight: '900', marginTop: 7 },
+  applicationCard: { minHeight: 88, borderWidth: 1, borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  applicationIcon: { width: 49, height: 49, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  applicationTitle: { fontSize: 15.5, fontWeight: '900' },
   applicationCard: { minHeight: 88, borderWidth: 1, borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
   applicationIcon: { width: 49, height: 49, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   applicationTitle: { fontSize: 15.5, fontWeight: '900' },

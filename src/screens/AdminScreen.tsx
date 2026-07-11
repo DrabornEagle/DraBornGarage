@@ -38,6 +38,7 @@ export function AdminScreen() {
   const [services, setServices] = useState<any[]>([]);
   const [applications, setApplications] = useState<BusinessApplication[]>([]);
   const [applications, setApplications] = useState<BusinessApplication[]>([]);
+  const [applications, setApplications] = useState<BusinessApplication[]>([]);
   const [latestCode, setLatestCode] = useState<{ code: string; role: MemberRole } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
@@ -149,6 +150,23 @@ export function AdminScreen() {
     ],
   );
 
+  const reviewApplication = (application: BusinessApplication, approve: boolean) => Alert.alert(
+    approve ? 'İşletme başvurusunu onayla' : 'İşletme başvurusunu reddet',
+    `${application.business_name} • ${application.applicant_name || 'Başvuru sahibi'}`,
+    [
+      { text: 'Vazgeç', style: 'cancel' },
+      { text: approve ? 'Onayla ve İşletmeyi Aç' : 'Reddet', style: approve ? 'default' : 'destructive', onPress: async () => {
+        setLoading(true);
+        const { error } = await supabase.rpc('admin_review_business_application', { p_application_id: application.id, p_approve: approve, p_note: approve ? 'Admin tarafından onaylandı' : 'Başvuru Admin tarafından uygun bulunmadı' });
+        setLoading(false);
+        if (error) return Alert.alert('Başvuru sonuçlandırılamadı', error.message);
+        await refreshWorkspace(workshop?.id ?? null);
+        await load();
+        Alert.alert(approve ? 'İşletme hesabı açıldı' : 'Başvuru reddedildi');
+      } },
+    ],
+  );
+
   const toggleBusiness = async (id: string, active: boolean) => {
     const { error } = await supabase.rpc('admin_set_workshop_active', {
       p_workshop_id: id,
@@ -220,6 +238,11 @@ export function AdminScreen() {
           <Text style={[styles.heroText, { color: colors.textMuted }]}>{workshops.length} işletme • Seçili işletme: {workshop?.name || 'Yok'}</Text>
         </View>
       </GlassCard>
+
+      <View style={styles.sectionHeader}><View><Text style={[styles.sectionTitle, { color: colors.text }]}>İşletme Başvuruları</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{applications.filter((item) => item.status === 'pending').length} başvuru inceleme bekliyor</Text></View></View>
+      <View style={styles.list}>
+        {applications.length === 0 ? <GlassCard style={styles.applicationEmpty}><Ionicons name="checkmark-done-circle" size={34} color={colors.green} /><Text style={[styles.memberName, { color: colors.text }]}>Bekleyen işletme başvurusu yok</Text></GlassCard> : applications.map((application) => { const accent = application.status === 'approved' ? colors.green : application.status === 'rejected' ? colors.red : colors.orange; return <GlassCard key={application.id} style={[styles.applicationCard, { borderColor: `${accent}45` }]}><View style={styles.applicationTop}><View style={[styles.businessIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={application.status === 'approved' ? 'checkmark-circle' : application.status === 'rejected' ? 'close-circle' : 'hourglass'} size={24} color={accent} /></View><View style={styles.copy}><Text style={[styles.memberName, { color: colors.text }]}>{application.business_name}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{application.applicant_name || 'Başvuru sahibi'} • {application.applicant_email || 'E-posta yok'}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{application.tax_office} • {application.tax_number}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{application.business_address || 'Adres eklenmedi'}</Text></View><Text style={[styles.applicationStatus, { color: accent }]}>{application.status === 'pending' ? 'BEKLİYOR' : application.status === 'approved' ? 'ONAYLI' : 'RED'}</Text></View>{application.status === 'pending' && <View style={styles.applicationActions}><AnimatedPressable onPress={() => reviewApplication(application, false)} style={[styles.reviewButton, { borderColor: `${colors.red}45`, backgroundColor: `${colors.red}0D` }]}><Ionicons name="close" size={18} color={colors.red} /><Text style={[styles.reviewText, { color: colors.red }]}>Reddet</Text></AnimatedPressable><AnimatedPressable onPress={() => reviewApplication(application, true)} style={[styles.reviewButton, { borderColor: `${colors.green}45`, backgroundColor: `${colors.green}0D` }]}><Ionicons name="checkmark" size={18} color={colors.green} /><Text style={[styles.reviewText, { color: colors.green }]}>Onayla</Text></AnimatedPressable></View>}</GlassCard>; })}
+      </View>
 
       <View style={styles.sectionHeader}><View><Text style={[styles.sectionTitle, { color: colors.text }]}>İşletme Başvuruları</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{applications.filter((item) => item.status === 'pending').length} başvuru inceleme bekliyor</Text></View></View>
       <View style={styles.list}>
@@ -352,6 +375,13 @@ const styles = StyleSheet.create({
   smallActionText: { fontSize: 11, fontWeight: '900' },
   formCard: { gap: 13 },
   list: { gap: 10 },
+  applicationEmpty: { alignItems: 'center', gap: 8, paddingVertical: 24 },
+  applicationCard: { gap: 12, padding: 14 },
+  applicationTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  applicationStatus: { fontSize: 9.5, fontWeight: '900' },
+  applicationActions: { flexDirection: 'row', gap: 8 },
+  reviewButton: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  reviewText: { fontSize: 11, fontWeight: '900' },
   applicationEmpty: { alignItems: 'center', gap: 8, paddingVertical: 24 },
   applicationCard: { gap: 12, padding: 14 },
   applicationTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },

@@ -80,6 +80,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [saving, setSaving] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
 
   const [diagnosis, setDiagnosis] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
@@ -109,6 +110,8 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [noteCategory, setNoteCategory] = useState<WorkNoteCategory>('general');
 
   const approvedExtras = useMemo(() => extras.filter((item) => item.status === 'approved'), [extras]);
+  const toggleSection = (key: string) => setOpenSections((current) => ({ ...current, [key]: !current[key] }));
+  useEffect(() => { if (extras.some((item) => item.status === 'pending')) setOpenSections((current) => current.extras ? current : ({ ...current, extras: true })); }, [extras]);
   const toggleSection = (key: string) => setOpenSections((current) => ({ ...current, [key]: !current[key] }));
   useEffect(() => { if (extras.some((item) => item.status === 'pending')) setOpenSections((current) => current.extras ? current : ({ ...current, extras: true })); }, [extras]);
   const toggleSection = (key: string) => setOpenSections((current) => ({ ...current, [key]: !current[key] }));
@@ -348,6 +351,11 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
       <ReceivableManagerCard orderId={orderId} onChanged={load} />
     </DetailAccordion>
   </ScrollView>;
+}
+
+function DetailAccordion({ title, subtitle, icon, accent, open, onToggle, badge, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; badge?: string; children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return <GlassCard style={styles.accordionCard}><AnimatedPressable onPress={onToggle} style={styles.accordionHeader}><View style={[styles.accordionIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={icon} size={23} color={accent} /></View><View style={styles.copy}><Text style={[styles.accordionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.accordionSub, { color: colors.textMuted }]}>{subtitle}</Text></View>{badge && <View style={[styles.accordionBadge, { backgroundColor: `${accent}12`, borderColor: `${accent}38` }]}><Text style={[styles.accordionBadgeText, { color: accent }]} numberOfLines={1}>{badge}</Text></View>}<Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textMuted} /></AnimatedPressable>{open && <View style={[styles.accordionBody, { borderTopColor: colors.border }]}>{children}</View>}</GlassCard>;
 }
 
 function DetailAccordion({ title, subtitle, icon, accent, open, onToggle, badge, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; badge?: string; children: React.ReactNode }) {

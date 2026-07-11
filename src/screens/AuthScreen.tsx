@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
+import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
@@ -138,6 +139,16 @@ export function AuthScreen() {
                     <FormField label="Plaka" value={plate} onChangeText={(value) => setPlate(value.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" />
                     <FormField label="Motosiklet Markası" value={motorcycleBrand} onChangeText={setMotorcycleBrand} placeholder="Örn. Honda" autoCapitalize="words" />
                     <FormField label="Motosiklet Modeli" value={motorcycleModel} onChangeText={setMotorcycleModel} placeholder="Örn. Forza 250" autoCapitalize="words" />
+                  </View>
+                )}
+                {registerMode === 'staff' && (
+                  <View style={[styles.motorCard, { backgroundColor: `${colors.orange}0D`, borderColor: `${colors.orange}38` }]}>
+                    <View style={styles.motorHeader}><Ionicons name="business" size={24} color={colors.orange} /><View style={styles.motorCopy}><Text style={[styles.motorTitle, { color: colors.text }]}>İşletme başvuru bilgileri</Text><Text style={[styles.motorText, { color: colors.textMuted }]}>Hesabın önce müşteri olarak açılır. Admin onayından sonra işletme panelin otomatik açılır.</Text></View></View>
+                    <FormField label="İşletme Adı" value={businessName} onChangeText={setBusinessName} placeholder="Örn. Lara Moto Garage" autoCapitalize="words" />
+                    <FormField label="İşletme Telefonu" value={businessPhone} onChangeText={setBusinessPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" />
+                    <FormField label="İşletme Adresi" value={businessAddress} onChangeText={setBusinessAddress} multiline placeholder="İl, ilçe, mahalle ve açık adres" />
+                    <FormField label="Vergi Dairesi" value={taxOffice} onChangeText={setTaxOffice} placeholder="Örn. Muratpaşa Vergi Dairesi" autoCapitalize="words" />
+                    <FormField label="Vergi Numarası" value={taxNumber} onChangeText={(value) => setTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} placeholder="10 veya 11 hane" />
                   </View>
                 )}
                 {registerMode === 'staff' && (

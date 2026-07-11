@@ -19,6 +19,7 @@ interface AuthContextValue {
   customerWorkshops: CustomerWorkshopLink[];
   businessApplication: BusinessApplication | null;
   businessApplication: BusinessApplication | null;
+  businessApplication: BusinessApplication | null;
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCustomerWorkshop(null);
     setBusinessApplication(null);
     setBusinessApplication(null);
+    setBusinessApplication(null);
   }, []);
 
   const refreshWorkspace = useCallback(async (
@@ -93,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const admin = Boolean(nextProfile?.is_admin);
     setProfile(nextProfile);
     setMemberships(nextMemberships);
+    setBusinessApplication((applicationData as BusinessApplication | null) ?? null);
     setBusinessApplication((applicationData as BusinessApplication | null) ?? null);
     setBusinessApplication((applicationData as BusinessApplication | null) ?? null);
 
@@ -142,6 +145,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange(() => refreshWorkspace());
     return () => data.subscription.unsubscribe();
   }, [refreshWorkspace]);
+
+  useEffect(() => {
+    const userId = session?.user.id;
+    if (!userId) return;
+    const channel = supabase.channel(`workspace-access-${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, () => refreshWorkspace())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_members', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.user.id, refreshWorkspace]);
 
   useEffect(() => {
     const userId = session?.user.id;

@@ -36,6 +36,33 @@ export type ReceivableStatus = 'not_set' | 'open' | 'closed' | 'cancelled';
 export type ReceivableVisibility = 'staff' | 'customer';
 export type BusinessApplicationStatus = 'pending' | 'approved' | 'rejected';
 export type BusinessApplicationStatus = 'pending' | 'approved' | 'rejected';
+export type BusinessApplicationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface BusinessRegistrationData {
+  business_name: string;
+  business_phone?: string | null;
+  business_address?: string | null;
+  tax_office: string;
+  tax_number: string;
+}
+
+export interface BusinessApplication {
+  id: string;
+  user_id: string;
+  applicant_name?: string | null;
+  applicant_email?: string | null;
+  applicant_phone?: string | null;
+  business_name: string;
+  business_phone?: string | null;
+  business_address?: string | null;
+  tax_office: string;
+  tax_number: string;
+  status: BusinessApplicationStatus;
+  submitted_at: string;
+  reviewed_at?: string | null;
+  review_note?: string | null;
+  workshop_id?: string | null;
+}
 
 export interface BusinessRegistrationData {
   business_name: string;
