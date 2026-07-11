@@ -1,12 +1,12 @@
 # DraBornGarage
 
-Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis, müşteri, randevu, ek işlem onayı ve alacak takip platformu.
+Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis, müşteri, randevu, ek işlem onayı, alacak ve raporlama platformu.
 
 ## Güncel sürüm
 
-**v0.5.0 — Veresiye / Alacak ve Kısmi Ödeme Takibi**
+**v0.6.0 — Usta Gelir Kayıtları ve İşletme Raporları**
 
-v0.5.0; servislerde kalan borcun yazılmasını, ödeme sözü tarihini, Nakit/IBAN kısmi tahsilatlarını, geciken borçları, müşteri ödeme görünümünü ve güvenli alacak geçmişini yönetir.
+v0.6.0; her Ustanın yalnız kendi iş geçmişini ve işlem satırlarına kaydedilen tutarları görmesini, İşletme Sahibi/Admin’in ise işletme toplamlarını, Nakit/IBAN tahsilatlarını, açık alacakları ve Usta bazlı raporları izlemesini sağlar.
 
 ## Tamamlanan ana modüller
 
@@ -24,7 +24,7 @@ v0.5.0; servislerde kalan borcun yazılmasını, ödeme sözü tarihini, Nakit/I
 
 - Müşteri ve personel hesap türleri
 - Ayrı Müşteri Portalı
-- Plaka + telefon, servis takip kodu, QR ve usta onayı
+- Plaka + telefon, servis takip kodu, QR ve Usta onayı
 - Uygulama içi QR kamera tarayıcısı
 - Motorlarım, Servislerim ve müşteri hesap yönetimi
 - Çok işletmeli müşteri seçimi
@@ -58,30 +58,39 @@ v0.5.0; servislerde kalan borcun yazılmasını, ödeme sözü tarihini, Nakit/I
 
 ### v0.4.1 — Müşteri Paneli Düzeltmesi
 
-- Eşleştirme kartlarının flex yerleşimi düzeltildi
-- Android güvenli alan alt menüsü
-- İçeriğin menü arkasında kalması önlendi
+- Android güvenli alan ve alt menü düzeltmeleri
+- İçeriğin menü arkasında kalmasının önlenmesi
 - Bağlantısız sekmelere kompakt kilitli durum kartları
 
 ### v0.5.0 — Veresiye / Alacak Takibi
 
 - Servisten borç / veresiye yazma
 - Ödenmedi, Kısmi Ödendi, Tam Ödendi ve Kapatıldı durumları
-- Ödeme sözü tarihi, borç yazılma ve kapanış zamanı
+- Ödeme sözü tarihi ve alacak hareket geçmişi
 - Nakit ve IBAN kısmi tahsilat
-- Kalan tutardan fazla tahsilatı engelleme
-- Tam ödemede alacağı otomatik kapatma
 - Açık, bugün, geciken, kısmi, ödenen ve kapatılan filtreleri
-- Müşteri, telefon ve plaka araması
-- Ayrıntılı alacak, ödeme, not ve hareket geçmişi
 - Müşteri panelinde kalan borç ve ödeme geçmişi
-- Müşteriye açık ödeme notları ve hatırlatmalar
-- Çırak için finansal verilerin ve Alacak sekmesinin gizlenmesi
-- Gecikmiş, bugün, gelecek tarihli ve kapanmış demo kayıtları
+- Çırak için finansal verilerin gizlenmesi
 
-> Usta bazlı tutarlar maaş, komisyon, prim, net kâr veya ortaklık payı değildir. Sistem yalnızca hangi ustanın hangi işlem için ne kadar tutar kaydettiğini tutar.
+### v0.6.0 — Usta Gelir Kayıtları ve İşletme Raporları
 
-> v0.5 “Hatırlatma gönder” işlemi müşterinin uygulama panelinde ödeme notu oluşturur. Gerçek SMS, WhatsApp ve push kanalları v0.8 kapsamındadır.
+- Alt menüde ortak Rapor merkezi
+- Bugün, Bu Hafta, Bu Ay ve Tüm Zamanlar filtreleri
+- Ustanın yalnız kendi kişisel iş geçmişi
+- Motorun geliş saati, plaka, müşteri ve yapılan işlemler
+- Ustanın işlem satırlarına kaydettiği tutar
+- Ustanın kullandığı parçalar
+- Ustanın tahsil ettiği Nakit ve IBAN hareketleri
+- Saat saat gelen motor grafiği
+- Günlük kayıtlı işlem tutarı grafiği
+- İşletmenin toplam kaydedilen servis tutarı
+- İşçilik, parça, Nakit, IBAN ve açık alacak özetleri
+- Usta bazlı iş sayısı ve kayıtlı tutar
+- En çok yapılan işlemler ve son servis kayıtları
+- İşletme Sahibi + Usta için İşletme/Kişisel görünüm geçişi
+- Admin, Sahip, Usta ve Çırak için sunucu taraflı rol denetimi
+
+> Usta bazlı tutarlar maaş, komisyon, prim, net kâr veya ortaklık payı değildir. Sistem yalnızca Ustanın tamamlanan işlem satırlarına kaydedilen tutarı gösterir. Ay sonu bölüşümü işletmenin kendi özel anlaşmasına göre sistem dışında yapılır.
 
 ## Çalıştırma
 
@@ -100,10 +109,10 @@ npm run test:bundle
 
 ## Güncel yedek ve geri dönüş
 
-- **Kurulan sürüm:** `v0.5.0`
-- **Yedeklenen sürüm:** `v0.4.1`
-- **Kod yedeği:** `backup/v0.4.1-before-v0.5.0`
-- **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_5_0_to_v0_4_1.sql`](supabase/rollbacks/rollback_v0_5_0_to_v0_4_1.sql)
+- **Kurulan sürüm:** `v0.6.0`
+- **Yedeklenen sürüm:** `v0.5.0`
+- **Kod yedeği:** `backup/v0.5.0-before-v0.6.0`
+- **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_6_0_to_v0_5_0.sql`](supabase/rollbacks/rollback_v0_6_0_to_v0_5_0.sql)
 - **Kurulum ve geri alma komutları:** [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
 - **Zorunlu politika:** [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
 
@@ -114,10 +123,11 @@ npm run test:bundle
 - [`docs/V0.3_CHECKLIST.md`](docs/V0.3_CHECKLIST.md)
 - [`docs/V0.4_CHECKLIST.md`](docs/V0.4_CHECKLIST.md)
 - [`docs/V0.5_CHECKLIST.md`](docs/V0.5_CHECKLIST.md)
-- [`docs/V0.4.0_CHANGELOG.md`](docs/V0.4.0_CHANGELOG.md)
-- [`docs/V0.4.1_CHANGELOG.md`](docs/V0.4.1_CHANGELOG.md)
+- [`docs/V0.6_CHECKLIST.md`](docs/V0.6_CHECKLIST.md)
 - [`docs/V0.5.0_CHANGELOG.md`](docs/V0.5.0_CHANGELOG.md)
 - [`docs/V0.5.0_VALIDATION_REPORT.md`](docs/V0.5.0_VALIDATION_REPORT.md)
+- [`docs/V0.6.0_CHANGELOG.md`](docs/V0.6.0_CHANGELOG.md)
+- [`docs/V0.6.0_VALIDATION_REPORT.md`](docs/V0.6.0_VALIDATION_REPORT.md)
 - [`docs/ROADMAP.md`](docs/ROADMAP.md)
 - [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
 - [`supabase/migrations`](supabase/migrations)
