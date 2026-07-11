@@ -43,12 +43,14 @@ export function AuthScreen() {
     return () => { pulseLoop.stop(); spinLoop.stop(); };
   }, [pulse, spin]);
 
+  const isPrimaryAdminEmail = email.trim().toLowerCase() === 'draborneagle@gmail.com';
+
   const submit = async () => {
     const normalizedPlate = plate.trim().toUpperCase();
-    const customerMotorMissing = mode === 'register' && registerMode === 'customer'
+    const customerMotorMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer'
       && (normalizedPlate.replace(/[^A-Z0-9ÇĞİÖŞÜ]/g, '').length < 5 || !motorcycleBrand.trim() || !motorcycleModel.trim());
     const normalizedTaxNumber = taxNumber.replace(/\D/g, '');
-    const businessMissing = mode === 'register' && registerMode === 'staff'
+    const businessMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'staff'
       && (!businessName.trim() || !taxOffice.trim() || ![10, 11].includes(normalizedTaxNumber.length));
     if (!email.trim() || password.length < 6 || (mode === 'register' && !fullName.trim()) || customerMotorMissing || businessMissing) {
       Alert.alert(
@@ -70,8 +72,8 @@ export function AuthScreen() {
           email,
           password,
           registerMode,
-          registerMode === 'customer' ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel } : undefined,
-          registerMode === 'staff' ? { business_name: businessName, business_phone: businessPhone || phone, business_address: businessAddress, tax_office: taxOffice, tax_number: normalizedTaxNumber } : undefined,
+          registerMode === 'customer' && !isPrimaryAdminEmail ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel } : undefined,
+          registerMode === 'staff' && !isPrimaryAdminEmail ? { business_name: businessName, business_phone: businessPhone || phone, business_address: businessAddress, tax_office: taxOffice, tax_number: normalizedTaxNumber } : undefined,
         );
     setLoading(false);
     if (message) Alert.alert(mode === 'login' ? 'Giriş yapılamadı' : 'Bilgi', message);
@@ -153,7 +155,8 @@ export function AuthScreen() {
             )}
             <FormField label="E-posta" value={email} onChangeText={setEmail} placeholder="hesap@email.com" keyboardType="email-address" autoCapitalize="none" />
             <FormField label="Şifre" value={password} onChangeText={setPassword} placeholder="En az 6 karakter" secureTextEntry />
-            <PrimaryButton title={mode === 'login' ? 'Giriş Yap' : registerMode === 'customer' ? 'Müşteri Hesabımı Oluştur' : 'İşletme Başvurumu Gönder'} onPress={submit} loading={loading} />
+            {mode === 'register' && isPrimaryAdminEmail && <View style={[styles.secureStrip, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}30` }]}><Ionicons name="shield-checkmark" size={17} color={colors.primary} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Ana Admin e-postası algılandı. Motor veya işletme başvuru bilgileri zorunlu değildir; hesap doğrudan Admin olarak açılır.</Text></View>}
+            <PrimaryButton title={mode === 'login' ? 'Giriş Yap' : isPrimaryAdminEmail ? 'Ana Admin Hesabımı Oluştur' : registerMode === 'customer' ? 'Müşteri Hesabımı Oluştur' : 'İşletme Başvurumu Gönder'} onPress={submit} loading={loading} />
             <View style={[styles.secureStrip, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}28` }]}><Ionicons name="lock-closed" size={16} color={colors.green} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Müşteri motoru yalnız Usta onayı veya güvenli servis doğrulamasıyla işletmeye bağlanır.</Text></View>
           </GlassCard>
         </ScrollView>
