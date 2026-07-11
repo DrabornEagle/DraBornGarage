@@ -7,6 +7,12 @@ on:
     paths:
       - scripts/apply_v083.mjs
       - .github/workflows/v083-implementation.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/apply_v083.mjs
+      - .github/workflows/v083-implementation.yml
 
 permissions:
   contents: write
