@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { StatusPill } from '../components/StatusPill';
@@ -24,12 +25,12 @@ export function CustomerMotorcyclesScreen({ onStartLink }: { onStartLink: () => 
   }, [customerWorkshop]);
   useEffect(() => { load(); }, [load]);
 
-  if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><ScreenHeader eyebrow="MOTORLARIM" title="Garajım" subtitle="Bağlı motorların ve servis geçmişin burada görünür." /><CustomerLockedState title="Henüz bağlı motorun yok" description="Motorunu bir kez güvenli biçimde eşleştirdiğinde bu ekranda tüm motorlarını ve servis durumlarını görebileceksin." icon="bicycle" onStartLink={onStartLink} /></ScrollView>;
+  if (!customerWorkshop) return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><ScreenHeader eyebrow="MOTORLARIM" title="Garajım" subtitle="Bağlı motorların ve servis geçmişin burada görünür." /><CustomerLockedState title="Henüz bağlı motorun yok" description="Motorunu bir kez güvenli biçimde eşleştirdiğinde bu ekranda tüm motorlarını ve servis durumlarını görebileceksin." icon="motorcycle" onStartLink={onStartLink} /></ScrollView>;
 
   return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
     <ScreenHeader eyebrow="MOTORLARIM" title="Garajım" subtitle={`${customerWorkshop.workshop_name} işletmesine kayıtlı motorların.`} />
-    {items.length === 0 ? <GlassCard style={styles.empty}><Ionicons name="bicycle-outline" size={42} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Motor bulunamadı</Text></GlassCard> : items.map((item) => <GlassCard key={item.id} style={styles.card}>
-      <View style={styles.top}><View style={[styles.icon, { backgroundColor: `${colors.primary2}18` }]}><Ionicons name="bicycle" size={28} color={colors.primary2} /></View><View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>{item.brand} {item.model}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.plate || 'Plaka yok'}{item.year ? ` • ${item.year}` : ''}{item.color ? ` • ${item.color}` : ''}</Text></View>{item.latest_status && <StatusPill status={item.latest_status} />}</View>
+    {items.length === 0 ? <GlassCard style={styles.empty}><AnimatedMotorcycleIcon size={48} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Motor bulunamadı</Text></GlassCard> : items.map((item) => <GlassCard key={item.id} style={styles.card}>
+      <View style={styles.top}><View style={[styles.icon, { backgroundColor: `${colors.primary2}18` }]}><AnimatedMotorcycleIcon size={36} color={colors.primary2} /></View><View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>{item.brand} {item.model}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.plate || 'Plaka yok'}{item.year ? ` • ${item.year}` : ''}{item.color ? ` • ${item.color}` : ''}</Text></View>{item.latest_status && <StatusPill status={item.latest_status} />}</View>
       <View style={styles.stats}><Stat value={String(item.service_count)} label="Servis" /><Stat value={String(item.active_service_count)} label="Aktif" accent={item.active_service_count > 0 ? colors.orange : colors.green} /><Stat value={item.odometer ? item.odometer.toLocaleString('tr-TR') : '-'} label="Kilometre" /></View>
       <View style={styles.footer}><Ionicons name="time-outline" size={16} color={colors.textMuted} /><Text style={[styles.footerText, { color: colors.textMuted }]}>{item.last_service_at ? `Son servis: ${shortDate(item.last_service_at)}` : 'Henüz servis geçmişi yok'}</Text></View>
     </GlassCard>)}
@@ -42,5 +43,5 @@ function Stat({ value, label, accent }: { value: string; label: string; accent?:
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 32, gap: 14 }, card: { gap: 13 }, top: { flexDirection: 'row', alignItems: 'center', gap: 10 }, icon: { width: 53, height: 53, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1, minWidth: 0 }, title: { fontSize: 17, fontWeight: '900' }, meta: { fontSize: 11, marginTop: 4 }, stats: { flexDirection: 'row', gap: 8 }, stat: { flex: 1, minHeight: 70, borderRadius: 16, padding: 10, justifyContent: 'center' }, statValue: { fontSize: 17, fontWeight: '900' }, statLabel: { fontSize: 9, marginTop: 4 }, footer: { flexDirection: 'row', alignItems: 'center', gap: 7 }, footerText: { fontSize: 11 }, empty: { alignItems: 'center', gap: 9, paddingVertical: 30 }, emptyTitle: { fontSize: 17, fontWeight: '900' },
+  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 32, gap: 14 }, card: { gap: 13 }, top: { flexDirection: 'row', alignItems: 'center', gap: 10 }, icon: { width: 53, height: 53, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1, minWidth: 0 }, title: { fontSize: 17, fontWeight: '900' }, meta: { fontSize: 12, marginTop: 4 }, stats: { flexDirection: 'row', gap: 8 }, stat: { flex: 1, minHeight: 70, borderRadius: 16, padding: 10, justifyContent: 'center' }, statValue: { fontSize: 17, fontWeight: '900' }, statLabel: { fontSize: 10.5, marginTop: 4 }, footer: { flexDirection: 'row', alignItems: 'center', gap: 7 }, footerText: { fontSize: 12 }, empty: { alignItems: 'center', gap: 9, paddingVertical: 30 }, emptyTitle: { fontSize: 17, fontWeight: '900' },
 });

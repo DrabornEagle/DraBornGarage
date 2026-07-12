@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -12,8 +13,6 @@ import { useTheme } from '../context/ThemeContext';
 import { money, shortDate, todayIsoStart } from '../lib/format';
 import { supabase } from '../lib/supabase';
 import { DashboardStats, ServiceType, WorkOrderListItem, WORKER_ROLES } from '../types';
-
-type PanelMode = 'business' | 'mechanic';
 
 export function HomeScreen({
   onNewOrder,
@@ -50,7 +49,7 @@ export function HomeScreen({
     }
 
     const today = todayIsoStart();
-    const mechanicView = panelMode === 'mechanic' && canWork;
+    const mechanicView = canWork;
     let orderQuery = supabase
       .from('work_orders')
       .select('id,workshop_id,status,payment_status,service_type,customer_waiting_status,queue_position,complaint,total_amount,amount_received,price_type,estimated_price_min,estimated_price_max,quoted_price,arrived_at,assigned_mechanic_id,customer:customers(full_name,phone),motorcycle:motorcycles(brand,model,plate),mechanic:profiles!work_orders_assigned_mechanic_id_fkey(full_name)')
@@ -100,7 +99,7 @@ export function HomeScreen({
       mechanicRecordedTotal: recorded,
     });
     setRecent((ordersResult.data as unknown as WorkOrderListItem[]) ?? []);
-  }, [workshop, membership, panelMode, canWork, isApprentice]);
+  }, [workshop, membership, canWork, isApprentice]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -122,7 +121,7 @@ export function HomeScreen({
   };
 
   const selectedOrders = isApprentice ? apprenticeQueue : recent;
-  const titleRole = isAdmin ? 'ADMIN' : isApprentice ? 'ÇIRAK PANELİ' : panelMode === 'business' ? 'İŞLETME PANELİ' : 'USTA PANELİ';
+  const titleRole = isAdmin ? 'ADMIN' : isApprentice ? 'ÇIRAK PANELİ' : 'USTA PANELİ';
 
   return (
     <ScrollView
@@ -153,30 +152,7 @@ export function HomeScreen({
         </ScrollView>
       )}
 
-      {isOwner && canWork && !isApprentice && (
-        <View style={[styles.panelSwitch, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}> 
-          {(['business', 'mechanic'] as PanelMode[]).map((value) => {
-            const active = panelMode === value;
-            const accent = value === 'business' ? colors.cyan : colors.orange;
-            return (
-              <AnimatedPressable
-                key={value}
-                onPress={() => setPanelMode(value)}
-                style={[styles.panelSwitchItem, { borderColor: active ? `${accent}70` : 'transparent' }]}
-              >
-                {active && <LinearGradient colors={[`${accent}24`, `${colors.primary}16`]} style={StyleSheet.absoluteFill} />}
-                <View style={[styles.panelSwitchIcon, { backgroundColor: `${accent}16` }]}> 
-                  <Ionicons name={value === 'business' ? 'business' : 'construct'} size={17} color={accent} />
-                </View>
-                <Text numberOfLines={1} maxFontSizeMultiplier={1.02} style={[styles.panelSwitchText, { color: active ? colors.text : colors.textMuted }]}>{value === 'business' ? 'İşletme Paneli' : 'Usta Panelim'}</Text>
-                {active && <View style={[styles.panelSwitchDot, { backgroundColor: accent }]} />}
-              </AnimatedPressable>
-            );
-          })}
-        </View>
-      )}
-
-      {canWork && panelMode === 'mechanic' && (
+      {canWork && !isApprentice && (
         <View style={styles.availabilityRow}>
           {([
             ['available', 'Müsait', colors.green],
@@ -205,7 +181,7 @@ export function HomeScreen({
         </LinearGradient>
       )}
 
-      {!isApprentice && (
+      {canWork && !isApprentice && (
         <View style={styles.quickGrid}>
           <AnimatedPressable onPress={() => onNewOrder('quick')} style={[styles.quickAction, { backgroundColor: `${colors.orange}18`, borderColor: `${colors.orange}55` }]}> 
             <View style={[styles.quickIcon, { backgroundColor: `${colors.orange}24` }]}><Ionicons name="flash" size={25} color={colors.orange} /></View>
@@ -228,7 +204,7 @@ export function HomeScreen({
           </View>
           <View style={styles.statsRow}>
             <StatCard label="Hazır/Tamam" value={String(stats.todayCompleted)} icon="checkmark-done" accent={colors.green} />
-            <StatCard label={panelMode === 'business' ? 'Tahsilat' : 'Kayıtlı Tutar'} value={money(panelMode === 'business' ? stats.todayIncome : stats.mechanicRecordedTotal)} icon="wallet" accent={colors.cyan} />
+            <StatCard label="Kayıtlı Tutar" value={money(stats.mechanicRecordedTotal)} icon="wallet" accent={colors.cyan} />
           </View>
         </>
       )}
@@ -247,7 +223,7 @@ export function HomeScreen({
           ) : selectedOrders.map((order: any) => (
             <AnimatedPressable key={order.id} onPress={onOpenOrders} style={[styles.orderCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
               <View style={[styles.queueBadge, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Text style={[styles.queueText, { color: colors.orange }]}>{order.queue_position ?? '-'}</Text></View>
-              <View style={[styles.bikeIcon, { backgroundColor: `${colors.primary2}18` }]}><Ionicons name="bicycle" size={24} color={colors.primary2} /></View>
+              <View style={[styles.bikeIcon, { backgroundColor: `${colors.primary2}18` }]}><AnimatedMotorcycleIcon size={31} color={colors.primary2} /></View>
               <View style={styles.orderCopy}>
                 <Text style={[styles.orderTitle, { color: colors.text }]}>{order.motorcycle?.brand ?? order.brand} {order.motorcycle?.model ?? order.model}</Text>
                 <Text style={[styles.orderMeta, { color: colors.textMuted }]}>{order.motorcycle?.plate ?? order.plate ?? 'Plaka yok'} • {order.complaint}</Text>
@@ -278,25 +254,25 @@ const styles = StyleSheet.create({
   availabilityRow: { flexDirection: 'row', gap: 8 },
   availability: { flex: 1, minWidth: 0, minHeight: 42, borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   availabilityDot: { width: 7, height: 7, borderRadius: 7 },
-  availabilityText: { fontSize: 11, fontWeight: '900' },
+  availabilityText: { fontSize: 12, fontWeight: '900' },
   hero: { borderRadius: 28, padding: 21, minHeight: 170, overflow: 'hidden', justifyContent: 'space-between', shadowColor: '#6158FF', shadowOpacity: 0.36, shadowRadius: 24, elevation: 12 },
   heroGlow: { position: 'absolute', width: 180, height: 180, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.13)', right: -55, top: -70 },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   heroLabel: { color: 'rgba(255,255,255,0.76)', fontWeight: '900', fontSize: 11, letterSpacing: 1.1 },
   heroValue: { color: '#fff', fontWeight: '900', fontSize: 34, letterSpacing: -1.2, marginTop: 7 },
   heroIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  heroHint: { color: 'rgba(255,255,255,0.82)', fontSize: 12 },
+  heroHint: { color: 'rgba(255,255,255,0.82)', fontSize: 13 },
   quickGrid: { gap: 10 },
   quickAction: { minHeight: 88, borderWidth: 1, borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   quickIcon: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   quickCopy: { flex: 1 },
   quickTitle: { fontSize: 16, fontWeight: '900' },
-  quickText: { fontSize: 11, lineHeight: 17, marginTop: 4 },
+  quickText: { fontSize: 12.5, lineHeight: 17, marginTop: 4 },
   statsRow: { flexDirection: 'row', gap: 12 },
   section: { gap: 12, marginTop: 4 },
   sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
   sectionTitle: { fontSize: 19, fontWeight: '900' },
-  sectionSubtitle: { fontSize: 12, marginTop: 4, maxWidth: 290, lineHeight: 17 },
+  sectionSubtitle: { fontSize: 13, marginTop: 4, maxWidth: 290, lineHeight: 17 },
   link: { fontSize: 13, fontWeight: '900' },
   orderList: { gap: 10 },
   orderCard: { borderWidth: 1, borderRadius: 22, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 9 },

@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
-import { MemberRole } from '../types';
+import { MemberRole, StaffApplication } from '../types';
 
 const roleLabels: Record<MemberRole, string> = {
   owner: 'İşletme Sahibi',
@@ -26,6 +26,7 @@ export function TeamScreen() {
   const { workshop, workshops, membership, isAdmin, createInviteCode, selectWorkshop, createWorkshop, refreshWorkspace } = useAuth();
   const [members, setMembers] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [staffApplications, setStaffApplications] = useState<StaffApplication[]>([]);
   const [latestCode, setLatestCode] = useState<{ code: string; role: MemberRole } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
@@ -53,12 +54,14 @@ export function TeamScreen() {
   const load = useCallback(async () => {
     if (!workshop || !membership) return;
     if (isOwner) {
-      const [memberResult, serviceResult] = await Promise.all([
+      const [memberResult, serviceResult, applicationResult] = await Promise.all([
         supabase.from('workshop_members').select('user_id,role,is_active,joined_at,availability_status,staff_note,profile:profiles(full_name,phone)').eq('workshop_id', workshop.id).order('joined_at'),
         supabase.from('work_order_services').select('mechanic_id,price,completed').eq('workshop_id', workshop.id).eq('completed', true),
+        supabase.rpc('owner_get_staff_applications', { p_workshop_id: workshop.id }),
       ]);
       setMembers(memberResult.data ?? []);
       setServices(serviceResult.data ?? []);
+      setStaffApplications((applicationResult.data as StaffApplication[] | null) ?? []);
     } else {
       const { data } = await supabase.from('work_order_services').select('id,title,price,completed,created_at,work_order:work_orders(customer:customers(full_name),motorcycle:motorcycles(brand,model,plate))').eq('mechanic_id', membership.user_id).eq('completed', true).order('created_at', { ascending: false });
       setServices(data ?? []);
@@ -66,6 +69,11 @@ export function TeamScreen() {
   }, [workshop, membership, isOwner]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!workshop?.id || !isOwner) return;
+    const channel = supabase.channel(`staff-applications-${workshop.id}`).on('postgres_changes', { event: '*', schema: 'public', table: 'staff_applications', filter: `workshop_id=eq.${workshop.id}` }, load).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, isOwner, load]);
 
   const generate = async (role: MemberRole) => {
     setLoading(true);
@@ -102,6 +110,21 @@ export function TeamScreen() {
     await refreshWorkspace(workshop.id);
     Alert.alert('İşletme güncellendi');
   };
+
+  const reviewStaffApplication = (application: StaffApplication, approve: boolean) => Alert.alert(
+    approve ? 'Personel başvurusunu onayla' : 'Personel başvurusunu reddet',
+    `${application.applicant_name || 'Kullanıcı'} • ${application.requested_role === 'mechanic' ? 'Usta' : 'Çırak'}`,
+    [
+      { text: 'Vazgeç', style: 'cancel' },
+      { text: approve ? 'Onayla' : 'Reddet', style: approve ? 'default' : 'destructive', onPress: async () => {
+        setLoading(true);
+        const { error } = await supabase.rpc('owner_review_staff_application', { p_application_id: application.id, p_approve: approve, p_note: approve ? 'İşletme tarafından onaylandı' : 'İşletme tarafından reddedildi' });
+        setLoading(false);
+        if (error) return Alert.alert('Başvuru sonuçlandırılamadı', error.message);
+        await load();
+      } },
+    ],
+  );
 
   const toggleBusiness = async (id: string, active: boolean) => {
     const { error } = await supabase.rpc('admin_set_workshop_active', { p_workshop_id: id, p_is_active: active });
@@ -181,6 +204,11 @@ export function TeamScreen() {
         <PrimaryButton title="İşletme Bilgilerini Güncelle" onPress={saveBusiness} loading={loading} secondary />
       </GlassCard>
 
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Personel Başvuruları</Text>
+      <View style={styles.list}>
+        {staffApplications.filter((item) => item.status === 'pending').length === 0 ? <GlassCard style={styles.applicationEmpty}><Ionicons name="checkmark-done-circle" size={34} color={colors.green} /><Text style={[styles.memberName, { color: colors.text }]}>Bekleyen Usta veya Çırak başvurusu yok</Text></GlassCard> : staffApplications.filter((item) => item.status === 'pending').map((application) => { const accent = application.requested_role === 'mechanic' ? colors.primary : colors.orange; return <GlassCard key={application.id} style={[styles.applicationCard, { borderColor: `${accent}45` }]}><View style={styles.applicationTop}><View style={[styles.bigIcon, { backgroundColor: `${accent}18` }]}><Ionicons name={application.requested_role === 'mechanic' ? 'construct' : 'school'} size={24} color={accent} /></View><View style={styles.copy}><Text style={[styles.memberName, { color: colors.text }]}>{application.applicant_name || 'Başvuru sahibi'}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{application.requested_role === 'mechanic' ? 'Usta Başvurusu' : 'Çırak Başvurusu'} • {application.applicant_phone || 'Telefon yok'}</Text>{application.note && <Text style={[styles.applicationNote, { color: colors.textSoft }]}>{application.note}</Text>}</View></View><View style={styles.applicationActions}><AnimatedPressable onPress={() => reviewStaffApplication(application, false)} style={[styles.reviewButton, { borderColor: `${colors.red}40`, backgroundColor: `${colors.red}0D` }]}><Ionicons name="close" size={18} color={colors.red} /><Text style={[styles.reviewText, { color: colors.red }]}>Reddet</Text></AnimatedPressable><AnimatedPressable onPress={() => reviewStaffApplication(application, true)} style={[styles.reviewButton, { borderColor: `${colors.green}40`, backgroundColor: `${colors.green}0D` }]}><Ionicons name="checkmark" size={18} color={colors.green} /><Text style={[styles.reviewText, { color: colors.green }]}>Onayla</Text></AnimatedPressable></View></GlassCard>; })}
+      </View>
+
       <GlassCard style={styles.inviteCard}>
         <View style={styles.inviteHeader}><View style={[styles.bigIcon, { backgroundColor: `${colors.primary}1C` }]}><Ionicons name="person-add" size={26} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.inviteTitle, { color: colors.text }]}>Personel daveti</Text><Text style={[styles.inviteText, { color: colors.textMuted }]}>Kod 30 gün geçerli ve tek kullanımlıdır. İşletme sahibi rolleri yalnız Admin tarafından oluşturulur.</Text></View></View>
         <View style={styles.inviteGrid}>
@@ -232,7 +260,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 17 },
   ownerSwitch: { minHeight: 56, borderWidth: 1, borderRadius: 19, padding: 5, flexDirection: 'row', gap: 5 },
   ownerSwitchButton: { flex: 1, minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  ownerSwitchText: { fontSize: 10.5, fontWeight: '900' },
+  ownerSwitchText: { fontSize: 11.5, fontWeight: '900' },
   heroCard: { alignItems: 'center', gap: 10, paddingVertical: 25 },
   bigIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   totalLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
@@ -248,7 +276,7 @@ const styles = StyleSheet.create({
   serviceIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1 },
   itemTitle: { fontSize: 14, fontWeight: '900' },
-  itemMeta: { fontSize: 11, marginTop: 3 },
+  itemMeta: { fontSize: 12, marginTop: 3 },
   amount: { fontSize: 15, fontWeight: '900' },
   empty: { textAlign: 'center', paddingVertical: 10 },
   formCard: { gap: 13 },
@@ -257,13 +285,20 @@ const styles = StyleSheet.create({
   businessIcon: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   stateButton: { minHeight: 40, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   stateButtonText: { fontSize: 11, fontWeight: '900' },
+  applicationEmpty: { alignItems: 'center', gap: 9, paddingVertical: 24 },
+  applicationCard: { gap: 12, padding: 14 },
+  applicationTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 },
+  applicationNote: { fontSize: 12, lineHeight: 17, marginTop: 5 },
+  applicationActions: { flexDirection: 'row', gap: 8 },
+  reviewButton: { flex: 1, minHeight: 44, borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  reviewText: { fontSize: 11.5, fontWeight: '900' },
   inviteCard: { gap: 14 },
   inviteHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   inviteTitle: { fontSize: 17, fontWeight: '900' },
   inviteText: { fontSize: 12, lineHeight: 17, marginTop: 3 },
   inviteGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   inviteButton: { width: '48.5%', minHeight: 50, borderWidth: 1, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  inviteButtonText: { fontSize: 11, fontWeight: '900' },
+  inviteButtonText: { fontSize: 12, fontWeight: '900' },
   codeBox: { minHeight: 72, borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   codeLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   code: { fontSize: 23, fontWeight: '900', letterSpacing: 3, marginTop: 4 },

@@ -35,6 +35,7 @@ export type WorkNoteCategory = 'general' | 'diagnosis' | 'test' | 'customer_upda
 export type ReceivableStatus = 'not_set' | 'open' | 'closed' | 'cancelled';
 export type ReceivableVisibility = 'staff' | 'customer';
 export type BusinessApplicationStatus = 'pending' | 'approved' | 'rejected';
+export type StaffApplicationStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export interface BusinessRegistrationData {
   business_name: string;
@@ -60,6 +61,21 @@ export interface BusinessApplication {
   reviewed_at?: string | null;
   review_note?: string | null;
   workshop_id?: string | null;
+}
+
+export interface StaffApplication {
+  id: string;
+  workshop_id: string;
+  workshop_name?: string | null;
+  user_id?: string | null;
+  applicant_name?: string | null;
+  applicant_phone?: string | null;
+  requested_role: 'mechanic' | 'apprentice';
+  status: StaffApplicationStatus;
+  note?: string | null;
+  submitted_at: string;
+  reviewed_at?: string | null;
+  review_note?: string | null;
 }
 
 export interface Profile {

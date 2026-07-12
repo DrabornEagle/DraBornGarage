@@ -18,7 +18,7 @@ import { ReceivablesScreen } from './screens/ReceivablesScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { TeamScreen } from './screens/TeamScreen';
 import { WorkOrdersScreen } from './screens/WorkOrdersScreen';
-import { ServiceType } from './types';
+import { ServiceType, WORKER_ROLES } from './types';
 
 type Tab = 'home' | 'orders' | 'appointments' | 'customers' | 'receivables' | 'team' | 'settings';
 
@@ -50,13 +50,14 @@ export function AppShell() {
   const { colors, resolvedMode } = useTheme();
   const { membership, isAdmin, workshop } = useAuth();
   const { navigationTarget, consumeNavigationTarget } = useNotifications();
-  const [tab, setTab] = useState<Tab>(isAdmin && !workshop ? 'team' : 'home');
-  const [newOrderMode, setNewOrderMode] = useState<ServiceType | null>(null);
   const isApprentice = membership?.role === 'apprentice';
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
+  const canCreateOrder = Boolean(membership && WORKER_ROLES.includes(membership.role) && !isApprentice);
+  const [tab, setTab] = useState<Tab>(isAdmin && !workshop ? 'team' : isOwner ? 'team' : 'home');
+  const [newOrderMode, setNewOrderMode] = useState<ServiceType | null>(null);
 
   const openOrders = () => setTab('orders');
-  const openNew = (mode: ServiceType = 'dropoff') => setNewOrderMode(mode);
+  const openNew = (mode: ServiceType = 'dropoff') => { if (canCreateOrder) setNewOrderMode(mode); };
 
   useEffect(() => {
     if (!navigationTarget) return;
@@ -84,24 +85,29 @@ export function AppShell() {
 
   const tabs = useMemo<TabItem[]>(() => {
     const all: TabItem[] = [
-      { key: 'home', label: isApprentice ? 'Atölye' : 'Panel', icon: 'grid-outline', activeIcon: 'grid', accent: colors.primary, accent2: colors.primary2 },
+      { key: 'home', label: isApprentice ? 'Atölye' : isOwner ? 'Usta' : 'Panel', icon: 'construct-outline', activeIcon: 'construct', accent: colors.orange, accent2: colors.red },
       { key: 'orders', label: isApprentice ? 'Görevler' : 'İşler', icon: 'construct-outline', activeIcon: 'construct', accent: colors.orange, accent2: colors.red },
       { key: 'appointments', label: 'Takvim', icon: 'calendar-outline', activeIcon: 'calendar', accent: colors.cyan, accent2: colors.primary2 },
       { key: 'customers', label: 'Müşteri', icon: 'people-outline', activeIcon: 'people', accent: colors.primary2, accent2: colors.cyan },
       { key: 'receivables', label: 'Alacak', icon: 'wallet-outline', activeIcon: 'wallet', accent: colors.red, accent2: colors.orange },
       {
         key: 'team',
-        label: isAdmin ? 'Admin' : isOwner ? 'Merkez' : 'Rapor',
-        icon: isAdmin ? 'shield-checkmark-outline' : isOwner ? 'apps-outline' : 'stats-chart-outline',
-        activeIcon: isAdmin ? 'shield-checkmark' : isOwner ? 'apps' : 'stats-chart',
+        label: isAdmin ? 'Admin' : isOwner ? 'İşletme' : 'Rapor',
+        icon: isAdmin ? 'shield-checkmark-outline' : isOwner ? 'business-outline' : 'stats-chart-outline',
+        activeIcon: isAdmin ? 'shield-checkmark' : isOwner ? 'business' : 'stats-chart',
         accent: colors.green,
         accent2: colors.cyan,
       },
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
     if (isAdmin && !workshop) return all.filter((item) => ['team', 'settings'].includes(item.key));
-    return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
-  }, [colors, isAdmin, isOwner, isApprentice, workshop]);
+    if (isApprentice) return all.filter((item) => ['home', 'orders', 'settings'].includes(item.key));
+    if (isOwner) {
+      const order: Tab[] = ['team', 'orders', 'appointments', 'customers', 'receivables', 'home', 'settings'];
+      return order.map((key) => all.find((item) => item.key === key)).filter((item): item is TabItem => Boolean(item)).filter((item) => canCreateOrder || item.key !== 'home');
+    }
+    return all;
+  }, [colors, isAdmin, isOwner, isApprentice, workshop, canCreateOrder]);
 
   return (
     <PremiumBackground>
@@ -141,7 +147,7 @@ export function AppShell() {
         </BlurView>
       </View>
 
-      {newOrderMode && !isApprentice && (
+      {newOrderMode && canCreateOrder && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}> 
           <PremiumBackground>
             <NewWorkOrderScreen
@@ -171,6 +177,6 @@ const styles = StyleSheet.create({
   navIconShell: { width: 39, height: 39, alignItems: 'center', justifyContent: 'center' },
   activeIcon: { width: 37, height: 37, borderRadius: 13, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 8, elevation: 6 },
   inactiveIcon: { width: 35, height: 35, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  navLabel: { fontSize: 8, fontWeight: '900', textAlign: 'center' },
+  navLabel: { fontSize: 9.5, fontWeight: '900', textAlign: 'center' },
   activeLine: { width: 15, height: 2.5, borderRadius: 3 },
 });

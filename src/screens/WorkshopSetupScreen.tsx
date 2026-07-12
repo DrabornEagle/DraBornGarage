@@ -60,7 +60,7 @@ export function WorkshopSetupScreen() {
           </GlassCard>
 
           <AnimatedPressable onPress={continueAsCustomer} style={[styles.customerButton, { backgroundColor: `${colors.cyan}12`, borderColor: `${colors.cyan}42` }]}> 
-            <View style={[styles.customerIcon, { backgroundColor: `${colors.cyan}18` }]}><Ionicons name="bicycle" size={25} color={colors.cyan} /></View>
+            <View style={[styles.customerIcon, { backgroundColor: `${colors.cyan}18` }]}><Ionicons name="construct" size={25} color={colors.cyan} /></View>
             <View style={styles.customerCopy}><Text style={[styles.customerTitle, { color: colors.text }]}>Müşteri olarak devam et</Text><Text style={[styles.customerText, { color: colors.textMuted }]}>Motorunu bağla, uygun randevu saatini seç ve servis durumunu takip et.</Text></View>
             <Ionicons name="chevron-forward" size={21} color={colors.cyan} />
           </AnimatedPressable>
