@@ -4,7 +4,7 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.8.5 — Usta Başvuruları, Panel Ayrımı ve Okunabilir Arayüz**
+**v0.8.6 — İşletme Keşfi, Bağımsız Randevu ve Manuel Kod**
 
 v0.8.0; servis, fiyat, ödeme, ek işlem, randevu, borç/alacak, müşteri eşleştirme ve platform hareketlerini kullanıcıya özel canlı bildirim akışına dönüştürür. Yaklaşan randevu, borç ve platform ödeme kayıtları Expo yerel bildirim sistemiyle telefonda planlanır.
 
@@ -134,9 +134,9 @@ npm run test:bundle
 
 ## Güncel yedek ve geri dönüş
 
-- **Kurulan sürüm:** `v0.8.5`
+- **Kurulan sürüm:** `v0.8.6`
 - **Yedeklenen sürüm:** `v0.8.3`
-- **Kod yedeği:** `backup/v0.8.4-before-v0.8.5-20260712`
+- **Kod yedeği:** `backup/v0.8.5-before-v0.8.6-20260712`
 - **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql`](supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql)
 - **Kurulum ve geri alma:** [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
 - **Zorunlu politika:** [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
