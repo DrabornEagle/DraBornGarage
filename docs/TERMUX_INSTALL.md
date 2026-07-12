@@ -1,11 +1,11 @@
-# Termux — v0.8.5 Yedekle, v0.8.6 Kur
+# Termux — v0.8.6 Yedekle, v0.8.7 Kur
 
 ```bash
 cd ~
-KURULAN_SURUM="v0.8.6"
-YEDEKLENEN_SURUM="v0.8.5"
-YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.5-local-backup"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.6.zip"
+KURULAN_SURUM="v0.8.7"
+YEDEKLENEN_SURUM="v0.8.6"
+YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.6-local-backup"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.7.zip"
 ACILAN_KLASOR="$HOME/DraBornGarage-main"
 
 pkg update -y
@@ -28,6 +28,6 @@ node -p "require('./package.json').version"
 npx expo start -c --go
 ```
 
-Beklenen sürüm: `0.8.6`. Bağlantı sorunu olursa: `npx expo start -c --tunnel --go`.
+Beklenen sürüm: `0.8.7`. Bağlantı sorunu olursa: `npx expo start -c --tunnel --go`.
 
-Kod yedeği: `backup/v0.8.5-before-v0.8.6-20260712`.
+Kod yedeği: `backup/v0.8.6-before-v0.8.7-20260712`.
