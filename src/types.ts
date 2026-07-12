@@ -304,7 +304,7 @@ export interface CustomerClaim {
   id: string;
   workshop_id: string;
   workshop_name: string;
-  motorcycle_id: string;
+  motorcycle_id?: string | null;
   brand: string;
   model: string;
   plate?: string | null;
@@ -339,9 +339,9 @@ export interface StaffCustomerClaim {
   user_id: string;
   claimant_name: string;
   claimant_phone?: string | null;
-  customer_id: string;
+  customer_id?: string | null;
   customer_name: string;
-  motorcycle_id: string;
+  motorcycle_id?: string | null;
   brand: string;
   model: string;
   plate?: string | null;
@@ -384,16 +384,13 @@ export interface MechanicTimeOff {
   starts_at: string;
   ends_at: string;
   reason?: string | null;
-  created_at: string;
 }
 
 export interface Appointment {
   id: string;
   workshop_id: string;
-  workshop_name?: string;
+  workshop_name: string;
   customer_id: string;
-  customer_name?: string;
-  customer_phone?: string | null;
   motorcycle_id: string;
   brand: string;
   model: string;
@@ -402,58 +399,32 @@ export interface Appointment {
   mechanic_name: string;
   service_title: string;
   customer_note?: string | null;
-  staff_note?: string | null;
   scheduled_start: string;
   scheduled_end: string;
   status: AppointmentStatus;
   source: AppointmentSource;
   cancellation_reason?: string | null;
-  work_order_id?: string | null;
   created_at: string;
 }
 
-export interface AppointmentEvent {
+export interface AppointmentWorkingHour {
   id: string;
-  event_type: string;
-  actor_name?: string | null;
-  old_status?: string | null;
-  new_status?: string | null;
-  old_start?: string | null;
-  new_start?: string | null;
-  note?: string | null;
-  created_at: string;
+  mechanic_id: string;
+  mechanic_name: string;
+  day_of_week: number;
+  is_working: boolean;
+  start_time: string;
+  end_time: string;
+  break_start?: string | null;
+  break_end?: string | null;
+  slot_minutes: number;
 }
 
-export interface WorkOrderListItem {
+export interface MechanicTimeOffItem {
   id: string;
-  workshop_id?: string;
-  appointment_id?: string | null;
-  status: WorkOrderStatus;
-  payment_status: PaymentStatus;
-  service_type: ServiceType;
-  customer_waiting_status: CustomerWaitingStatus;
-  queue_position?: number | null;
-  complaint: string;
-  total_amount: number;
-  amount_received: number;
-  price_type?: PriceType | null;
-  estimated_price_min?: number | null;
-  estimated_price_max?: number | null;
-  quoted_price?: number | null;
-  arrived_at: string;
-  assigned_mechanic_id?: string | null;
-  customer?: { full_name: string; phone?: string | null } | null;
-  motorcycle?: { brand: string; model: string; plate?: string | null } | null;
-  mechanic?: { full_name: string } | null;
+  mechanic_id: string;
+  mechanic_name: string;
+  starts_at: string;
+  ends_at: string;
+  reason?: string | null;
 }
-
-export interface DashboardStats {
-  activeOrders: number;
-  waitingOrders: number;
-  todayCompleted: number;
-  todayIncome: number;
-  mechanicRecordedTotal: number;
-}
-
-export const OWNER_ROLES: MemberRole[] = ['owner', 'owner_mechanic'];
-export const WORKER_ROLES: MemberRole[] = ['mechanic', 'owner_mechanic'];
