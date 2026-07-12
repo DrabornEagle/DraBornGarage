@@ -137,8 +137,6 @@ export function HomeScreen({
         eyebrow={titleRole}
         title={`Merhaba, ${profile?.full_name?.split(' ')[0] ?? 'Usta'}`}
         subtitle={`${workshop?.name ?? 'DraBornGarage'} • ${new Intl.DateTimeFormat('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}`}
-        actionIcon="notifications-outline"
-        onAction={() => undefined}
       />
 
       {workshops.length > 1 && (
