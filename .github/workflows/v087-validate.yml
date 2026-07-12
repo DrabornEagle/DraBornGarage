@@ -1,0 +1,67 @@
+name: DraBornGarage v0.8.7 Validate
+
+on:
+  push:
+    branches:
+      - feature/v0.8.7-home-platform-motorcycle-ui
+    paths:
+      - scripts/apply_v087_ui_v2.mjs
+      - .github/workflows/v087-validate.yml
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draborngarage-v087-validate
+  cancel-in-progress: true
+
+jobs:
+  validate-and-finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v0.8.7-home-platform-motorcycle-ui
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply v0.8.7 UI changes
+        run: node scripts/apply_v087_ui_v2.mjs
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript validation
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle validation
+        run: |
+          rm -rf dist
+          npm run test:bundle
+          rm -rf dist
+
+      - name: Remove one-time files
+        run: |
+          rm -f scripts/apply_v087_ui.mjs
+          rm -f scripts/apply_v087_ui_v2.mjs
+          rm -f .github/workflows/v087-validate.yml
+          rm -f docs/V087_PLAN.md docs/.v087_marker docs/V087_WORKING_BRANCH_NOTE.md docs/.keep-v087 docs/.v087-start
+
+      - name: Commit validated v0.8.7
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: finalize v0.8.7 home platform and motorcycle UI"
+          git pull --rebase origin feature/v0.8.7-home-platform-motorcycle-ui
+          git push origin HEAD:feature/v0.8.7-home-platform-motorcycle-ui
