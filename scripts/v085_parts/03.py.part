@@ -1,0 +1,182 @@
+      { text: approve ? 'Usta Olarak Onayla' : 'Reddet', style: approve ? 'default' : 'destructive', onPress: async () => {
+        setLoading(true);
+        const { error } = await supabase.rpc('owner_review_mechanic_application', { p_application_id: application.id, p_approve: approve, p_note: approve ? 'Admin tarafından Usta olarak onaylandı' : 'Başvuru Admin tarafından uygun bulunmadı' });
+        setLoading(false);
+        if (error) return Alert.alert('Başvuru sonuçlandırılamadı', error.message);
+        await load();
+      } },
+    ],
+  );
+
+  const toggleBusiness = async""")
+s=s.replace("      <Text style={[styles.sectionTitle, { color: colors.text }]}>Seçili İşletme</Text>", """      <View style={styles.sectionHeader}><View><Text style={[styles.sectionTitle, { color: colors.text }]}>Seçili İşletmenin Usta Başvuruları</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{mechanicApplications.filter((item) => item.status === 'pending').length} başvuru onay bekliyor</Text></View></View>
+      <View style={styles.list}>
+        {mechanicApplications.length === 0 ? <GlassCard style={styles.applicationEmpty}><Ionicons name="checkmark-done-circle" size={34} color={colors.green} /><Text style={[styles.memberName, { color: colors.text }]}>Usta başvurusu yok</Text></GlassCard> : mechanicApplications.map((application) => { const accent = application.status === 'approved' ? colors.green : application.status === 'pending' ? colors.orange : application.status === 'rejected' ? colors.red : colors.textMuted; return <GlassCard key={application.id} style={[styles.applicationCard, { borderColor: `${accent}45` }]}><View style={styles.applicationTop}><View style={[styles.avatar, { backgroundColor: `${accent}1C` }]}><Text style={[styles.avatarText, { color: accent }]}>{application.applicant_name?.charAt(0) || 'U'}</Text></View><View style={styles.copy}><Text style={[styles.memberName, { color: colors.text }]}>{application.applicant_name || 'Usta adayı'}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{application.applicant_phone || 'Telefon yok'} • {application.applicant_email || 'E-posta yok'}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{application.applicant_note || 'Başvuru notu yok'}</Text></View><Text style={[styles.applicationStatus, { color: accent }]}>{application.status === 'pending' ? 'BEKLİYOR' : application.status === 'approved' ? 'ONAYLI' : application.status === 'rejected' ? 'RED' : 'İPTAL'}</Text></View>{application.status === 'pending' && <View style={styles.applicationActions}><AnimatedPressable onPress={() => reviewMechanicApplication(application, false)} style={[styles.reviewButton, { borderColor: `${colors.red}45`, backgroundColor: `${colors.red}0D` }]}><Ionicons name="close" size={18} color={colors.red} /><Text style={[styles.reviewText, { color: colors.red }]}>Reddet</Text></AnimatedPressable><AnimatedPressable onPress={() => reviewMechanicApplication(application, true)} style={[styles.reviewButton, { borderColor: `${colors.green}45`, backgroundColor: `${colors.green}0D` }]}><Ionicons name="checkmark" size={18} color={colors.green} /><Text style={[styles.reviewText, { color: colors.green }]}>Onayla</Text></AnimatedPressable></View>}</GlassCard>; })}
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Seçili İşletme</Text>""")
+write(rel,s)
+
+# ---------------- Replace bicycle icons with modern component ----------------
+# Locked state supports custom bike.
+rel='src/customer/CustomerLockedState.tsx'; s=read(rel)
+s=s.replace("import { GlassCard }", "import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';\nimport { GlassCard }")
+s=s.replace("  icon: keyof typeof Ionicons.glyphMap;", "  icon: keyof typeof Ionicons.glyphMap | 'motorcycle';")
+s=s.replace("        <Ionicons name={icon} size={32} color={colors.primary} />", "        {icon === 'motorcycle' ? <AnimatedMotorcycleIcon size={38} color={colors.primary} /> : <Ionicons name={icon} size={32} color={colors.primary} />}")
+write(rel,s)
+
+rel='src/customer/CustomerMotorcyclesScreen.tsx'; s=read(rel)
+s=s.replace("import { GlassCard }", "import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';\nimport { GlassCard }")
+s=s.replace('icon="bicycle"', 'icon="motorcycle"')
+s=s.replace('<Ionicons name="bicycle-outline" size={42} color={colors.textMuted} />', '<AnimatedMotorcycleIcon size={46} color={colors.textMuted} active={false} />')
+s=s.replace('<Ionicons name="bicycle" size={28} color={colors.primary2} />', '<AnimatedMotorcycleIcon size={34} color={colors.primary2} />')
+write(rel,s)
+
+rel='src/screens/WorkshopSetupScreen.tsx'; s=read(rel)
+s=s.replace("import { AnimatedPressable }", "import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';\nimport { AnimatedPressable }")
+s=s.replace('<Ionicons name="bicycle" size={25} color={colors.cyan} />', '<AnimatedMotorcycleIcon size={31} color={colors.cyan} />')
+write(rel,s)
+
+rel='src/screens/SettingsScreen.tsx'; s=read(rel)
+s=s.replace("import { AnimatedPressable }", "import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';\nimport { AnimatedPressable }")
+s=s.replace('<Ionicons name="bicycle" size={24} color={colors.cyan} />', '<AnimatedMotorcycleIcon size={31} color={colors.cyan} />')
+write(rel,s)
+
+rel='src/screens/CustomersScreen.tsx'; s=read(rel)
+s=s.replace("import { AnimatedPressable }", "import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';\nimport { AnimatedPressable }")
+s=s.replace('<Ionicons name="bicycle" size={25} color={colors.primary2} />', '<AnimatedMotorcycleIcon size={32} color={colors.primary2} />')
+write(rel,s)
+
+rel='src/components/ReportsDashboard.tsx'; s=read(rel)
+if "AnimatedMotorcycleIcon" not in s:
+    s=s.replace("import { AnimatedPressable }", "import { AnimatedMotorcycleIcon } from './AnimatedMotorcycleIcon';\nimport { AnimatedPressable }")
+s=s.replace('<Ionicons name="bicycle" size={22} color={colors.primary} />', '<AnimatedMotorcycleIcon size={29} color={colors.primary} />')
+write(rel,s)
+
+rel='src/customer/CustomerServicesScreen.tsx'; s=read(rel)
+if "AnimatedMotorcycleIcon" not in s:
+    s=s.replace("import { AnimatedPressable }", "import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';\nimport { AnimatedPressable }")
+s=s.replace("<Ionicons name={Number(item.pending_approval_count || 0) > 0 ? 'shield-half' : 'bicycle'} size={24} color={Number(item.pending_approval_count || 0) > 0 ? colors.orange : colors.primary2} />", "{item.pending_approval_count > 0 ? <Ionicons name=\"shield-half\" size={24} color={colors.orange} /> : <AnimatedMotorcycleIcon size={31} color={colors.primary2} />}")
+write(rel,s)
+
+rel='src/customer/CustomerShell.tsx'; s=read(rel)
+s=s.replace("icon: 'bicycle-outline' as const, active: 'bicycle' as const", "icon: 'ellipse-outline' as const, active: 'ellipse' as const")
+write(rel,s)
+
+# ---------------- Version metadata ----------------
+pkg=json.loads(read('package.json')); pkg['version']='0.8.5'; write('package.json', json.dumps(pkg, ensure_ascii=False, indent=2)+'\n')
+lock=json.loads(read('package-lock.json')); lock['version']='0.8.5'; lock['packages']['']['version']='0.8.5'; write('package-lock.json', json.dumps(lock, ensure_ascii=False, indent=2)+'\n')
+app=json.loads(read('app.json')); app['expo']['version']='0.8.5'; write('app.json', json.dumps(app, ensure_ascii=False, indent=2)+'\n')
+
+# Settings version / backup labels.
+rel='src/screens/SettingsScreen.tsx'; s=read(rel)
+s=s.replace('v0.8.4 • Onaylı İşletme ve Modern Takvim', 'v0.8.5 • Usta Başvuruları ve Okunabilir Arayüz')
+s=s.replace('backup/v0.8.3-before-v0.8.4', 'backup/v0.8.4-before-v0.8.5-20260712')
+s=s.replace('Kod yedeğiyle v0.8.3', 'Kod yedeğiyle v0.8.4')
+write(rel,s)
+
+# ---------------- App-wide readability bump ----------------
+# Deliberately lift microtext while preserving larger typography and layout hierarchy.
+font_re = re.compile(r'fontSize:\s*(\d+(?:\.\d+)?)')
+def bump(m):
+    v=float(m.group(1))
+    if v < 8: nv=9.5
+    elif v < 9: nv=10
+    elif v < 10: nv=11
+    elif v < 11: nv=12
+    elif v < 12: nv=12.5
+    elif v < 12.5: nv=13
+    else: return m.group(0)
+    text=str(int(nv)) if nv.is_integer() else str(nv)
+    return f'fontSize: {text}'
+for p in (root/'src').rglob('*.tsx'):
+    s=p.read_text(); ns=font_re.sub(bump,s); p.write_text(ns)
+
+# Ensure no bicycle icon names remain.
+occ=[]
+for p in (root/'src').rglob('*.tsx'):
+    if 'bicycle' in p.read_text(): occ.append(str(p.relative_to(root)))
+if occ: raise RuntimeError(f'Remaining bicycle occurrences: {occ}')
+
+# ---------------- SQL migration ----------------
+migration = r'''-- DraBornGarage v0.8.5
+-- Mechanic workshop search/application/approval, invite-code direct access and realtime workspace switching.
+
+create table if not exists public.mechanic_applications (
+  id uuid primary key default gen_random_uuid(),
+  workshop_id uuid not null references public.workshops(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'cancelled')),
+  applicant_note text,
+  submitted_at timestamptz not null default now(),
+  reviewed_at timestamptz,
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  review_note text,
+  updated_at timestamptz not null default now(),
+  unique (workshop_id, user_id)
+);
+
+create index if not exists idx_mechanic_applications_user_status on public.mechanic_applications(user_id, status, submitted_at desc);
+create index if not exists idx_mechanic_applications_workshop_status on public.mechanic_applications(workshop_id, status, submitted_at desc);
+create index if not exists idx_mechanic_applications_reviewed_by on public.mechanic_applications(reviewed_by);
+
+alter table public.mechanic_applications enable row level security;
+
+drop policy if exists mechanic_applications_select_self on public.mechanic_applications;
+create policy mechanic_applications_select_self
+on public.mechanic_applications for select to authenticated
+using (user_id = (select auth.uid()));
+
+drop policy if exists mechanic_applications_select_owner on public.mechanic_applications;
+create policy mechanic_applications_select_owner
+on public.mechanic_applications for select to authenticated
+using (public.is_workshop_owner(workshop_id));
+
+create or replace function public.search_active_workshops(p_query text)
+returns table(id uuid, name text, phone text, address text)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  normalized_query text := trim(coalesce(p_query, ''));
+begin
+  if auth.uid() is null then raise exception 'Oturum gerekli'; end if;
+  if char_length(normalized_query) < 2 then raise exception 'Arama için en az 2 karakter gerekli'; end if;
+
+  return query
+  select w.id, w.name, w.phone, w.address
+  from public.workshops w
+  where w.is_active
+    and w.name ilike '%' || replace(replace(normalized_query, '%', ''), '_', '') || '%'
+  order by
+    case when lower(w.name) = lower(normalized_query) then 0
+         when lower(w.name) like lower(normalized_query) || '%' then 1
+         else 2 end,
+    w.name
+  limit 25;
+end;
+$$;
+
+create or replace function public.submit_mechanic_application(p_workshop_id uuid, p_note text default null)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  application_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Oturum gerekli'; end if;
+  if not exists (select 1 from public.workshops w where w.id = p_workshop_id and w.is_active) then
+    raise exception 'İşletme bulunamadı veya aktif değil';
+  end if;
+  if exists (
+    select 1 from public.workshop_members wm
+    where wm.workshop_id = p_workshop_id and wm.user_id = auth.uid() and wm.is_active
+  ) then
+    raise exception 'Bu işletmede zaten aktif personelsin';
+  end if;
+
+  insert into public.mechanic_applications(
