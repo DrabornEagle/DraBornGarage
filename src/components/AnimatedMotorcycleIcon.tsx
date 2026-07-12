@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleProp, ViewStyle } from 'react-native';
-import Svg, { Circle, G, Path } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, G, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
 
 interface AnimatedMotorcycleIconProps {
   size?: number;
@@ -18,59 +18,48 @@ export function AnimatedMotorcycleIcon({
   active = true,
 }: AnimatedMotorcycleIconProps) {
   const suspension = useRef(new Animated.Value(0)).current;
-  const speed = useRef(new Animated.Value(0)).current;
+  const road = useRef(new Animated.Value(0)).current;
+  const glow = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!active) {
       suspension.stopAnimation();
-      speed.stopAnimation();
+      road.stopAnimation();
+      glow.stopAnimation();
       suspension.setValue(0);
-      speed.setValue(0);
+      road.setValue(0);
+      glow.setValue(0);
       return;
     }
 
-    const suspensionLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(suspension, {
-          toValue: 1,
-          duration: 620,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(suspension, {
-          toValue: 0,
-          duration: 620,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    const speedLoop = Animated.loop(
-      Animated.timing(speed, {
-        toValue: 1,
-        duration: 900,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
+    const suspensionLoop = Animated.loop(Animated.sequence([
+      Animated.timing(suspension, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(suspension, { toValue: 0, duration: 500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    const roadLoop = Animated.loop(Animated.timing(road, { toValue: 1, duration: 720, easing: Easing.linear, useNativeDriver: true }));
+    const glowLoop = Animated.loop(Animated.sequence([
+      Animated.timing(glow, { toValue: 1, duration: 760, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(glow, { toValue: 0, duration: 760, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
 
     suspensionLoop.start();
-    speedLoop.start();
+    roadLoop.start();
+    glowLoop.start();
     return () => {
       suspensionLoop.stop();
-      speedLoop.stop();
+      roadLoop.stop();
+      glowLoop.stop();
     };
-  }, [active, speed, suspension]);
+  }, [active, glow, road, suspension]);
 
-  const width = size * 2.08;
-  const accent = secondaryColor ?? color;
-  const translateY = suspension.interpolate({ inputRange: [0, 1], outputRange: [0.8, -1.05] });
-  const translateX = suspension.interpolate({ inputRange: [0, 1], outputRange: [-0.25, 0.45] });
-  const rotate = suspension.interpolate({ inputRange: [0, 1], outputRange: ['-0.5deg', '0.7deg'] });
-  const shadowOpacity = suspension.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.25] });
-  const speedTranslate = speed.interpolate({ inputRange: [0, 1], outputRange: [-width * 0.2, width * 0.58] });
-  const speedOpacity = speed.interpolate({ inputRange: [0, 0.12, 0.78, 1], outputRange: [0, 0.42, 0.28, 0] });
+  const width = size * 2.25;
+  const accent = secondaryColor ?? '#20D9D2';
+  const translateY = suspension.interpolate({ inputRange: [0, 1], outputRange: [0.9, -1.15] });
+  const translateX = suspension.interpolate({ inputRange: [0, 1], outputRange: [-0.35, 0.55] });
+  const rotate = suspension.interpolate({ inputRange: [0, 1], outputRange: ['-0.45deg', '0.55deg'] });
+  const roadTranslate = road.interpolate({ inputRange: [0, 1], outputRange: [-width * 0.62, width * 0.62] });
+  const streakOpacity = road.interpolate({ inputRange: [0, 0.1, 0.82, 1], outputRange: [0, 0.7, 0.38, 0] });
+  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.3] });
 
   return (
     <Animated.View
@@ -84,17 +73,17 @@ export function AnimatedMotorcycleIcon({
         pointerEvents="none"
         style={{
           position: 'absolute',
-          width: size * 1.55,
-          height: Math.max(2, size * 0.11),
-          bottom: size * 0.015,
+          width: size * 1.62,
+          height: Math.max(2, size * 0.12),
+          bottom: -size * 0.01,
           borderRadius: 999,
-          backgroundColor: color,
-          opacity: shadowOpacity,
-          transform: [{ scaleX: 1.08 }],
+          backgroundColor: accent,
+          opacity: glowOpacity,
+          transform: [{ scaleX: 1.12 }],
         }}
       />
 
-      {[0.08, 0.2, 0.32].map((topRatio, index) => (
+      {[0.02, 0.18, 0.34].map((topRatio, index) => (
         <Animated.View
           key={topRatio}
           pointerEvents="none"
@@ -102,54 +91,94 @@ export function AnimatedMotorcycleIcon({
             position: 'absolute',
             left: width * 0.02,
             top: size * topRatio,
-            width: size * (0.45 - index * 0.07),
+            width: size * (0.62 - index * 0.11),
             height: Math.max(1.2, size * 0.045),
             borderRadius: 999,
-            backgroundColor: index === 1 ? accent : color,
-            opacity: speedOpacity,
-            transform: [{ translateX: speedTranslate }],
+            backgroundColor: index === 1 ? '#FFAE45' : accent,
+            opacity: streakOpacity,
+            transform: [{ translateX: roadTranslate }],
           }}
         />
       ))}
 
-      <Svg width={width} height={size} viewBox="0 0 142 72">
+      {[0, 1, 2].map((index) => (
+        <Animated.View
+          key={`lane-${index}`}
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: width * (0.04 + index * 0.3),
+            bottom: size * 0.01,
+            width: size * 0.34,
+            height: Math.max(1.2, size * 0.038),
+            borderRadius: 999,
+            backgroundColor: '#F4F7FF',
+            opacity: streakOpacity,
+            transform: [{ translateX: roadTranslate }],
+          }}
+        />
+      ))}
+
+      <Svg width={width} height={size} viewBox="0 0 162 76">
+        <Defs>
+          <SvgLinearGradient id="fairing" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor="#8B5CFF" />
+            <Stop offset="0.46" stopColor="#4D72FF" />
+            <Stop offset="1" stopColor="#20D9D2" />
+          </SvgLinearGradient>
+          <SvgLinearGradient id="tank" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor="#7048FF" />
+            <Stop offset="1" stopColor="#2BCFEC" />
+          </SvgLinearGradient>
+          <SvgLinearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor="#FF8A3D" />
+            <Stop offset="1" stopColor="#FFD35A" />
+          </SvgLinearGradient>
+        </Defs>
+
         <G strokeLinecap="round" strokeLinejoin="round">
-          <Circle cx="29" cy="55" r="13" fill="none" stroke={color} strokeWidth="4.2" />
-          <Circle cx="29" cy="55" r="7.2" fill="none" stroke={color} strokeWidth="1.7" opacity="0.58" />
-          <Circle cx="29" cy="55" r="2.8" fill={accent} />
-          <Path d="M29 42.5 V67.5 M16.5 55 H41.5 M20 46 L38 64 M38 46 L20 64" stroke={color} strokeWidth="1.2" opacity="0.4" />
+          <Ellipse cx="81" cy="69" rx="62" ry="3" fill={accent} opacity="0.16" />
 
-          <Circle cx="111" cy="55" r="13" fill="none" stroke={color} strokeWidth="4.2" />
-          <Circle cx="111" cy="55" r="7.2" fill="none" stroke={color} strokeWidth="1.7" opacity="0.58" />
-          <Circle cx="111" cy="55" r="2.8" fill={accent} />
-          <Path d="M111 42.5 V67.5 M98.5 55 H123.5 M102 46 L120 64 M120 46 L102 64" stroke={color} strokeWidth="1.2" opacity="0.4" />
+          <Circle cx="31" cy="57" r="14" fill="#0D1427" stroke="#BFD4FF" strokeWidth="3.8" />
+          <Circle cx="31" cy="57" r="8" fill="none" stroke={accent} strokeWidth="2" opacity="0.8" />
+          <Circle cx="31" cy="57" r="3" fill="#FFAE45" />
+          <Path d="M31 44 V70 M18 57 H44 M22 48 L40 66 M40 48 L22 66" stroke="#D9E5FF" strokeWidth="1.2" opacity="0.5" />
 
-          <Path d="M29 55 L47 38 L78 38 L95 49 L111 55" fill="none" stroke={color} strokeWidth="3.6" />
-          <Path d="M29 55 L55 55 L72 34" fill="none" stroke={color} strokeWidth="3.1" />
-          <Path d="M55 55 L93 48" fill="none" stroke={color} strokeWidth="2.8" />
+          <Circle cx="126" cy="57" r="14" fill="#0D1427" stroke="#BFD4FF" strokeWidth="3.8" />
+          <Circle cx="126" cy="57" r="8" fill="none" stroke={accent} strokeWidth="2" opacity="0.8" />
+          <Circle cx="126" cy="57" r="3" fill="#FFAE45" />
+          <Path d="M126 44 V70 M113 57 H139 M117 48 L135 66 M135 48 L117 66" stroke="#D9E5FF" strokeWidth="1.2" opacity="0.5" />
 
-          <Path d="M40 43 C48 29 60 22 78 22 C91 22 101 27 108 35 L101 45 L82 49 L52 48 Z" fill={color} fillOpacity="0.25" stroke={color} strokeWidth="2.6" />
-          <Path d="M58 25 C67 16 82 14 94 20 L100 27 L79 28 Z" fill={accent} fillOpacity="0.82" stroke={accent} strokeWidth="2" />
-          <Path d="M93 20 L103 10 L110 11 L106 23" fill={color} fillOpacity="0.16" stroke={color} strokeWidth="2.4" />
-          <Path d="M102 10 L114 12" fill="none" stroke={accent} strokeWidth="2.5" />
+          <Path d="M31 57 L52 42 L88 42 L108 52 L126 57" fill="none" stroke="#C9D8FF" strokeWidth="3.4" />
+          <Path d="M31 57 L61 57 L79 35" fill="none" stroke="#AFC8FF" strokeWidth="3" />
+          <Path d="M61 57 L108 51" fill="none" stroke="#AFC8FF" strokeWidth="2.8" />
 
-          <Path d="M44 35 L27 29 L17 33 L29 40" fill={color} fillOpacity="0.18" stroke={color} strokeWidth="2.4" />
-          <Path d="M28 29 L20 25" fill="none" stroke={accent} strokeWidth="2.2" />
-          <Path d="M50 31 L39 25 L31 26" fill="none" stroke={color} strokeWidth="2.4" />
+          <Path d="M43 44 C50 28 66 19 87 19 C101 19 112 25 121 35 L112 49 L88 54 L56 51 Z" fill="url(#fairing)" stroke={color} strokeWidth="2.5" />
+          <Path d="M59 27 C68 16 85 13 100 19 L107 27 L88 31 L69 30 Z" fill="url(#tank)" stroke="#A993FF" strokeWidth="1.8" />
+          <Path d="M95 18 L107 8 L116 10 L113 23" fill="#1C2A4A" stroke="#8EBBFF" strokeWidth="2.2" />
+          <Path d="M105 9 L119 10" fill="none" stroke="#FFD35A" strokeWidth="2.4" />
 
-          <Path d="M58 40 C65 34 77 33 87 38 L83 49 L61 51 L52 46 Z" fill={color} fillOpacity="0.18" stroke={color} strokeWidth="2.2" />
-          <Circle cx="72" cy="43" r="4.6" fill="none" stroke={accent} strokeWidth="2" />
-          <Path d="M58 50 L49 56 M84 49 L95 54" fill="none" stroke={color} strokeWidth="2.5" />
+          <Path d="M49 35 L30 27 L17 30 L28 39 L45 42" fill="url(#fairing)" stroke={color} strokeWidth="2.3" />
+          <Path d="M30 27 L20 22" fill="none" stroke="#FFAE45" strokeWidth="2.4" />
+          <Path d="M54 30 L42 22 L31 23" fill="none" stroke="#AFC8FF" strokeWidth="2.3" />
 
-          <Path d="M98 35 L107 23 L115 24" fill="none" stroke={color} strokeWidth="3" />
-          <Path d="M106 24 L110 55" fill="none" stroke={color} strokeWidth="3.2" />
-          <Path d="M111 24 L119 19 L127 21" fill="none" stroke={accent} strokeWidth="2.3" />
-          <Path d="M125 21 L134 21" fill="none" stroke={accent} strokeWidth="2.4" opacity="0.72" />
+          <Path d="M57 42 C65 34 80 33 95 39 L90 52 L63 55 L51 48 Z" fill="#111B35" stroke="#6F8FFF" strokeWidth="2.2" />
+          <Circle cx="76" cy="45" r="5.2" fill="none" stroke="#20D9D2" strokeWidth="2.2" />
+          <Path d="M63 52 L52 59 M91 51 L105 57" fill="none" stroke="#C9D8FF" strokeWidth="2.6" />
 
-          <Path d="M82 49 C94 50 99 55 103 58" fill="none" stroke={accent} strokeWidth="3.2" />
-          <Path d="M100 58 H112" fill="none" stroke={accent} strokeWidth="3.2" />
-          <Path d="M41 44 C34 41 27 42 22 46" fill="none" stroke={color} strokeWidth="2.5" />
-          <Path d="M95 35 L106 35" fill="none" stroke={accent} strokeWidth="2.2" />
+          <Path d="M111 36 L121 22 L131 23" fill="none" stroke="#BFD4FF" strokeWidth="3" />
+          <Path d="M121 23 L125 57" fill="none" stroke="#BFD4FF" strokeWidth="3.2" />
+          <Path d="M129 23 L138 18 L147 21" fill="none" stroke="#FFAE45" strokeWidth="2.4" />
+          <Path d="M145 21 L157 21" fill="none" stroke="#FFD35A" strokeWidth="2.5" opacity="0.9" />
+
+          <Path d="M88 51 C101 52 108 57 114 62" fill="none" stroke="url(#accent)" strokeWidth="3.5" />
+          <Path d="M111 62 H125" fill="none" stroke="#FFAE45" strokeWidth="3.5" />
+          <Path d="M44 45 C36 42 27 43 21 48" fill="none" stroke="#AFC8FF" strokeWidth="2.6" />
+
+          <Path d="M51 41 L72 41 L62 49 L48 47 Z" fill="#0E1830" opacity="0.88" />
+          <Path d="M100 34 L116 35 L109 42 L94 41 Z" fill="#DDF8FF" opacity="0.7" />
+          <Path d="M58 32 L72 30" stroke="#FFD35A" strokeWidth="2.2" />
+          <Path d="M84 25 L96 23" stroke="#F4F7FF" strokeWidth="1.8" opacity="0.7" />
         </G>
       </Svg>
     </Animated.View>
