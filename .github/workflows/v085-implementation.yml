@@ -6,6 +6,7 @@ on:
       - feature/v0.8.5-staff-access-role-panels
     paths:
       - scripts/apply_v085_ui.mjs
+      - scripts/fix_v085_generated.mjs
       - .github/workflows/v085-implementation.yml
 
 permissions:
@@ -30,6 +31,9 @@ jobs:
 
       - name: Generate v0.8.5 source
         run: node scripts/apply_v085_ui.mjs
+
+      - name: Normalize generated source
+        run: node scripts/fix_v085_generated.mjs
 
       - name: Verify bicycle icon names are gone
         run: |
