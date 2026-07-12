@@ -1,12 +1,12 @@
-# Termux — v0.8.7 Yedekle, v0.8.8 Kur
+# Termux — v0.8.8 Yedekle, v0.8.9 Kur
 
 ```bash
 cd ~
 
-KURULAN_SURUM="v0.8.8"
-YEDEKLENEN_SURUM="v0.8.7"
-YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.7-local-backup"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.8.zip"
+KURULAN_SURUM="v0.8.9"
+YEDEKLENEN_SURUM="v0.8.8"
+YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.8-local-backup"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.9.zip"
 ACILAN_KLASOR="$HOME/DraBornGarage-main"
 
 printf '
@@ -24,16 +24,15 @@ printf '========================================
 
 pkg update -y
 pkg install nodejs-lts curl unzip -y
-
 rm -rf "$YEDEK_KLASORU" "$ACILAN_KLASOR"
 rm -f "$ZIP_DOSYASI"
 
 if [ -d "$HOME/DraBornGarage" ]; then
   mv "$HOME/DraBornGarage" "$YEDEK_KLASORU"
-  echo "Mevcut v0.8.7 sürümü yedeklendi."
+  echo "Mevcut v0.8.8 sürümü yedeklendi."
 fi
 
-curl -L   --retry 10   --retry-delay 3   --connect-timeout 30   --max-time 600   "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/main.zip"   -o "$ZIP_DOSYASI"
+curl -L --retry 10 --retry-delay 3 --connect-timeout 30 --max-time 600   "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/main.zip"   -o "$ZIP_DOSYASI"
 
 unzip -o "$ZIP_DOSYASI" -d "$HOME"
 mv "$ACILAN_KLASOR" "$HOME/DraBornGarage"
@@ -41,10 +40,8 @@ rm -f "$ZIP_DOSYASI"
 
 if [ -f "$YEDEK_KLASORU/.env" ]; then
   cp "$YEDEK_KLASORU/.env" "$HOME/DraBornGarage/.env"
-  echo "Mevcut .env dosyası yeni sürüme aktarıldı."
 else
   cp "$HOME/DraBornGarage/.env.example" "$HOME/DraBornGarage/.env"
-  echo "Yeni .env dosyası oluşturuldu."
 fi
 
 cd "$HOME/DraBornGarage"
@@ -60,7 +57,7 @@ node -p "require('./package.json').version"
 npx expo start -c --go
 ```
 
-Beklenen sürüm: `0.8.8`.
+Beklenen sürüm: `0.8.9`.
 
 Bağlantı sorunu olursa:
 
@@ -69,4 +66,4 @@ cd ~/DraBornGarage
 npx expo start -c --tunnel --go
 ```
 
-Kod yedeği: `backup/v0.8.7-before-v0.8.8-ui-fix-20260712`.
+Kod yedeği: `backup/v0.8.8-before-v0.8.9-20260712`.

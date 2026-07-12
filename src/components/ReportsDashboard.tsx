@@ -149,9 +149,9 @@ export function ReportsDashboard() {
       <AnimatedPressable onPress={load} style={[styles.refresh, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}40` }]}><Ionicons name="refresh" size={18} color={colors.primary} /></AnimatedPressable>
     </View>
 
-    {isOwner && isMechanic && <View style={[styles.modeSwitch, { backgroundColor: colors.surfaceSoft }]}>
-      <ModeButton active={viewMode === 'business'} label="İşletme" icon="business" onPress={() => setViewMode('business')} />
-      <ModeButton active={viewMode === 'personal'} label="Kişisel Usta" icon="person" onPress={() => setViewMode('personal')} />
+    {isOwner && isMechanic && <View style={styles.modeSwitch}>
+      <ModeButton active={viewMode === 'business'} title="İşletme Raporu" subtitle="Ekip, tahsilat ve servis özeti" icon="business" accent={colors.cyan} onPress={() => setViewMode('business')} />
+      <ModeButton active={viewMode === 'personal'} title="Kişisel Usta" subtitle="Kendi işlerin ve kayıtların" icon="person" accent={colors.orange} onPress={() => setViewMode('personal')} />
     </View>}
 
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periods}>
@@ -301,14 +301,22 @@ function Mini({ label, value, accent }: { label: string; value: string; accent?:
 
 function SubList({ icon, title, items, empty }: { icon: keyof typeof Ionicons.glyphMap; title: string; items: string[]; empty: string }) { const { colors } = useTheme(); return <View style={[styles.subList, { borderTopColor: colors.border }]}><View style={styles.subHeader}><Ionicons name={icon} size={16} color={colors.textMuted} /><Text style={[styles.subTitle, { color: colors.textMuted }]}>{title}</Text></View>{items.length === 0 ? <Text style={[styles.subItem, { color: colors.textMuted }]}>{empty}</Text> : items.map((item, index) => <Text key={`${item}-${index}`} style={[styles.subItem, { color: colors.textSoft }]}>• {item}</Text>)}</View>; }
 
-function ModeButton({ active, label, icon, onPress }: { active: boolean; label: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) { const { colors } = useTheme(); return <AnimatedPressable onPress={onPress} style={[styles.modeButton, active && { backgroundColor: colors.cardStrong }]}><Ionicons name={icon} size={17} color={active ? colors.primary : colors.textMuted} /><Text style={[styles.modeText, { color: active ? colors.text : colors.textMuted }]}>{label}</Text></AnimatedPressable>; }
+function ModeButton({ active, title, subtitle, icon, accent, onPress }: { active: boolean; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  return <AnimatedPressable onPress={onPress} style={[styles.modeButton, { backgroundColor: colors.card, borderColor: active ? accent : colors.border, shadowColor: accent }, active && styles.modeButtonActive]}>
+    {active && <LinearGradient colors={[`${accent}30`, `${colors.primary}18`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+    <View style={[styles.modeIconShell, { backgroundColor: `${accent}${active ? '26' : '12'}`, borderColor: `${accent}${active ? '70' : '28'}` }]}><Ionicons name={icon} size={23} color={active ? accent : colors.textMuted} /></View>
+    <View style={styles.modeCopy}><Text numberOfLines={1} style={[styles.modeTitle, { color: active ? colors.text : colors.textMuted }]}>{title}</Text><Text numberOfLines={2} style={[styles.modeSubtitle, { color: active ? colors.textSoft : colors.textMuted }]}>{subtitle}</Text></View>
+    <View style={[styles.modeState, { backgroundColor: active ? accent : `${colors.textMuted}16`, borderColor: active ? accent : colors.border }]}><Ionicons name={active ? 'checkmark' : 'chevron-forward'} size={15} color={active ? '#08111F' : colors.textMuted} /></View>
+  </AnimatedPressable>;
+}
 function Empty({ text }: { text: string }) { const { colors } = useTheme(); return <GlassCard><Text style={[styles.empty, { color: colors.textMuted }]}>{text}</Text></GlassCard>; }
 
 const styles = StyleSheet.create({
   root: { gap: 14 }, stack: { gap: 12 }, copy: { flex: 1, minWidth: 0 }, row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 }, sectionTitle: { fontSize: 20, fontWeight: '900' }, sectionSubtitle: { fontSize: 12, lineHeight: 16, marginTop: 4 },
   refresh: { width: 42, height: 42, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  modeSwitch: { flexDirection: 'row', padding: 4, borderRadius: 16 }, modeButton: { flex: 1, minHeight: 44, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, modeText: { fontSize: 12.5, fontWeight: '900' },
+  modeSwitch: { flexDirection: 'row', gap: 10 }, modeButton: { flex: 1, minWidth: 0, minHeight: 122, borderRadius: 22, borderWidth: 1, padding: 13, overflow: 'hidden', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 3 }, modeButtonActive: { shadowOpacity: 0.28, elevation: 8 }, modeIconShell: { width: 45, height: 45, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, modeCopy: { marginTop: 10, paddingRight: 24 }, modeTitle: { fontSize: 14.5, fontWeight: '900' }, modeSubtitle: { fontSize: 11.5, lineHeight: 15, marginTop: 4 }, modeState: { position: 'absolute', right: 11, top: 11, width: 27, height: 27, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   periods: { gap: 8, paddingRight: 10 }, periodButton: { minHeight: 42, borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 6 }, periodText: { fontSize: 12, fontWeight: '900' },
   loading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, loadingText: { fontSize: 12.5, fontWeight: '800' },
   hero: { minHeight: 155, borderRadius: 27, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, heroLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '900', letterSpacing: 1 }, heroValue: { color: '#fff', fontSize: 31, fontWeight: '900', marginTop: 8 }, heroMeta: { color: 'rgba(255,255,255,0.78)', fontSize: 12, marginTop: 5 }, heroSide: { alignItems: 'flex-end', gap: 12 }, heroSideText: { color: '#fff', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'right' },
