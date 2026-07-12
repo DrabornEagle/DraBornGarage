@@ -15,11 +15,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feature/v0.8.5-mechanic-applications-ui
-      - name: Bicycle and bike icon occurrences
+      - name: Build scan report
         run: |
-          echo '=== BICYCLE OCCURRENCES ==='
-          grep -RIn --exclude-dir=node_modules --exclude='*.map' -E "bicycle|bike-outline|bike" src || true
-          echo '=== SMALL FONT OCCURRENCES ==='
-          grep -RIn --exclude-dir=node_modules -E "fontSize: ([6-9](\.[0-9]+)?)" src | head -400 || true
-          echo '=== SOURCE FILES ==='
-          find src -type f | sort
+          {
+            echo '=== BICYCLE OCCURRENCES ==='
+            grep -RIn --exclude-dir=node_modules --exclude='*.map' -E "bicycle|bike-outline|bike" src || true
+            echo '=== SMALL FONT OCCURRENCES ==='
+            grep -RIn --exclude-dir=node_modules -E "fontSize: ([6-9](\.[0-9]+)?)" src | head -500 || true
+            echo '=== SOURCE FILES ==='
+            find src -type f | sort
+          } > v085-scan.txt
+          cat v085-scan.txt
+      - name: Upload scan report
+        uses: actions/upload-artifact@v4
+        with:
+          name: draborngarage-v085-scan
+          path: v085-scan.txt
+          retention-days: 7
