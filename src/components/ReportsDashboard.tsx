@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
@@ -140,6 +140,11 @@ export function ReportsDashboard() {
 
   if (membership?.role === 'apprentice') return null;
 
+  if (isAdmin && !workshop) return <GlassCard style={styles.selectionGuard}>
+    <View style={[styles.selectionGuardIcon, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}38` }]}><Ionicons name="business-outline" size={25} color={colors.primary} /></View>
+    <View style={styles.copy}><Text style={[styles.selectionGuardTitle, { color: colors.text }]}>Önce işletme seç</Text><Text style={[styles.selectionGuardText, { color: colors.textMuted }]}>Admin Paneli → İşletmeler bölümünden bir işletme seçtiğinde yalnız o işletmenin raporları ve detayları açılır.</Text></View>
+  </GlassCard>;
+
   return <View style={styles.root}>
     <View style={styles.sectionHeader}>
       <View style={styles.copy}>
@@ -151,7 +156,7 @@ export function ReportsDashboard() {
 
     {isOwner && isMechanic && <View style={styles.modeSwitch}>
       <ModeButton active={viewMode === 'business'} title="İşletme Raporu" subtitle="Ekip, tahsilat ve servis özeti" icon="business" accent={colors.cyan} onPress={() => setViewMode('business')} />
-      <ModeButton active={viewMode === 'personal'} title="Kişisel Usta" subtitle="Kendi işlerin ve kayıtların" icon="person" accent={colors.orange} onPress={() => setViewMode('personal')} />
+      <ModeButton active={viewMode === 'personal'} title="Usta Raporu" subtitle="Kendi işlerin ve kayıtların" icon="person" accent={colors.orange} onPress={() => setViewMode('personal')} />
     </View>}
 
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periods}>
@@ -189,7 +194,6 @@ function BusinessView({ report }: { report: BusinessReport }) {
     <ChartSection title="Günlük servis ve tutar" subtitle="Seçilen dönemde işletmeye gelen motorlar ve kaydedilen toplamlar." daily={report.daily_trend} hourly={report.hourly_arrivals} />
 
     <Text style={[styles.listTitle, { color: colors.text }]}>Usta Bazlı İş ve Tutar</Text>
-    <Text style={[styles.listSubtitle, { color: colors.textMuted }]}>Bu rakamlar maaş, prim, yüzde veya ortaklık payı değildir; yalnız ustanın işlem satırlarına kaydedilen tutardır.</Text>
     <View style={styles.stack}>{report.mechanics.length === 0 ? <Empty text="Usta kaydı bulunamadı." /> : report.mechanics.map((item) => <MechanicCard key={item.user_id} item={item} />)}</View>
 
     <ReportAccordion title="En Çok Yapılan İşlemler" subtitle={`${report.top_services.length} işlem türü • seçilen dönem`} icon="podium" accent={colors.primary} open={topServicesOpen} onToggle={() => setTopServicesOpen((value) => !value)}>
@@ -220,8 +224,6 @@ function PersonalView({ report }: { report: PersonalReport }) {
       <Metric icon="cog" label="Kullandığın Parça" value={String(n(s.parts_count))} accent={colors.orange} />
       <Metric icon="checkmark-circle" label="Tamamlanan Motor" value={String(n(s.completed_order_count))} accent={colors.green} />
     </View>
-
-    <GlassCard><Text style={[styles.disclaimer, { color: colors.textMuted }]}>Kayıtlı işlem tutarı maaş, komisyon, prim, net kâr veya ortaklık payı değildir. Nakit ve IBAN kartları yalnız senin sisteme tahsil eden kişi olarak kaydedildiğin ödemeleri gösterir.</Text></GlassCard>
 
     <ChartSection title="Kişisel İş Akışın" subtitle="Saat saat gelen motorlar ve günlük kaydettiğin işlem tutarı." daily={report.daily_trend} hourly={report.hourly_arrivals} />
 
@@ -303,11 +305,17 @@ function SubList({ icon, title, items, empty }: { icon: keyof typeof Ionicons.gl
 
 function ModeButton({ active, title, subtitle, icon, accent, onPress }: { active: boolean; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; onPress: () => void }) {
   const { colors } = useTheme();
-  return <AnimatedPressable onPress={onPress} style={[styles.modeButton, { backgroundColor: colors.card, borderColor: active ? accent : colors.border, shadowColor: accent }, active && styles.modeButtonActive]}>
-    {active && <LinearGradient colors={[`${accent}30`, `${colors.primary}18`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-    <View style={[styles.modeIconShell, { backgroundColor: `${accent}${active ? '26' : '12'}`, borderColor: `${accent}${active ? '70' : '28'}` }]}><Ionicons name={icon} size={23} color={active ? accent : colors.textMuted} /></View>
+  const progress = useRef(new Animated.Value(active ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(progress, { toValue: active ? 1 : 0, duration: 220, useNativeDriver: true }).start();
+  }, [active, progress]);
+  const markerScale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] });
+  return <AnimatedPressable onPress={onPress} style={[styles.modeButton, { backgroundColor: colors.card, borderColor: active ? accent : colors.border }]}>
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: `${accent}0E`, opacity: progress }]} />
+    <Animated.View style={[styles.modeActiveRail, { backgroundColor: accent, opacity: progress, transform: [{ scaleX: progress }] }]} />
+    <View style={[styles.modeIconShell, { backgroundColor: `${accent}${active ? '18' : '0B'}`, borderColor: `${accent}${active ? '58' : '22'}` }]}><Ionicons name={icon} size={22} color={active ? accent : colors.textMuted} /></View>
     <View style={styles.modeCopy}><Text numberOfLines={1} style={[styles.modeTitle, { color: active ? colors.text : colors.textMuted }]}>{title}</Text><Text numberOfLines={2} style={[styles.modeSubtitle, { color: active ? colors.textSoft : colors.textMuted }]}>{subtitle}</Text></View>
-    <View style={[styles.modeState, { backgroundColor: active ? accent : `${colors.textMuted}16`, borderColor: active ? accent : colors.border }]}><Ionicons name={active ? 'checkmark' : 'chevron-forward'} size={15} color={active ? '#08111F' : colors.textMuted} /></View>
+    <Animated.View style={[styles.modeState, { backgroundColor: active ? accent : 'transparent', borderColor: active ? accent : colors.border, transform: [{ scale: markerScale }] }]}><Ionicons name={active ? 'checkmark' : 'chevron-forward'} size={15} color={active ? '#08111F' : colors.textMuted} /></Animated.View>
   </AnimatedPressable>;
 }
 function Empty({ text }: { text: string }) { const { colors } = useTheme(); return <GlassCard><Text style={[styles.empty, { color: colors.textMuted }]}>{text}</Text></GlassCard>; }
@@ -316,7 +324,8 @@ const styles = StyleSheet.create({
   root: { gap: 14 }, stack: { gap: 12 }, copy: { flex: 1, minWidth: 0 }, row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 }, sectionTitle: { fontSize: 20, fontWeight: '900' }, sectionSubtitle: { fontSize: 12, lineHeight: 16, marginTop: 4 },
   refresh: { width: 42, height: 42, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  modeSwitch: { flexDirection: 'row', gap: 10 }, modeButton: { flex: 1, minWidth: 0, minHeight: 122, borderRadius: 22, borderWidth: 1, padding: 13, overflow: 'hidden', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 3 }, modeButtonActive: { shadowOpacity: 0.28, elevation: 8 }, modeIconShell: { width: 45, height: 45, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, modeCopy: { marginTop: 10, paddingRight: 24 }, modeTitle: { fontSize: 14.5, fontWeight: '900' }, modeSubtitle: { fontSize: 11.5, lineHeight: 15, marginTop: 4 }, modeState: { position: 'absolute', right: 11, top: 11, width: 27, height: 27, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  selectionGuard: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12 }, selectionGuardIcon: { width: 52, height: 52, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, selectionGuardTitle: { fontSize: 16, fontWeight: '900' }, selectionGuardText: { fontSize: 12.5, lineHeight: 18, marginTop: 4 },
+  modeSwitch: { flexDirection: 'row', gap: 10 }, modeButton: { flex: 1, minWidth: 0, minHeight: 110, borderRadius: 19, borderWidth: 1, padding: 13, overflow: 'hidden' }, modeActiveRail: { position: 'absolute', left: 17, right: 17, bottom: 0, height: 3, borderRadius: 999 }, modeIconShell: { width: 43, height: 43, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, modeCopy: { marginTop: 9, paddingRight: 23 }, modeTitle: { fontSize: 14.5, fontWeight: '900' }, modeSubtitle: { fontSize: 11.5, lineHeight: 15, marginTop: 4 }, modeState: { position: 'absolute', right: 11, top: 11, width: 27, height: 27, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   periods: { gap: 8, paddingRight: 10 }, periodButton: { minHeight: 42, borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 6 }, periodText: { fontSize: 12, fontWeight: '900' },
   loading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, loadingText: { fontSize: 12.5, fontWeight: '800' },
   hero: { minHeight: 155, borderRadius: 27, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, heroLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '900', letterSpacing: 1 }, heroValue: { color: '#fff', fontSize: 31, fontWeight: '900', marginTop: 8 }, heroMeta: { color: 'rgba(255,255,255,0.78)', fontSize: 12, marginTop: 5 }, heroSide: { alignItems: 'flex-end', gap: 12 }, heroSideText: { color: '#fff', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'right' },

@@ -120,11 +120,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setWorkshops(nextWorkshops);
 
     const storedStaffId = preferredWorkshopId ?? await AsyncStorage.getItem(ACTIVE_WORKSHOP_KEY);
-    const selectedStaff = nextWorkshops.find((item) => item.id === storedStaffId)
-      ?? nextWorkshops.find((item) => item.is_active !== false)
-      ?? nextWorkshops[0]
-      ?? null;
+    const selectedStaff = admin
+      ? (storedStaffId ? nextWorkshops.find((item) => item.id === storedStaffId) ?? null : null)
+      : nextWorkshops.find((item) => item.id === storedStaffId)
+        ?? nextWorkshops.find((item) => item.is_active !== false)
+        ?? nextWorkshops[0]
+        ?? null;
     if (selectedStaff) await AsyncStorage.setItem(ACTIVE_WORKSHOP_KEY, selectedStaff.id);
+    else if (admin) await AsyncStorage.removeItem(ACTIVE_WORKSHOP_KEY);
     setWorkshop(selectedStaff);
 
     const selectedMembership = selectedStaff
