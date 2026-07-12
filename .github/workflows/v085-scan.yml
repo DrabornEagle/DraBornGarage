@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - feature/v0.8.5-mechanic-applications-ui
-    paths:
-      - .github/workflows/v085-scan.yml
+  pull_request:
+    branches:
+      - main
 
 jobs:
   scan:
