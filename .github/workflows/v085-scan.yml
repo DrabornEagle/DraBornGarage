@@ -1,0 +1,24 @@
+name: DraBornGarage v0.8.5 Scan
+
+on:
+  push:
+    branches:
+      - feature/v0.8.5-mechanic-applications-ui
+    paths:
+      - .github/workflows/v085-scan.yml
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v0.8.5-mechanic-applications-ui
+      - name: Bicycle and bike icon occurrences
+        run: |
+          echo '=== BICYCLE OCCURRENCES ==='
+          grep -RIn --exclude-dir=node_modules --exclude='*.map' -E "bicycle|bike-outline|bike" src || true
+          echo '=== SMALL FONT OCCURRENCES ==='
+          grep -RIn --exclude-dir=node_modules -E "fontSize: ([6-9](\.[0-9]+)?)" src | head -400 || true
+          echo '=== SOURCE FILES ==='
+          find src -type f | sort
