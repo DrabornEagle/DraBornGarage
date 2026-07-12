@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Image, LayoutAnimation, Linking, Platform, ScrollView, Share, StyleSheet, Switch, Text, UIManager, View } from 'react-native';
+import { Alert, Image, LayoutAnimation, Linking, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
@@ -235,13 +235,6 @@ export function PlatformFeesDashboard() {
   }, [workshop, isAdmin]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      const manager = UIManager as typeof UIManager & { setLayoutAnimationEnabledExperimental?: (enabled: boolean) => void };
-      manager.setLayoutAnimationEnabledExperimental?.(true);
-    }
-  }, []);
-
   const toggleSection = (key: PlatformAccordionKey) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedSections((current) => ({ ...current, [key]: !current[key] }));
@@ -512,7 +505,7 @@ function BankCard({ settings }: { settings: GlobalSettings }) {
   const hasIban = Boolean(settings.iban);
   return <GlassCard style={styles.bankCard}>
     <View style={[styles.bankIcon, { backgroundColor: `${colors.cyan}15` }]}><Ionicons name="business" size={25} color={colors.cyan} /></View>
-    <View style={styles.copy}><Text style={[styles.bankTitle, { color: colors.text }]}>Banka ve IBAN Bilgileri</Text><Text style={[styles.bankName, { color: colors.textMuted }]}>{settings.bank_name || 'Banka bilgisi Admin tarafından girilmedi'} • {settings.account_holder || 'Hesap sahibi yok'}</Text><Text selectable style={[styles.iban, { color: hasIban ? colors.text : colors.textMuted }]}>{settings.iban || 'IBAN henüz tanımlanmadı'}</Text>{settings.payment_note && <Text style={[styles.bankNote, { color: colors.textMuted }]}>{settings.payment_note}</Text>}</View>
+    <View style={styles.copy}><Text style={[styles.bankTitle, { color: colors.text }]}>Banka ve IBAN Bilgileri</Text><Text style={[styles.bankName, { color: colors.textMuted }]}>{settings.bank_name || 'Banka bilgisi Admin tarafından girilmedi'} • {settings.account_holder || 'Hesap sahibi yok'}</Text><Text selectable style={[styles.iban, { color: hasIban ? colors.text : colors.textMuted }]}>{settings.iban || 'IBAN henüz tanımlanmadı'}</Text>{settings.payment_note && settings.payment_note !== 'Açıklamaya işletme adı ve dönem bilgisini yazın.' && <Text style={[styles.bankNote, { color: colors.textMuted }]}>{settings.payment_note}</Text>}</View>
     {hasIban && <AnimatedPressable onPress={() => Share.share({ message: `${settings.bank_name || ''}\n${settings.account_holder || ''}\n${settings.iban}\n${settings.payment_note || ''}` })}><Ionicons name="share-social" size={23} color={colors.primary} /></AnimatedPressable>}
   </GlassCard>;
 }
