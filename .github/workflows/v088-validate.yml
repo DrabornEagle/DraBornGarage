@@ -1,0 +1,72 @@
+name: DraBornGarage v0.8.8 Validate
+
+on:
+  push:
+    branches:
+      - feature/v0.8.8-bell-reports-racebike-ui
+    paths:
+      - scripts/apply_v088_ui.mjs
+      - .github/workflows/v088-validate.yml
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draborngarage-v088-validate
+  cancel-in-progress: true
+
+jobs:
+  validate-and-finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v0.8.8-bell-reports-racebike-ui
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply v0.8.8 UI changes
+        run: node scripts/apply_v088_ui.mjs
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript validation
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle validation
+        run: |
+          rm -rf dist
+          npm run test:bundle
+          rm -rf dist
+
+      - name: Verify removed text and bell placement
+        run: |
+          ! grep -R "Açıklamaya işletme adı ve dönem bilgisini yazın" src
+          grep -F "!['customers', 'receivables'].includes(tab)" src/AppShell.tsx
+          ! grep -A8 -F 'title={`Merhaba' src/screens/HomeScreen.tsx | grep 'actionIcon="notifications-outline"'
+
+      - name: Remove one-time files
+        run: |
+          rm -f scripts/apply_v088_ui.mjs
+          rm -f .github/workflows/v088-validate.yml
+          rm -f docs/V088_REQUIREMENTS.md
+
+      - name: Commit validated v0.8.8
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: finalize v0.8.8 bell reports and racebike UI"
+          git pull --rebase origin feature/v0.8.8-bell-reports-racebike-ui
+          git push origin HEAD:feature/v0.8.8-bell-reports-racebike-ui
