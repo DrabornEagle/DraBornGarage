@@ -24,9 +24,7 @@ export function HomeScreen({
   const { colors } = useTheme();
   const { profile, workshop, workshops, membership, isAdmin, selectWorkshop } = useAuth();
   const canWork = Boolean(membership && WORKER_ROLES.includes(membership.role));
-  const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
   const isApprentice = membership?.role === 'apprentice';
-  const [panelMode, setPanelMode] = useState<PanelMode>(isOwner ? 'business' : 'mechanic');
   const [stats, setStats] = useState<DashboardStats>({ activeOrders: 0, waitingOrders: 0, todayCompleted: 0, todayIncome: 0, mechanicRecordedTotal: 0 });
   const [recent, setRecent] = useState<WorkOrderListItem[]>([]);
   const [apprenticeQueue, setApprenticeQueue] = useState<any[]>([]);
@@ -34,9 +32,8 @@ export function HomeScreen({
   const [availability, setAvailability] = useState(membership?.availability_status ?? 'available');
 
   useEffect(() => {
-    setPanelMode(isOwner ? 'business' : 'mechanic');
     setAvailability(membership?.availability_status ?? 'available');
-  }, [workshop?.id, isOwner, membership?.availability_status]);
+  }, [workshop?.id, membership?.availability_status]);
 
   const load = useCallback(async () => {
     if (!workshop || !membership) return;
@@ -172,7 +169,7 @@ export function HomeScreen({
           <View style={styles.heroGlow} />
           <View style={styles.heroTop}>
             <View>
-              <Text style={styles.heroLabel}>{panelMode === 'business' ? 'BUGÜN TAHSİL EDİLEN' : 'BUGÜN KAYDEDİLEN İŞ TUTARI'}</Text>
+              <Text style={styles.heroLabel}>BUGÜN KAYDEDİLEN İŞ TUTARI</Text>
               <Text style={styles.heroValue}>{money(stats.todayIncome)}</Text>
             </View>
             <View style={styles.heroIcon}><Ionicons name="speedometer" size={28} color="#fff" /></View>
