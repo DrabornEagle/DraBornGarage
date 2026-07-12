@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
@@ -60,7 +61,7 @@ export function WorkshopSetupScreen() {
           </GlassCard>
 
           <AnimatedPressable onPress={continueAsCustomer} style={[styles.customerButton, { backgroundColor: `${colors.cyan}12`, borderColor: `${colors.cyan}42` }]}> 
-            <View style={[styles.customerIcon, { backgroundColor: `${colors.cyan}18` }]}><Ionicons name="bicycle" size={25} color={colors.cyan} /></View>
+            <View style={[styles.customerIcon, { backgroundColor: `${colors.cyan}18` }]}><AnimatedMotorcycleIcon size={31} color={colors.cyan} /></View>
             <View style={styles.customerCopy}><Text style={[styles.customerTitle, { color: colors.text }]}>Müşteri olarak devam et</Text><Text style={[styles.customerText, { color: colors.textMuted }]}>Motorunu bağla, uygun randevu saatini seç ve servis durumunu takip et.</Text></View>
             <Ionicons name="chevron-forward" size={21} color={colors.cyan} />
           </AnimatedPressable>
@@ -76,5 +77,5 @@ function ChoiceCard({ active, icon, title, text, onPress }: { active: boolean; i
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 }, content: { flexGrow: 1, padding: 22, paddingTop: 58, paddingBottom: 40, gap: 20 }, topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, hello: { fontSize: 12, fontWeight: '900', letterSpacing: 1.4 }, title: { fontSize: 30, fontWeight: '900', letterSpacing: -1 }, logout: { width: 46, height: 46, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, subtitle: { fontSize: 15, lineHeight: 22 }, choiceRow: { flexDirection: 'row', gap: 12 }, choice: { flex: 1, borderWidth: 1, borderRadius: 22, padding: 16, minHeight: 150, gap: 10 }, choiceTitle: { fontSize: 16, fontWeight: '900' }, choiceText: { fontSize: 12, lineHeight: 17 }, form: { gap: 16 }, help: { fontSize: 13, lineHeight: 19 }, customerButton: { minHeight: 88, borderWidth: 1, borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }, customerIcon: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, customerCopy: { flex: 1 }, customerTitle: { fontSize: 15, fontWeight: '900' }, customerText: { fontSize: 11, lineHeight: 17, marginTop: 4 },
+  flex: { flex: 1 }, content: { flexGrow: 1, padding: 22, paddingTop: 58, paddingBottom: 40, gap: 20 }, topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, hello: { fontSize: 13, fontWeight: '900', letterSpacing: 1.4 }, title: { fontSize: 30, fontWeight: '900', letterSpacing: -1 }, logout: { width: 46, height: 46, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, subtitle: { fontSize: 15, lineHeight: 22 }, choiceRow: { flexDirection: 'row', gap: 12 }, choice: { flex: 1, borderWidth: 1, borderRadius: 22, padding: 16, minHeight: 150, gap: 10 }, choiceTitle: { fontSize: 16, fontWeight: '900' }, choiceText: { fontSize: 13, lineHeight: 17 }, form: { gap: 16 }, help: { fontSize: 13, lineHeight: 19 }, customerButton: { minHeight: 88, borderWidth: 1, borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }, customerIcon: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, customerCopy: { flex: 1 }, customerTitle: { fontSize: 15, fontWeight: '900' }, customerText: { fontSize: 12.5, lineHeight: 17, marginTop: 4 },
 });

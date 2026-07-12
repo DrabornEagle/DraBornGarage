@@ -19,7 +19,7 @@ type Filter = 'all' | 'queue' | 'active' | 'approval' | 'parts' | 'ready' | 'del
 const ACTIVE_STATUSES: WorkOrderStatus[] = ['precheck', 'price_entered', 'approval_waiting', 'repair_started', 'extra_approval_waiting', 'testing', 'in_progress'];
 const QUEUE_STATUSES: WorkOrderStatus[] = ['opened', 'received', 'queued', 'waiting'];
 
-export function WorkOrdersScreen({ onNewOrder }: { onNewOrder: () => void }) {
+export function WorkOrdersScreen({ onNewOrder, allowNewOrder }: { onNewOrder: () => void; allowNewOrder: boolean }) {
   const { colors } = useTheme();
   const { workshop, membership } = useAuth();
   const isApprentice = membership?.role === 'apprentice';
@@ -74,8 +74,8 @@ export function WorkOrdersScreen({ onNewOrder }: { onNewOrder: () => void }) {
       eyebrow={isApprentice ? 'KISITLI ÇIRAK PANELİ' : 'v0.4 SERVİS YÖNETİMİ'}
       title={isApprentice ? 'Atölye Görevleri' : 'İş Emirleri'}
       subtitle={isApprentice ? 'Finansal bilgiler gizlidir. Sadece sıra, motor ve görev detayları gösterilir.' : 'Servis, ek işlem onayı, parça, not ve test sürecini tek merkezden yönet.'}
-      actionIcon={isApprentice ? undefined : 'add'}
-      onAction={isApprentice ? undefined : onNewOrder}
+      actionIcon={!isApprentice && allowNewOrder ? 'add' : undefined}
+      onAction={!isApprentice && allowNewOrder ? onNewOrder : undefined}
     />
 
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
@@ -91,7 +91,7 @@ export function WorkOrdersScreen({ onNewOrder }: { onNewOrder: () => void }) {
     </ScrollView>
 
     <View style={styles.list}>
-      {visible.length === 0 ? <GlassCard style={styles.empty}><Ionicons name="construct-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Bu filtrede iş emri yok</Text><Text style={[styles.emptyText, { color: colors.textMuted }]}>Atölye sırasına yeni motor eklendiğinde burada görünecek.</Text>{!isApprentice && <PrimaryButton title="Yeni Servis Kaydı" onPress={onNewOrder} />}</GlassCard> : visible.map((order) => {
+      {visible.length === 0 ? <GlassCard style={styles.empty}><Ionicons name="construct-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Bu filtrede iş emri yok</Text><Text style={[styles.emptyText, { color: colors.textMuted }]}>Atölye sırasına yeni motor eklendiğinde burada görünecek.</Text>{!isApprentice && allowNewOrder && <PrimaryButton title="Yeni Servis Kaydı" onPress={onNewOrder} />}</GlassCard> : visible.map((order) => {
         const brand = order.motorcycle?.brand ?? order.brand;
         const model = order.motorcycle?.model ?? order.model;
         const plate = order.motorcycle?.plate ?? order.plate;
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 18 },
   filters: { gap: 9, paddingRight: 18 },
   filter: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 15, paddingVertical: 10 },
-  filterText: { fontSize: 11, fontWeight: '900' },
+  filterText: { fontSize: 12.5, fontWeight: '900' },
   list: { gap: 11 },
   card: { borderWidth: 1, borderRadius: 23, padding: 15, gap: 12 },
   cardTop: { flexDirection: 'row', gap: 9, alignItems: 'center' },
@@ -124,16 +124,16 @@ const styles = StyleSheet.create({
   icon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0 },
   title: { fontSize: 15, fontWeight: '900' },
-  meta: { fontSize: 11, marginTop: 3 },
-  approvalText: { fontSize: 10.5, fontWeight: '900', marginTop: 4 },
+  meta: { fontSize: 12.5, marginTop: 3 },
+  approvalText: { fontSize: 12, fontWeight: '900', marginTop: 4 },
   complaint: { fontSize: 13, lineHeight: 19 },
   divider: { height: 1 },
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  smallLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
-  smallValue: { fontSize: 12, fontWeight: '800', marginTop: 4 },
+  smallLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 0.8 },
+  smallValue: { fontSize: 13, fontWeight: '800', marginTop: 4 },
   amountWrap: { alignItems: 'flex-end' },
   amount: { fontSize: 17, fontWeight: '900' },
-  payment: { fontSize: 11, fontWeight: '900', marginTop: 3 },
+  payment: { fontSize: 12.5, fontWeight: '900', marginTop: 3 },
   empty: { alignItems: 'center', gap: 11, paddingVertical: 28 },
   emptyTitle: { fontSize: 18, fontWeight: '900' },
   emptyText: { textAlign: 'center', lineHeight: 20 },

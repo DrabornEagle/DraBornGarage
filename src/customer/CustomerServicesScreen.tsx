@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
@@ -59,7 +60,7 @@ export function CustomerServicesScreen({ onStartLink }: { onStartLink: () => voi
     <ScreenHeader eyebrow="v0.4 SERVİS TAKİBİ" title="Servislerim" subtitle={`${customerWorkshop.workshop_name} içindeki servis, ek işlem onayı ve parça kayıtların.`} />
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>{([['all', 'Tümü'], ['active', 'Aktif'], ['approval', 'Onay Bekliyor'], ['ready', 'Motor Hazır'], ['history', 'Geçmiş']] as [Filter, string][]).map(([value, label]) => <AnimatedPressable key={value} onPress={() => setFilter(value)} style={[styles.filter, { backgroundColor: filter === value ? colors.primary : colors.card, borderColor: filter === value ? colors.primary : colors.border }]}><Text style={[styles.filterText, { color: filter === value ? '#fff' : colors.textMuted }]}>{label}</Text></AnimatedPressable>)}</ScrollView>
     {visible.length === 0 ? <GlassCard style={styles.empty}><Ionicons name="receipt-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Servis kaydı yok</Text></GlassCard> : visible.map((item) => <AnimatedPressable key={item.id} onPress={() => setSelectedId(item.id)} style={[styles.card, { backgroundColor: colors.card, borderColor: Number(item.pending_approval_count || 0) > 0 ? colors.orange : colors.border }]}>
-      <View style={styles.top}><View style={[styles.icon, { backgroundColor: Number(item.pending_approval_count || 0) > 0 ? `${colors.orange}18` : `${colors.primary2}18` }]}><Ionicons name={Number(item.pending_approval_count || 0) > 0 ? 'shield-half' : 'bicycle'} size={24} color={Number(item.pending_approval_count || 0) > 0 ? colors.orange : colors.primary2} /></View><View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>{item.brand} {item.model}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.plate} • {shortDate(item.arrived_at)}</Text>{Number(item.pending_approval_count || 0) > 0 && <Text style={[styles.approvalText, { color: colors.orange }]}>{item.pending_approval_count} ek işlem onayın bekliyor</Text>}</View><StatusPill status={item.status} /></View>
+      <View style={styles.top}><View style={[styles.icon, { backgroundColor: Number(item.pending_approval_count || 0) > 0 ? `${colors.orange}18` : `${colors.primary2}18` }]}>{item.pending_approval_count > 0 ? <Ionicons name="shield-half" size={24} color={colors.orange} /> : <AnimatedMotorcycleIcon size={31} color={colors.primary2} />}</View><View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>{item.brand} {item.model}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.plate} • {shortDate(item.arrived_at)}</Text>{Number(item.pending_approval_count || 0) > 0 && <Text style={[styles.approvalText, { color: colors.orange }]}>{item.pending_approval_count} ek işlem onayın bekliyor</Text>}</View><StatusPill status={item.status} /></View>
       <Text numberOfLines={2} style={[styles.complaint, { color: colors.textSoft }]}>{item.complaint}</Text>
       <View style={styles.moneyRow}><Text style={[styles.amount, { color: colors.text }]}>{money(item.total_amount)}</Text><Text style={[styles.amount, { color: item.remaining_amount > 0 ? colors.orange : colors.green }]}>Kalan {money(item.remaining_amount)}</Text></View>
     </AnimatedPressable>)}
@@ -142,17 +143,17 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 32, gap: 14 },
   filters: { gap: 8, paddingRight: 12 },
   filter: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 15, paddingVertical: 10 },
-  filterText: { fontSize: 10.5, fontWeight: '900' },
+  filterText: { fontSize: 12, fontWeight: '900' },
   card: { borderWidth: 1, borderRadius: 22, padding: 14, gap: 11 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0 },
   title: { fontSize: 15, fontWeight: '900' },
-  meta: { fontSize: 10, lineHeight: 15, marginTop: 3 },
-  approvalText: { fontSize: 9.5, fontWeight: '900', marginTop: 4 },
-  complaint: { fontSize: 12, lineHeight: 18 },
+  meta: { fontSize: 12, lineHeight: 15, marginTop: 3 },
+  approvalText: { fontSize: 11, fontWeight: '900', marginTop: 4 },
+  complaint: { fontSize: 13, lineHeight: 18 },
   moneyRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  amount: { fontSize: 12, fontWeight: '900' },
+  amount: { fontSize: 13, fontWeight: '900' },
   empty: { alignItems: 'center', gap: 9, paddingVertical: 30 },
   emptyTitle: { fontSize: 17, fontWeight: '900' },
   detailHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -164,17 +165,17 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   summary: { gap: 9 },
   summaryTitle: { fontSize: 16, fontWeight: '900' },
-  diagnosis: { fontSize: 12, lineHeight: 18 },
+  diagnosis: { fontSize: 13, lineHeight: 18 },
   priceGrid: { flexDirection: 'row', gap: 7 },
   price: { flex: 1, minHeight: 65, borderRadius: 14, padding: 10, justifyContent: 'center' },
-  priceLabel: { fontSize: 8, fontWeight: '900' },
-  priceValue: { fontSize: 11.5, fontWeight: '900', marginTop: 4 },
+  priceLabel: { fontSize: 10, fontWeight: '900' },
+  priceValue: { fontSize: 12.5, fontWeight: '900', marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 4 },
   timelineRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
   dot: { width: 23, height: 23, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  timelineText: { fontSize: 12, fontWeight: '800' },
+  timelineText: { fontSize: 13, fontWeight: '800' },
   itemRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 8 },
-  itemTitle: { fontSize: 12, fontWeight: '900' },
-  note: { fontSize: 10.5, lineHeight: 15, marginTop: 4 },
-  emptyText: { fontSize: 12, textAlign: 'center', paddingVertical: 12 },
+  itemTitle: { fontSize: 13, fontWeight: '900' },
+  note: { fontSize: 12, lineHeight: 15, marginTop: 4 },
+  emptyText: { fontSize: 13, textAlign: 'center', paddingVertical: 12 },
 });

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { AccountMode, BusinessApplication, BusinessRegistrationData, CustomerRegistrationMotor, CustomerWorkshopLink, MemberRole, Profile, Workshop, WorkshopMember } from '../types';
+import { AccountMode, BusinessApplication, BusinessRegistrationData, CustomerRegistrationMotor, CustomerWorkshopLink, MechanicApplication, MemberRole, Profile, Workshop, WorkshopMember, WorkshopSearchResult } from '../types';
 
 const ACTIVE_WORKSHOP_KEY = '@draborngarage/active-workshop';
 const ACTIVE_CUSTOMER_WORKSHOP_KEY = '@draborngarage/customer-active-workshop';
@@ -18,6 +18,7 @@ interface AuthContextValue {
   customerWorkshop: CustomerWorkshopLink | null;
   customerWorkshops: CustomerWorkshopLink[];
   businessApplication: BusinessApplication | null;
+  mechanicApplications: MechanicApplication[];
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
@@ -29,6 +30,8 @@ interface AuthContextValue {
   setAccountMode: (mode: AccountMode) => Promise<string | null>;
   createWorkshop: (name: string, phone: string, address: string, taxOffice: string, taxNumber: string) => Promise<string | null>;
   joinWorkshop: (code: string) => Promise<string | null>;
+  searchWorkshops: (query: string) => Promise<{ data: WorkshopSearchResult[]; error?: string }>;
+  applyAsMechanic: (workshopId: string, note?: string) => Promise<string | null>;
   createInviteCode: (role: MemberRole) => Promise<{ code?: string; error?: string }>;
 }
 
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [customerWorkshops, setCustomerWorkshops] = useState<CustomerWorkshopLink[]>([]);
   const [customerWorkshop, setCustomerWorkshop] = useState<CustomerWorkshopLink | null>(null);
   const [businessApplication, setBusinessApplication] = useState<BusinessApplication | null>(null);
+  const [mechanicApplications, setMechanicApplications] = useState<MechanicApplication[]>([]);
   const [loading, setLoading] = useState(true);
 
   const clearState = useCallback(() => {
@@ -57,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCustomerWorkshops([]);
     setCustomerWorkshop(null);
     setBusinessApplication(null);
+    setMechanicApplications([]);
   }, []);
 
   const refreshWorkspace = useCallback(async (
@@ -74,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const userId = currentSession.user.id;
-    const [{ data: profileData, error: profileError }, { data: memberData }, customerWorkshopResult, { data: applicationData }] = await Promise.all([
+    const [{ data: profileData, error: profileError }, { data: memberData }, customerWorkshopResult, { data: applicationData }, mechanicApplicationResult] = await Promise.all([
       supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin, account_mode, customer_plate, customer_motorcycle_brand, customer_motorcycle_model').eq('id', userId).maybeSingle(),
       supabase
         .from('workshop_members')
@@ -84,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .order('joined_at', { ascending: true }),
       supabase.rpc('customer_get_workshops'),
       supabase.from('business_applications').select('id,user_id,business_name,business_phone,business_address,tax_office,tax_number,status,submitted_at,reviewed_at,review_note,workshop_id').eq('user_id', userId).maybeSingle(),
+      supabase.rpc('customer_get_mechanic_applications'),
     ]);
 
     if (!profileError && !profileData) {
@@ -100,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(nextProfile);
     setMemberships(nextMemberships);
     setBusinessApplication((applicationData as BusinessApplication | null) ?? null);
+    setMechanicApplications((mechanicApplicationResult.data as MechanicApplication[] | null) ?? []);
 
     let nextWorkshops: Workshop[] = [];
     if (admin) {
@@ -153,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     const channel = supabase.channel(`workspace-access-${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'business_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mechanic_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, () => refreshWorkspace())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_members', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
       .subscribe();
@@ -170,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     customerWorkshop,
     customerWorkshops,
     businessApplication,
+    mechanicApplications,
     isAdmin: Boolean(profile?.is_admin),
     loading,
     signIn: async (email, password) => {
@@ -239,8 +248,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     joinWorkshop: async (code) => {
       const { data, error } = await supabase.rpc('join_workshop_by_code', { p_code: code.trim().toUpperCase() });
       if (error) return error.message;
-      await supabase.rpc('set_profile_account_mode', { p_mode: 'staff' });
       await refreshWorkspace(data ? String(data) : null, customerWorkshop?.workshop_id ?? null);
+      return null;
+    },
+    searchWorkshops: async (query) => {
+      const { data, error } = await supabase.rpc('search_active_workshops', { p_query: query.trim() });
+      return error
+        ? { data: [], error: error.message }
+        : { data: (data as WorkshopSearchResult[] | null) ?? [] };
+    },
+    applyAsMechanic: async (workshopId, note = '') => {
+      const { error } = await supabase.rpc('submit_mechanic_application', {
+        p_workshop_id: workshopId,
+        p_note: note.trim() || null,
+      });
+      if (error) return error.message;
+      await refreshWorkspace(workshop?.id ?? null, customerWorkshop?.workshop_id ?? null);
       return null;
     },
     createInviteCode: async (role) => {
@@ -249,7 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) return { error: error.message };
       return { code: String(data) };
     },
-  }), [session, profile, workshop, workshops, membership, memberships, customerWorkshop, customerWorkshops, businessApplication, loading, refreshWorkspace, clearState]);
+  }), [session, profile, workshop, workshops, membership, memberships, customerWorkshop, customerWorkshops, businessApplication, mechanicApplications, loading, refreshWorkspace, clearState]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -44,5 +44,5 @@ export function StatusPill({ status }: { status: WorkOrderStatus }) {
 
 const styles = StyleSheet.create({
   pill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
-  text: { fontSize: 10, fontWeight: '900' },
+  text: { fontSize: 12, fontWeight: '900' },
 });

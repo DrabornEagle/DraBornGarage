@@ -58,7 +58,7 @@ export function CustomerShell() {
 
   const tabs = useMemo(() => [
     { key: 'home' as const, label: 'Ana Sayfa', icon: 'home-outline' as const, active: 'home' as const, a: colors.primary, b: colors.primary2 },
-    { key: 'motorcycles' as const, label: 'Motorlar', icon: 'bicycle-outline' as const, active: 'bicycle' as const, a: colors.cyan, b: colors.primary2 },
+    { key: 'motorcycles' as const, label: 'Motorlar', icon: 'ellipse-outline' as const, active: 'ellipse' as const, a: colors.cyan, b: colors.primary2 },
     { key: 'appointments' as const, label: 'Randevu', icon: 'calendar-outline' as const, active: 'calendar' as const, a: colors.orange, b: colors.red },
     { key: 'services' as const, label: 'Servisler', icon: 'construct-outline' as const, active: 'construct' as const, a: colors.green, b: colors.cyan },
     { key: 'account' as const, label: 'Hesabım', icon: 'person-circle-outline' as const, active: 'person-circle' as const, a: colors.primary2, b: colors.cyan },
@@ -93,6 +93,6 @@ const styles = StyleSheet.create({
   iconShell: { width: 43, height: 42, alignItems: 'center', justifyContent: 'center' },
   activeIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   inactiveIcon: { width: 39, height: 39, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  label: { fontSize: 9, fontWeight: '900', textAlign: 'center' },
+  label: { fontSize: 11, fontWeight: '900', textAlign: 'center' },
   line: { width: 17, height: 2.5, borderRadius: 3 },
 });

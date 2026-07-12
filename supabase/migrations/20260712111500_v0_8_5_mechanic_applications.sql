@@ -1,3 +1,84 @@
+-- DraBornGarage v0.8.5
+-- Mechanic workshop search/application/approval, invite-code direct access and realtime workspace switching.
+
+create table if not exists public.mechanic_applications (
+  id uuid primary key default gen_random_uuid(),
+  workshop_id uuid not null references public.workshops(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'cancelled')),
+  applicant_note text,
+  submitted_at timestamptz not null default now(),
+  reviewed_at timestamptz,
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  review_note text,
+  updated_at timestamptz not null default now(),
+  unique (workshop_id, user_id)
+);
+
+create index if not exists idx_mechanic_applications_user_status on public.mechanic_applications(user_id, status, submitted_at desc);
+create index if not exists idx_mechanic_applications_workshop_status on public.mechanic_applications(workshop_id, status, submitted_at desc);
+create index if not exists idx_mechanic_applications_reviewed_by on public.mechanic_applications(reviewed_by);
+
+alter table public.mechanic_applications enable row level security;
+
+drop policy if exists mechanic_applications_select_self on public.mechanic_applications;
+create policy mechanic_applications_select_self
+on public.mechanic_applications for select to authenticated
+using (user_id = (select auth.uid()));
+
+drop policy if exists mechanic_applications_select_owner on public.mechanic_applications;
+create policy mechanic_applications_select_owner
+on public.mechanic_applications for select to authenticated
+using (public.is_workshop_owner(workshop_id));
+
+create or replace function public.search_active_workshops(p_query text)
+returns table(id uuid, name text, phone text, address text)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  normalized_query text := trim(coalesce(p_query, ''));
+begin
+  if auth.uid() is null then raise exception 'Oturum gerekli'; end if;
+  if char_length(normalized_query) < 2 then raise exception 'Arama için en az 2 karakter gerekli'; end if;
+
+  return query
+  select w.id, w.name, w.phone, w.address
+  from public.workshops w
+  where w.is_active
+    and w.name ilike '%' || replace(replace(normalized_query, '%', ''), '_', '') || '%'
+  order by
+    case when lower(w.name) = lower(normalized_query) then 0
+         when lower(w.name) like lower(normalized_query) || '%' then 1
+         else 2 end,
+    w.name
+  limit 25;
+end;
+$$;
+
+create or replace function public.submit_mechanic_application(p_workshop_id uuid, p_note text default null)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  application_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Oturum gerekli'; end if;
+  if not exists (select 1 from public.workshops w where w.id = p_workshop_id and w.is_active) then
+    raise exception 'İşletme bulunamadı veya aktif değil';
+  end if;
+  if exists (
+    select 1 from public.workshop_members wm
+    where wm.workshop_id = p_workshop_id and wm.user_id = auth.uid() and wm.is_active
+  ) then
+    raise exception 'Bu işletmede zaten aktif personelsin';
+  end if;
+
+  insert into public.mechanic_applications(
     workshop_id, user_id, status, applicant_note, submitted_at,
     reviewed_at, reviewed_by, review_note, updated_at
   )
@@ -209,85 +290,3 @@ grant execute on function public.submit_mechanic_application(uuid, text) to auth
 grant execute on function public.customer_get_mechanic_applications() to authenticated, service_role;
 grant execute on function public.owner_get_mechanic_applications(uuid) to authenticated, service_role;
 grant execute on function public.owner_review_mechanic_application(uuid, boolean, text) to authenticated, service_role;
-'''
-write('supabase/migrations/20260712111500_v0_8_5_mechanic_applications.sql', migration)
-
-rollback = r'''-- DraBornGarage v0.8.5 rollback to v0.8.4.
-
-do $$
-begin
-  if exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='mechanic_applications') then
-    alter publication supabase_realtime drop table public.mechanic_applications;
-  end if;
-  if exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='workshop_members') then
-    alter publication supabase_realtime drop table public.workshop_members;
-  end if;
-  if exists (select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='profiles') then
-    alter publication supabase_realtime drop table public.profiles;
-  end if;
-end;
-$$;
-
-drop function if exists public.owner_review_mechanic_application(uuid, boolean, text);
-drop function if exists public.owner_get_mechanic_applications(uuid);
-drop function if exists public.customer_get_mechanic_applications();
-drop function if exists public.submit_mechanic_application(uuid, text);
-drop function if exists public.search_active_workshops(text);
-drop table if exists public.mechanic_applications;
-
-create or replace function public.join_workshop_by_code(p_code text)
-returns uuid
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  invite public.workshop_invites%rowtype;
-begin
-  if auth.uid() is null then raise exception 'Oturum gerekli'; end if;
-  select * into invite
-  from public.workshop_invites
-  where code = upper(trim(p_code))
-    and is_active
-    and used_at is null
-    and (expires_at is null or expires_at > now())
-  for update;
-  if invite.id is null then raise exception 'Davet kodu geçersiz, kullanılmış veya süresi dolmuş'; end if;
-  insert into public.workshop_members(workshop_id, user_id, role, is_active)
-  values (invite.workshop_id, auth.uid(), invite.role, true)
-  on conflict (workshop_id, user_id) do update set role = excluded.role, is_active = true;
-  update public.workshop_invites set used_by = auth.uid(), used_at = now(), is_active = false where id = invite.id;
-  return invite.workshop_id;
-end;
-$$;
-'''
-write('supabase/rollbacks/20260712111500_v0_8_5_mechanic_applications_rollback.sql', rollback)
-
-# ---------------- Documentation ----------------
-changelog='''# DraBornGarage v0.8.5
-
-Tarih: 12 Temmuz 2026
-
-## Usta üyeliği
-- Yeni kayıtta **Usta Adayı** hesap seçeneği eklendi.
-- Kullanıcı işletme adını arayıp Usta başvurusu gönderebilir.
-- İşletme sahibi başvuruyu İşletme ve Ekip ekranından onaylar veya reddeder.
-- Onaylanan hesabın aktif Usta üyeliği oluşturulur ve Usta paneli otomatik açılır.
-- İşletmenin oluşturduğu tek kullanımlık Usta davet kodu ile başvuru beklemeden Usta paneline geçilebilir.
-
-## İşletme ve Usta paneli
-- Ana ekranda **Usta Panelim** solda, **İşletme Panelim** sağda gösterilir.
-- Hızlı Servis ve Bırakılan Motor işlemleri yalnız Usta Panelim görünümünde gösterilir.
-- İş Emirleri ekranındaki yeni servis düğmesi de yalnız Usta görünümünde aktiftir.
-
-## Arayüz
-- Bisiklet simgelerinin tamamı özel çizilmiş, daha gerçekçi ve animasyonlu motosiklet simgesiyle değiştirildi.
-- Uygulama genelindeki çok küçük metinler okunabilirliği artıracak şekilde büyütüldü.
-
-## Veritabanı ve güvenlik
-- `mechanic_applications` tablosu, RLS politikaları ve güvenli RPC akışları eklendi.
-- Başvuru, profil ve işletme üyeliği değişiklikleri Realtime ile panele yansır.
-- İşletme başvurularını yalnız ilgili işletme sahibi veya Admin görebilir ve sonuçlandırabilir.
-- `draborneagle@gmail.com` otomatik Ana Admin kuralı korunur.
-'''
-write('docs/CHANGELOG_V0.8.5.md', changelog)

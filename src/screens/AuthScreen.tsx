@@ -17,6 +17,7 @@ export function AuthScreen() {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [registerMode, setRegisterMode] = useState<AccountMode>('customer');
+  const [mechanicSignup, setMechanicSignup] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [plate, setPlate] = useState('');
@@ -47,7 +48,7 @@ export function AuthScreen() {
 
   const submit = async () => {
     const normalizedPlate = plate.trim().toUpperCase();
-    const customerMotorMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer'
+    const customerMotorMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer' && !mechanicSignup
       && (normalizedPlate.replace(/[^A-Z0-9ÇĞİÖŞÜ]/g, '').length < 5 || !motorcycleBrand.trim() || !motorcycleModel.trim());
     const normalizedTaxNumber = taxNumber.replace(/\D/g, '');
     const businessMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'staff'
@@ -72,7 +73,7 @@ export function AuthScreen() {
           email,
           password,
           registerMode,
-          registerMode === 'customer' && !isPrimaryAdminEmail ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel } : undefined,
+          registerMode === 'customer' && !mechanicSignup && !isPrimaryAdminEmail ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel } : undefined,
           registerMode === 'staff' && !isPrimaryAdminEmail ? { business_name: businessName, business_phone: businessPhone || phone, business_address: businessAddress, tax_office: taxOffice, tax_number: normalizedTaxNumber } : undefined,
         );
     setLoading(false);
@@ -90,7 +91,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.4 ONAYLI İŞLETME SİSTEMİ</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.5 USTA BAŞVURU MERKEZİ</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -128,17 +129,23 @@ export function AuthScreen() {
               <>
                 <Text style={[styles.label, { color: colors.textMuted }]}>HESAP TÜRÜ</Text>
                 <View style={styles.accountRow}>
-                  <AccountCard active={registerMode === 'customer'} title="Müşteri" subtitle="Motor, onay, randevu, servis ve bildirim takibi" icon="motorcycle" accent={colors.cyan} onPress={() => setRegisterMode('customer')} />
-                  <AccountCard active={registerMode === 'staff'} title="İşletme Başvurusu" subtitle="Başvurun Admin incelemesinden sonra işletme paneline dönüşür" icon="business" accent={colors.orange} onPress={() => setRegisterMode('staff')} />
+                  <AccountCard active={registerMode === 'customer' && !mechanicSignup} title="Müşteri" subtitle="Motor, randevu, servis ve bildirim takibi" icon="motorcycle" accent={colors.cyan} onPress={() => { setRegisterMode('customer'); setMechanicSignup(false); }} />
+                  <AccountCard active={registerMode === 'customer' && mechanicSignup} title="Usta Adayı" subtitle="İşletme ara, başvur veya Usta davet kodu kullan" icon="construct" accent={colors.green} onPress={() => { setRegisterMode('customer'); setMechanicSignup(true); }} />
+                  <AccountCard active={registerMode === 'staff'} title="İşletme Başvurusu" subtitle="Admin onayıyla işletme panelini aç" icon="business" accent={colors.orange} onPress={() => { setRegisterMode('staff'); setMechanicSignup(false); }} />
                 </View>
                 <FormField label="Ad Soyad" value={fullName} onChangeText={setFullName} placeholder="Örn. Ahmet Yılmaz" autoCapitalize="words" />
                 <FormField label="Telefon" value={phone} onChangeText={setPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" />
-                {registerMode === 'customer' && (
+                {registerMode === 'customer' && !mechanicSignup && (
                   <View style={[styles.motorCard, { backgroundColor: `${colors.cyan}0D`, borderColor: `${colors.cyan}38` }]}>
                     <View style={styles.motorHeader}><AnimatedMotorcycleIcon size={25} color={colors.cyan} /><View style={styles.motorCopy}><Text style={[styles.motorTitle, { color: colors.text }]}>Motosiklet bilgileri</Text><Text style={[styles.motorText, { color: colors.textMuted }]}>Usta hesabını plaka üzerinden güvenle bulabilsin.</Text></View></View>
                     <FormField label="Plaka" value={plate} onChangeText={(value) => setPlate(value.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" />
                     <FormField label="Motosiklet Markası" value={motorcycleBrand} onChangeText={setMotorcycleBrand} placeholder="Örn. Honda" autoCapitalize="words" />
                     <FormField label="Motosiklet Modeli" value={motorcycleModel} onChangeText={setMotorcycleModel} placeholder="Örn. Forza 250" autoCapitalize="words" />
+                  </View>
+                )}
+                {registerMode === 'customer' && mechanicSignup && (
+                  <View style={[styles.motorCard, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}38` }]}>
+                    <View style={styles.motorHeader}><Ionicons name="construct" size={25} color={colors.green} /><View style={styles.motorCopy}><Text style={[styles.motorTitle, { color: colors.text }]}>Usta adayı hesabı</Text><Text style={[styles.motorText, { color: colors.textMuted }]}>Kayıttan sonra Hesabım ekranından işletme adına göre başvurabilir veya işletmenin verdiği Usta kodunu girerek panelini anında açabilirsin.</Text></View></View>
                   </View>
                 )}
                 {registerMode === 'staff' && (
@@ -156,7 +163,7 @@ export function AuthScreen() {
             <FormField label="E-posta" value={email} onChangeText={setEmail} placeholder="hesap@email.com" keyboardType="email-address" autoCapitalize="none" />
             <FormField label="Şifre" value={password} onChangeText={setPassword} placeholder="En az 6 karakter" secureTextEntry />
             {mode === 'register' && isPrimaryAdminEmail && <View style={[styles.secureStrip, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}30` }]}><Ionicons name="shield-checkmark" size={17} color={colors.primary} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Ana Admin e-postası algılandı. Motor veya işletme başvuru bilgileri zorunlu değildir; hesap doğrudan Admin olarak açılır.</Text></View>}
-            <PrimaryButton title={mode === 'login' ? 'Giriş Yap' : isPrimaryAdminEmail ? 'Ana Admin Hesabımı Oluştur' : registerMode === 'customer' ? 'Müşteri Hesabımı Oluştur' : 'İşletme Başvurumu Gönder'} onPress={submit} loading={loading} />
+            <PrimaryButton title={mode === 'login' ? 'Giriş Yap' : isPrimaryAdminEmail ? 'Ana Admin Hesabımı Oluştur' : mechanicSignup ? 'Usta Adayı Hesabımı Oluştur' : registerMode === 'customer' ? 'Müşteri Hesabımı Oluştur' : 'İşletme Başvurumu Gönder'} onPress={submit} loading={loading} />
             <View style={[styles.secureStrip, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}28` }]}><Ionicons name="lock-closed" size={16} color={colors.green} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Müşteri motoru yalnız Usta onayı veya güvenli servis doğrulamasıyla işletmeye bağlanır.</Text></View>
           </GlassCard>
         </ScrollView>
@@ -177,11 +184,11 @@ function AccountCard({ active, title, subtitle, icon, accent, onPress }: { activ
 
 const styles = StyleSheet.create({
   flex: { flex: 1 }, content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingTop: 52, paddingBottom: 42, gap: 20 },
-  hero: { alignItems: 'center', gap: 9 }, systemBadge: { minHeight: 30, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 7 }, onlineDot: { width: 7, height: 7, borderRadius: 7 }, systemText: { fontSize: 10, fontWeight: '900', letterSpacing: 1.05 },
+  hero: { alignItems: 'center', gap: 9 }, systemBadge: { minHeight: 30, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 7 }, onlineDot: { width: 7, height: 7, borderRadius: 7 }, systemText: { fontSize: 12, fontWeight: '900', letterSpacing: 1.05 },
   logoStage: { width: 132, height: 132, alignItems: 'center', justifyContent: 'center' }, logoGlow: { position: 'absolute', width: 104, height: 104, borderRadius: 36, shadowOpacity: 0.8, shadowRadius: 30, elevation: 16 }, logoRing: { position: 'absolute', width: 126, height: 126, borderRadius: 63, borderWidth: 1.5, borderStyle: 'dashed' }, logo: { width: 88, height: 88, borderRadius: 29, alignItems: 'center', justifyContent: 'center' }, miniGear: { position: 'absolute', right: 1, bottom: 11, width: 38, height: 38, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  brandTitle: { fontSize: 34, fontWeight: '900', letterSpacing: -1.3 }, brandText: { textAlign: 'center', maxWidth: 350, lineHeight: 20, fontSize: 13 }, featureRow: { width: '100%', flexDirection: 'row', gap: 7, marginTop: 5 }, feature: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 14, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }, featureText: { fontSize: 10, fontWeight: '900' },
-  card: { gap: 15, paddingTop: 18 }, cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, cardEyebrow: { fontSize: 10.5, fontWeight: '900', letterSpacing: 1.2 }, cardTitle: { fontSize: 20, fontWeight: '900', marginTop: 3 }, cardHeaderIcon: { width: 43, height: 43, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  segment: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: 17, borderWidth: 1, overflow: 'hidden' }, segmentButton: { flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 }, segmentText: { fontSize: 12, fontWeight: '900' },
-  label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.9 }, motorCard: { borderWidth: 1, borderRadius: 19, padding: 13, gap: 12 }, motorHeader: { flexDirection: 'row', alignItems: 'center', gap: 9 }, motorCopy: { flex: 1 }, motorTitle: { fontSize: 13, fontWeight: '900' }, motorText: { fontSize: 10, lineHeight: 15, marginTop: 2 }, accountRow: { flexDirection: 'row', gap: 9 }, accountCard: { flex: 1, minHeight: 145, borderWidth: 1, borderRadius: 18, padding: 12, gap: 7, alignItems: 'flex-start' }, accountTitle: { fontSize: 14, fontWeight: '900' }, accountSub: { flex: 1, fontSize: 10, lineHeight: 15 },
-  secureStrip: { minHeight: 48, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, secureStripText: { flex: 1, fontSize: 10.5, lineHeight: 16, textAlign: 'center' },
+  brandTitle: { fontSize: 34, fontWeight: '900', letterSpacing: -1.3 }, brandText: { textAlign: 'center', maxWidth: 350, lineHeight: 20, fontSize: 13 }, featureRow: { width: '100%', flexDirection: 'row', gap: 7, marginTop: 5 }, feature: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 14, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }, featureText: { fontSize: 12, fontWeight: '900' },
+  card: { gap: 15, paddingTop: 18 }, cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, cardEyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1.2 }, cardTitle: { fontSize: 20, fontWeight: '900', marginTop: 3 }, cardHeaderIcon: { width: 43, height: 43, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  segment: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: 17, borderWidth: 1, overflow: 'hidden' }, segmentButton: { flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 }, segmentText: { fontSize: 13, fontWeight: '900' },
+  label: { fontSize: 12, fontWeight: '900', letterSpacing: 0.9 }, motorCard: { borderWidth: 1, borderRadius: 19, padding: 13, gap: 12 }, motorHeader: { flexDirection: 'row', alignItems: 'center', gap: 9 }, motorCopy: { flex: 1 }, motorTitle: { fontSize: 13, fontWeight: '900' }, motorText: { fontSize: 12, lineHeight: 15, marginTop: 2 }, accountRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, accountCard: { width: '48.5%', minHeight: 150, borderWidth: 1, borderRadius: 18, padding: 12, gap: 7, alignItems: 'flex-start' }, accountTitle: { fontSize: 14, fontWeight: '900' }, accountSub: { flex: 1, fontSize: 12, lineHeight: 15 },
+  secureStrip: { minHeight: 48, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, secureStripText: { flex: 1, fontSize: 12, lineHeight: 16, textAlign: 'center' },
 });
