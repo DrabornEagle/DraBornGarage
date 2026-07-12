@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, LayoutAnimation, Platform, ScrollView, StyleSheet, Text, UIManager, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
@@ -113,6 +113,12 @@ export function ReportsDashboard() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { setViewMode(isOwner ? 'business' : 'personal'); }, [isOwner, workshop?.id]);
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const manager = UIManager as typeof UIManager & { setLayoutAnimationEnabledExperimental?: (enabled: boolean) => void };
+      manager.setLayoutAnimationEnabledExperimental?.(true);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     if (!workshop || membership?.role === 'apprentice') return;
@@ -167,6 +173,11 @@ export function ReportsDashboard() {
 
 function BusinessView({ report }: { report: BusinessReport }) {
   const { colors } = useTheme();
+  const [openSections, setOpenSections] = useState({ topServices: false, recentOrders: false });
+  const toggleSection = (key: 'topServices' | 'recentOrders') => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpenSections((current) => ({ ...current, [key]: !current[key] }));
+  };
   const s = report.summary;
   const totalCollected = n(s.period_cash_collected) + n(s.period_transfer_collected);
   return <View style={styles.stack}>
@@ -190,16 +201,37 @@ function BusinessView({ report }: { report: BusinessReport }) {
     <Text style={[styles.listSubtitle, { color: colors.textMuted }]}>Bu rakamlar maaş, prim, yüzde veya ortaklık payı değildir; yalnız ustanın işlem satırlarına kaydedilen tutardır.</Text>
     <View style={styles.stack}>{report.mechanics.length === 0 ? <Empty text="Usta kaydı bulunamadı." /> : report.mechanics.map((item) => <MechanicCard key={item.user_id} item={item} />)}</View>
 
-    <Text style={[styles.listTitle, { color: colors.text }]}>En Çok Yapılan İşlemler</Text>
-    <GlassCard style={styles.listCard}>{report.top_services.length === 0 ? <Empty text="İşlem verisi yok." /> : report.top_services.map((item, index) => <View key={`${item.title}-${index}`} style={[styles.rankRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={[styles.rank, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.rankText, { color: colors.primary }]}>{index + 1}</Text></View><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{item.service_count} işlem</Text></View><Text style={[styles.rowAmount, { color: colors.green }]}>{money(n(item.recorded_amount))}</Text></View>)}</GlassCard>
+    <ReportAccordionSection
+      title="En Çok Yapılan İşlemler"
+      subtitle={report.top_services.length + ' işlem türü • seçilen dönem'}
+      icon="podium"
+      accent={colors.primary}
+      open={openSections.topServices}
+      onToggle={() => toggleSection('topServices')}
+    >
+      <GlassCard style={styles.listCard}>{report.top_services.length === 0 ? <Empty text="İşlem verisi yok." /> : report.top_services.map((item, index) => <View key={item.title + '-' + index} style={[styles.rankRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={[styles.rank, { backgroundColor: colors.primary + '16' }]}><Text style={[styles.rankText, { color: colors.primary }]}>{index + 1}</Text></View><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{item.service_count} işlem</Text></View><Text style={[styles.rowAmount, { color: colors.green }]}>{money(n(item.recorded_amount))}</Text></View>)}</GlassCard>
+    </ReportAccordionSection>
 
-    <Text style={[styles.listTitle, { color: colors.text }]}>Son Servis Kayıtları</Text>
-    <View style={styles.stack}>{report.recent_orders.length === 0 ? <Empty text="Bu dönemde servis kaydı yok." /> : report.recent_orders.slice(0, 30).map((item) => <BusinessJobCard key={item.work_order_id} item={item} />)}</View>
+    <ReportAccordionSection
+      title="Son Servis Kayıtları"
+      subtitle={report.recent_orders.length + ' servis kaydı • en yeni önce'}
+      icon="time"
+      accent={colors.orange}
+      open={openSections.recentOrders}
+      onToggle={() => toggleSection('recentOrders')}
+    >
+      <View style={styles.stack}>{report.recent_orders.length === 0 ? <Empty text="Bu dönemde servis kaydı yok." /> : report.recent_orders.slice(0, 30).map((item) => <BusinessJobCard key={item.work_order_id} item={item} />)}</View>
+    </ReportAccordionSection>
   </View>;
 }
 
 function PersonalView({ report }: { report: PersonalReport }) {
   const { colors } = useTheme();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const toggleHistory = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setHistoryOpen((current) => !current);
+  };
   const s = report.summary;
   return <View style={styles.stack}>
     <LinearGradient colors={[colors.green, colors.cyan, colors.primary]} style={styles.hero}>
@@ -220,9 +252,29 @@ function PersonalView({ report }: { report: PersonalReport }) {
 
     <ChartSection title="Kişisel İş Akışın" subtitle="Saat saat gelen motorlar ve günlük kaydettiğin işlem tutarı." daily={report.daily_trend} hourly={report.hourly_arrivals} />
 
-    <Text style={[styles.listTitle, { color: colors.text }]}>Kişisel İş Geçmişim</Text>
-    <Text style={[styles.listSubtitle, { color: colors.textMuted }]}>Motorun geliş saati, yaptığın işlemler, kaydettiğin tutar ve kullandığın parçalar.</Text>
-    <View style={styles.stack}>{report.jobs.length === 0 ? <Empty text="Bu dönemde sana ait iş kaydı yok." /> : report.jobs.map((item) => <PersonalJobCard key={item.work_order_id} item={item} />)}</View>
+    <ReportAccordionSection
+      title="Kişisel İş Geçmişim"
+      subtitle={report.jobs.length + ' motor • işlem, tutar ve parça ayrıntıları'}
+      icon="person-circle"
+      accent={colors.green}
+      open={historyOpen}
+      onToggle={toggleHistory}
+    >
+      <Text style={[styles.listSubtitle, { color: colors.textMuted }]}>Motorun geliş saati, yaptığın işlemler, kaydettiğin tutar ve kullandığın parçalar.</Text>
+      <View style={styles.stack}>{report.jobs.length === 0 ? <Empty text="Bu dönemde sana ait iş kaydı yok." /> : report.jobs.map((item) => <PersonalJobCard key={item.work_order_id} item={item} />)}</View>
+    </ReportAccordionSection>
+  </View>;
+}
+
+function ReportAccordionSection({ title, subtitle, icon, accent, open, onToggle, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return <View style={[styles.reportAccordion, { backgroundColor: colors.card, borderColor: open ? accent + '55' : colors.border }]}>
+    <AnimatedPressable onPress={onToggle} style={styles.reportAccordionHeader}>
+      <View style={[styles.reportAccordionIcon, { backgroundColor: accent + '16' }]}><Ionicons name={icon} size={22} color={accent} /></View>
+      <View style={styles.copy}><Text style={[styles.reportAccordionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.reportAccordionSubtitle, { color: colors.textMuted }]}>{subtitle}</Text></View>
+      <View style={[styles.reportAccordionChevron, { backgroundColor: accent + '12', borderColor: accent + '35' }]}><Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={accent} /></View>
+    </AnimatedPressable>
+    {open && <View style={[styles.reportAccordionBody, { borderTopColor: colors.border }]}>{children}</View>}
   </View>;
 }
 
@@ -296,6 +348,7 @@ const styles = StyleSheet.create({
   loading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, loadingText: { fontSize: 12.5, fontWeight: '800' },
   hero: { minHeight: 155, borderRadius: 27, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, heroLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '900', letterSpacing: 1 }, heroValue: { color: '#fff', fontSize: 31, fontWeight: '900', marginTop: 8 }, heroMeta: { color: 'rgba(255,255,255,0.78)', fontSize: 12, marginTop: 5 }, heroSide: { alignItems: 'flex-end', gap: 12 }, heroSideText: { color: '#fff', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'right' },
   metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, metric: { width: '31.5%', minWidth: 0, minHeight: 107, borderWidth: 1, borderRadius: 19, padding: 10 }, metricIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, metricValue: { fontSize: 12.5, fontWeight: '900', marginTop: 9 }, metricLabel: { fontSize: 10, lineHeight: 12, fontWeight: '800', marginTop: 4 },
+  reportAccordion: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' }, reportAccordionHeader: { minHeight: 82, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 }, reportAccordionIcon: { width: 47, height: 47, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, reportAccordionTitle: { fontSize: 15.5, fontWeight: '900' }, reportAccordionSubtitle: { fontSize: 11.5, lineHeight: 15, marginTop: 4 }, reportAccordionChevron: { width: 38, height: 38, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, reportAccordionBody: { borderTopWidth: 1, padding: 12, gap: 12 },
   disclaimer: { fontSize: 12.5, lineHeight: 18, textAlign: 'center' }, listTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 }, listSubtitle: { fontSize: 12, lineHeight: 16, marginTop: -7 },
   chartCard: { gap: 12 }, chartLabel: { fontSize: 11, fontWeight: '900', letterSpacing: 1 }, bars: { alignItems: 'flex-end', gap: 8, minHeight: 150, paddingRight: 8 }, barColumn: { width: 42, alignItems: 'center', gap: 6 }, barValue: { fontSize: 10, fontWeight: '900' }, barTrack: { width: 20, height: 100, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' }, barFill: { width: '100%', borderRadius: 8 }, barLabel: { fontSize: 9.5, fontWeight: '800' },
   hourBars: { alignItems: 'flex-end', gap: 5, minHeight: 130, paddingRight: 8 }, hourColumn: { width: 27, alignItems: 'center', gap: 5 }, hourValue: { fontSize: 10, fontWeight: '900' }, hourTrack: { width: 12, height: 82, borderRadius: 6, overflow: 'hidden', justifyContent: 'flex-end' }, hourFill: { width: '100%', borderRadius: 6 },

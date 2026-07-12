@@ -15,7 +15,7 @@ import { PrimaryButton } from './PrimaryButton';
 type PlatformStatus = 'disabled' | 'open' | 'due_today' | 'overdue' | 'payment_reported' | 'partially_paid' | 'paid';
 type ReportStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 type BillingCycle = 'weekly' | 'monthly';
-type PlatformAccordionKey = 'paymentInfo' | 'paymentForm' | 'paymentReports' | 'periods' | 'charges';
+type PlatformAccordionKey = 'paymentInfo' | 'periods' | 'charges';
 
 type PlatformSummary = {
   status: PlatformStatus;
@@ -199,8 +199,6 @@ export function PlatformFeesDashboard() {
   const [globalNote, setGlobalNote] = useState('');
   const [expandedSections, setExpandedSections] = useState<Record<PlatformAccordionKey, boolean>>({
     paymentInfo: true,
-    paymentForm: false,
-    paymentReports: false,
     periods: false,
     charges: false,
   });
@@ -396,14 +394,13 @@ export function PlatformFeesDashboard() {
       <BankCard settings={g} />
     </AccordionSection>
 
-    <AccordionSection
-      title="Ödeme Bildir"
-      subtitle={number(s.available_to_report) > 0 ? 'Bildirilebilir tutar ' + money(number(s.available_to_report)) : 'Bildirilebilir açık borç bulunmuyor'}
-      icon="paper-plane"
-      accent={colors.green}
-      open={expandedSections.paymentForm}
-      onToggle={() => toggleSection('paymentForm')}
-    >
+    <View style={styles.staticSection}>
+      <StaticSectionHeader
+        title="Ödeme Bildir"
+        subtitle={number(s.available_to_report) > 0 ? 'Bildirilebilir tutar ' + money(number(s.available_to_report)) : 'Bildirilebilir açık borç bulunmuyor'}
+        icon="paper-plane"
+        accent={colors.green}
+      />
       {number(s.available_to_report) > 0 ? <GlassCard style={styles.formCard}>
         <View style={styles.formTitleRow}><View style={[styles.formIcon, { backgroundColor: colors.green + '15' }]}><Ionicons name="paper-plane" size={23} color={colors.green} /></View><View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>Yeni Ödeme Bildirimi</Text><Text style={[styles.formText, { color: colors.textMuted }]}>Gönderdiğin tutar en eski borç döneminden başlayarak otomatik dağıtılır.</Text></View></View>
         <FormField label={'Gönderilen tutar • En fazla ' + money(number(s.available_to_report))} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0,00" />
@@ -417,7 +414,7 @@ export function PlatformFeesDashboard() {
         {receipt && <AnimatedPressable onPress={() => setReceipt(null)}><Text style={[styles.removeReceipt, { color: colors.red }]}>Dekontu kaldır</Text></AnimatedPressable>}
         <PrimaryButton title="Ödemeyi Admin Onayına Gönder" onPress={reportPayment} loading={saving} />
       </GlassCard> : <Empty text="Şu anda bildirilebilecek açık platform borcu yok." />}
-    </AccordionSection>
+    </View>
 
     {isAdmin && <>
       <Text style={[styles.listTitle, { color: colors.text }]}>Admin Platform Ayarları</Text>
@@ -443,16 +440,15 @@ export function PlatformFeesDashboard() {
       </GlassCard>
     </>}
 
-    <AccordionSection
-      title="Ödeme Bildirimleri"
-      subtitle={dashboard.payment_reports.length + ' bildirim • ' + money(number(s.total_pending)) + ' onay bekliyor'}
-      icon="notifications"
-      accent={colors.cyan}
-      open={expandedSections.paymentReports}
-      onToggle={() => toggleSection('paymentReports')}
-    >
+    <View style={styles.staticSection}>
+      <StaticSectionHeader
+        title="Ödeme Bildirimleri"
+        subtitle={dashboard.payment_reports.length + ' bildirim • ' + money(number(s.total_pending)) + ' onay bekliyor'}
+        icon="notifications"
+        accent={colors.cyan}
+      />
       <View style={styles.stack}>{dashboard.payment_reports.length === 0 ? <Empty text="Henüz ödeme bildirimi yok." /> : dashboard.payment_reports.map((report) => <PaymentReportCard key={report.id} report={report} isAdmin={isAdmin} reviewNote={reviewNotes[report.id] || ''} onReviewNote={(value) => setReviewNotes((current) => ({ ...current, [report.id]: value }))} onApprove={() => review(report.id, true)} onReject={() => review(report.id, false)} onCancel={() => cancelReport(report.id)} onOpenReceipt={() => report.receipt_path && openReceipt(report.receipt_path)} loading={saving} />)}</View>
-    </AccordionSection>
+    </View>
 
     <AccordionSection
       title="Dönem Borçları"
@@ -504,6 +500,14 @@ function AccordionSection({ title, subtitle, icon, accent, open, onToggle, child
       <View style={[styles.accordionChevron, { backgroundColor: accent + '12', borderColor: accent + '35' }]}><Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={accent} /></View>
     </AnimatedPressable>
     {open && <View style={[styles.accordionBody, { borderTopColor: colors.border }]}>{children}</View>}
+  </View>;
+}
+
+function StaticSectionHeader({ title, subtitle, icon, accent }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string }) {
+  const { colors } = useTheme();
+  return <View style={[styles.staticHeader, { backgroundColor: colors.card, borderColor: accent + '42' }]}>
+    <View style={[styles.accordionIcon, { backgroundColor: accent + '15' }]}><Ionicons name={icon} size={23} color={accent} /></View>
+    <View style={styles.copy}><Text style={[styles.accordionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.accordionSub, { color: colors.textMuted }]}>{subtitle}</Text></View>
   </View>;
 }
 
@@ -559,6 +563,7 @@ const styles = StyleSheet.create({
   adminHero: { minHeight: 132, borderRadius: 25, padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, adminHeroValue: { color: '#fff', fontSize: 28, fontWeight: '900', marginTop: 7 }, businessRow: { gap: 9, paddingRight: 8 }, businessCard: { width: 215, minHeight: 112, borderRadius: 19, borderWidth: 1, padding: 13, gap: 7 }, businessHead: { flexDirection: 'row', alignItems: 'center', gap: 7 }, businessName: { flex: 1, fontSize: 12.5, fontWeight: '900' }, businessAmount: { fontSize: 20, fontWeight: '900' }, businessMeta: { fontSize: 10, lineHeight: 13 },
   metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, metric: { width: '31.5%', minHeight: 105, borderRadius: 19, borderWidth: 1, padding: 10 }, metricIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, metricValue: { fontSize: 13, fontWeight: '900', marginTop: 8 }, metricLabel: { fontSize: 10, lineHeight: 12, fontWeight: '800', marginTop: 4 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 11 }, noticeTitle: { fontSize: 14, fontWeight: '900' }, noticeText: { fontSize: 12, lineHeight: 16, marginTop: 4 },
+  staticSection: { gap: 10 }, staticHeader: { minHeight: 82, padding: 14, borderWidth: 1, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 11 },
   accordion: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' }, accordionHeader: { minHeight: 82, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 }, accordionIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, accordionTitle: { fontSize: 15.5, fontWeight: '900' }, accordionSub: { fontSize: 11.5, lineHeight: 15, marginTop: 4 }, accordionChevron: { width: 38, height: 38, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, accordionBody: { borderTopWidth: 1, padding: 12, gap: 12 },
   bankCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 }, bankIcon: { width: 47, height: 47, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, bankTitle: { fontSize: 15, fontWeight: '900' }, bankName: { fontSize: 11, marginTop: 4 }, iban: { fontSize: 13.5, fontWeight: '900', letterSpacing: 0.5, marginTop: 8 }, bankNote: { fontSize: 11, lineHeight: 14, marginTop: 6 },
   formCard: { gap: 13 }, formTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 }, formIcon: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, formTitle: { fontSize: 16, fontWeight: '900' }, formText: { fontSize: 12, lineHeight: 16, marginTop: 3 },
