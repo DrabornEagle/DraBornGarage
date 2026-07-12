@@ -7,6 +7,9 @@ on:
     paths:
       - scripts/apply_v086_release.mjs
       - .github/workflows/v086-validate.yml
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
