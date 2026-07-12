@@ -6,6 +6,7 @@ on:
       - feature/v0.8.6-customer-discovery-booking
     paths:
       - scripts/apply_v086_release.mjs
+      - scripts/fix_v086_types.mjs
       - .github/workflows/v086-validate.yml
   pull_request:
     branches:
@@ -34,6 +35,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
+      - name: Restore shared type exports
+        run: node scripts/fix_v086_types.mjs
 
       - name: Apply v0.8.6 release metadata
         run: node scripts/apply_v086_release.mjs
@@ -73,6 +77,7 @@ jobs:
       - name: Remove one-time release files
         run: |
           rm -f scripts/apply_v086_release.mjs
+          rm -f scripts/fix_v086_types.mjs
           rm -f .github/workflows/v086-validate.yml
           rm -f docs/V086_PLAN.md
 
