@@ -304,7 +304,7 @@ export interface CustomerClaim {
   id: string;
   workshop_id: string;
   workshop_name: string;
-  motorcycle_id: string;
+  motorcycle_id?: string | null;
   brand: string;
   model: string;
   plate?: string | null;
@@ -339,9 +339,9 @@ export interface StaffCustomerClaim {
   user_id: string;
   claimant_name: string;
   claimant_phone?: string | null;
-  customer_id: string;
+  customer_id?: string | null;
   customer_name: string;
-  motorcycle_id: string;
+  motorcycle_id?: string | null;
   brand: string;
   model: string;
   plate?: string | null;
@@ -384,7 +384,6 @@ export interface MechanicTimeOff {
   starts_at: string;
   ends_at: string;
   reason?: string | null;
-  created_at: string;
 }
 
 export interface Appointment {
@@ -411,6 +410,29 @@ export interface Appointment {
   work_order_id?: string | null;
   created_at: string;
 }
+
+export interface AppointmentWorkingHour {
+  id: string;
+  mechanic_id: string;
+  mechanic_name: string;
+  day_of_week: number;
+  is_working: boolean;
+  start_time: string;
+  end_time: string;
+  break_start?: string | null;
+  break_end?: string | null;
+  slot_minutes: number;
+}
+
+export interface MechanicTimeOffItem {
+  id: string;
+  mechanic_id: string;
+  mechanic_name: string;
+  starts_at: string;
+  ends_at: string;
+  reason?: string | null;
+}
+
 
 export interface AppointmentEvent {
   id: string;
