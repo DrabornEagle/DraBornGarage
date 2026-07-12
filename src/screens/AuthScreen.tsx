@@ -90,7 +90,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.5 AKILLI SERVİS SİSTEMİ</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.9 AKILLI SERVİS SİSTEMİ</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -148,10 +148,10 @@ export function AuthScreen() {
                 {registerMode === 'staff' && (
                   <View style={[styles.motorCard, { backgroundColor: `${colors.orange}0D`, borderColor: `${colors.orange}38` }]}>
                     <View style={styles.motorHeader}><Ionicons name="business" size={24} color={colors.orange} /><View style={styles.motorCopy}><Text style={[styles.motorTitle, { color: colors.text }]}>İşletme başvuru bilgileri</Text><Text style={[styles.motorText, { color: colors.textMuted }]}>Hesabın önce kullanıcı olarak açılır. Admin onayından sonra işletme panelin otomatik açılır.</Text></View></View>
-                    <FormField label="İşletme Adı" value={businessName} onChangeText={setBusinessName} placeholder="Örn. Lara Moto Garage" autoCapitalize="words" />
+                    <FormField label="İşletme Adı" value={businessName} onChangeText={setBusinessName} placeholder="Örn. Çankaya Moto Garage" autoCapitalize="words" />
                     <FormField label="İşletme Telefonu" value={businessPhone} onChangeText={setBusinessPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" />
                     <FormField label="İşletme Adresi" value={businessAddress} onChangeText={setBusinessAddress} multiline placeholder="İl, ilçe, mahalle ve açık adres" />
-                    <FormField label="Vergi Dairesi" value={taxOffice} onChangeText={setTaxOffice} placeholder="Örn. Muratpaşa Vergi Dairesi" autoCapitalize="words" />
+                    <FormField label="Vergi Dairesi" value={taxOffice} onChangeText={setTaxOffice} placeholder="Örn. Çankaya Vergi Dairesi" autoCapitalize="words" />
                     <FormField label="Vergi Numarası" value={taxNumber} onChangeText={(value) => setTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} placeholder="10 veya 11 hane" />
                   </View>
                 )}
