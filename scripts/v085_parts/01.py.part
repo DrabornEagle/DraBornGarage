@@ -1,0 +1,143 @@
+from pathlib import Path
+import json, re
+
+root = Path.cwd()
+
+def read(rel): return (root/rel).read_text()
+def write(rel, s):
+    p=root/rel; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(s)
+def replace_once(rel, before, after):
+    s=read(rel)
+    n=s.count(before)
+    if n!=1:
+        raise RuntimeError(f'{rel}: expected 1 target, found {n}: {before[:140]!r}')
+    write(rel, s.replace(before, after, 1))
+
+# ---------------- Types ----------------
+replace_once('src/types.ts',
+"export type BusinessApplicationStatus = 'pending' | 'approved' | 'rejected';",
+"export type BusinessApplicationStatus = 'pending' | 'approved' | 'rejected';\nexport type MechanicApplicationStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';")
+replace_once('src/types.ts',
+"export interface Profile {",
+"""export interface WorkshopSearchResult {
+  id: string;
+  name: string;
+  phone?: string | null;
+  address?: string | null;
+}
+
+export interface MechanicApplication {
+  id: string;
+  user_id?: string;
+  workshop_id: string;
+  workshop_name: string;
+  workshop_phone?: string | null;
+  workshop_address?: string | null;
+  applicant_name?: string | null;
+  applicant_phone?: string | null;
+  applicant_email?: string | null;
+  applicant_note?: string | null;
+  status: MechanicApplicationStatus;
+  submitted_at: string;
+  reviewed_at?: string | null;
+  review_note?: string | null;
+}
+
+export interface Profile {""")
+
+# ---------------- Auth context ----------------
+rel='src/context/AuthContext.tsx'
+s=read(rel)
+s=s.replace(
+"import { AccountMode, BusinessApplication, BusinessRegistrationData, CustomerRegistrationMotor, CustomerWorkshopLink, MemberRole, Profile, Workshop, WorkshopMember } from '../types';",
+"import { AccountMode, BusinessApplication, BusinessRegistrationData, CustomerRegistrationMotor, CustomerWorkshopLink, MechanicApplication, MemberRole, Profile, Workshop, WorkshopMember, WorkshopSearchResult } from '../types';")
+s=s.replace("  businessApplication: BusinessApplication | null;\n", "  businessApplication: BusinessApplication | null;\n  mechanicApplications: MechanicApplication[];\n")
+s=s.replace("  joinWorkshop: (code: string) => Promise<string | null>;\n", "  joinWorkshop: (code: string) => Promise<string | null>;\n  searchWorkshops: (query: string) => Promise<{ data: WorkshopSearchResult[]; error?: string }>;\n  applyAsMechanic: (workshopId: string, note?: string) => Promise<string | null>;\n")
+s=s.replace("  const [businessApplication, setBusinessApplication] = useState<BusinessApplication | null>(null);\n", "  const [businessApplication, setBusinessApplication] = useState<BusinessApplication | null>(null);\n  const [mechanicApplications, setMechanicApplications] = useState<MechanicApplication[]>([]);\n")
+s=s.replace("    setBusinessApplication(null);\n", "    setBusinessApplication(null);\n    setMechanicApplications([]);\n")
+s=s.replace(
+"    const [{ data: profileData, error: profileError }, { data: memberData }, customerWorkshopResult, { data: applicationData }] = await Promise.all([",
+"    const [{ data: profileData, error: profileError }, { data: memberData }, customerWorkshopResult, { data: applicationData }, mechanicApplicationResult] = await Promise.all([")
+s=s.replace(
+"      supabase.from('business_applications').select('id,user_id,business_name,business_phone,business_address,tax_office,tax_number,status,submitted_at,reviewed_at,review_note,workshop_id').eq('user_id', userId).maybeSingle(),\n    ]);",
+"      supabase.from('business_applications').select('id,user_id,business_name,business_phone,business_address,tax_office,tax_number,status,submitted_at,reviewed_at,review_note,workshop_id').eq('user_id', userId).maybeSingle(),\n      supabase.rpc('customer_get_mechanic_applications'),\n    ]);")
+s=s.replace(
+"    setBusinessApplication((applicationData as BusinessApplication | null) ?? null);\n",
+"    setBusinessApplication((applicationData as BusinessApplication | null) ?? null);\n    setMechanicApplications((mechanicApplicationResult.data as MechanicApplication[] | null) ?? []);\n")
+s=s.replace(
+"      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())\n",
+"      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())\n      .on('postgres_changes', { event: '*', schema: 'public', table: 'mechanic_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())\n")
+s=s.replace("    businessApplication,\n    isAdmin", "    businessApplication,\n    mechanicApplications,\n    isAdmin")
+s=s.replace(
+"    joinWorkshop: async (code) => {\n      const { data, error } = await supabase.rpc('join_workshop_by_code', { p_code: code.trim().toUpperCase() });\n      if (error) return error.message;\n      await supabase.rpc('set_profile_account_mode', { p_mode: 'staff' });\n      await refreshWorkspace(data ? String(data) : null, customerWorkshop?.workshop_id ?? null);\n      return null;\n    },\n",
+"""    joinWorkshop: async (code) => {
+      const { data, error } = await supabase.rpc('join_workshop_by_code', { p_code: code.trim().toUpperCase() });
+      if (error) return error.message;
+      await refreshWorkspace(data ? String(data) : null, customerWorkshop?.workshop_id ?? null);
+      return null;
+    },
+    searchWorkshops: async (query) => {
+      const { data, error } = await supabase.rpc('search_active_workshops', { p_query: query.trim() });
+      return error
+        ? { data: [], error: error.message }
+        : { data: (data as WorkshopSearchResult[] | null) ?? [] };
+    },
+    applyAsMechanic: async (workshopId, note = '') => {
+      const { error } = await supabase.rpc('submit_mechanic_application', {
+        p_workshop_id: workshopId,
+        p_note: note.trim() || null,
+      });
+      if (error) return error.message;
+      await refreshWorkspace(workshop?.id ?? null, customerWorkshop?.workshop_id ?? null);
+      return null;
+    },
+""")
+s=s.replace(
+"  }), [session, profile, workshop, workshops, membership, memberships, customerWorkshop, customerWorkshops, businessApplication, loading, refreshWorkspace, clearState]);",
+"  }), [session, profile, workshop, workshops, membership, memberships, customerWorkshop, customerWorkshops, businessApplication, mechanicApplications, loading, refreshWorkspace, clearState]);")
+write(rel,s)
+
+# ---------------- Auth screen: customer / mechanic / business registration ----------------
+rel='src/screens/AuthScreen.tsx'; s=read(rel)
+s=s.replace("  const [registerMode, setRegisterMode] = useState<AccountMode>('customer');\n", "  const [registerMode, setRegisterMode] = useState<AccountMode>('customer');\n  const [mechanicSignup, setMechanicSignup] = useState(false);\n")
+s=s.replace("mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer'", "mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer' && !mechanicSignup")
+s=s.replace("registerMode === 'customer' && !isPrimaryAdminEmail ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel } : undefined", "registerMode === 'customer' && !mechanicSignup && !isPrimaryAdminEmail ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel } : undefined")
+s=s.replace("GARAGE OS • v0.8.4 ONAYLI İŞLETME SİSTEMİ", "GARAGE OS • v0.8.5 USTA BAŞVURU MERKEZİ")
+s=s.replace(
+'''                <View style={styles.accountRow}>
+                  <AccountCard active={registerMode === 'customer'} title="Müşteri" subtitle="Motor, onay, randevu, servis ve bildirim takibi" icon="motorcycle" accent={colors.cyan} onPress={() => setRegisterMode('customer')} />
+                  <AccountCard active={registerMode === 'staff'} title="İşletme Başvurusu" subtitle="Başvurun Admin incelemesinden sonra işletme paneline dönüşür" icon="business" accent={colors.orange} onPress={() => setRegisterMode('staff')} />
+                </View>''',
+'''                <View style={styles.accountRow}>
+                  <AccountCard active={registerMode === 'customer' && !mechanicSignup} title="Müşteri" subtitle="Motor, randevu, servis ve bildirim takibi" icon="motorcycle" accent={colors.cyan} onPress={() => { setRegisterMode('customer'); setMechanicSignup(false); }} />
+                  <AccountCard active={registerMode === 'customer' && mechanicSignup} title="Usta Adayı" subtitle="İşletme ara, başvur veya Usta davet kodu kullan" icon="construct" accent={colors.green} onPress={() => { setRegisterMode('customer'); setMechanicSignup(true); }} />
+                  <AccountCard active={registerMode === 'staff'} title="İşletme Başvurusu" subtitle="Admin onayıyla işletme panelini aç" icon="business" accent={colors.orange} onPress={() => { setRegisterMode('staff'); setMechanicSignup(false); }} />
+                </View>''')
+s=s.replace("                {registerMode === 'customer' && (", "                {registerMode === 'customer' && !mechanicSignup && (")
+s=s.replace(
+"                {registerMode === 'staff' && (",
+"""                {registerMode === 'customer' && mechanicSignup && (
+                  <View style={[styles.motorCard, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}38` }]}>
+                    <View style={styles.motorHeader}><Ionicons name="construct" size={25} color={colors.green} /><View style={styles.motorCopy}><Text style={[styles.motorTitle, { color: colors.text }]}>Usta adayı hesabı</Text><Text style={[styles.motorText, { color: colors.textMuted }]}>Kayıttan sonra Hesabım ekranından işletme adına göre başvurabilir veya işletmenin verdiği Usta kodunu girerek panelini anında açabilirsin.</Text></View></View>
+                  </View>
+                )}
+                {registerMode === 'staff' && (""")
+s=s.replace(
+"<PrimaryButton title={mode === 'login' ? 'Giriş Yap' : isPrimaryAdminEmail ? 'Ana Admin Hesabımı Oluştur' : registerMode === 'customer' ? 'Müşteri Hesabımı Oluştur' : 'İşletme Başvurumu Gönder'} onPress={submit} loading={loading} />",
+"<PrimaryButton title={mode === 'login' ? 'Giriş Yap' : isPrimaryAdminEmail ? 'Ana Admin Hesabımı Oluştur' : mechanicSignup ? 'Usta Adayı Hesabımı Oluştur' : registerMode === 'customer' ? 'Müşteri Hesabımı Oluştur' : 'İşletme Başvurumu Gönder'} onPress={submit} loading={loading} />")
+s=s.replace("accountRow: { flexDirection: 'row', gap: 9 }", "accountRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }")
+s=s.replace("accountCard: { flex: 1, minHeight: 145", "accountCard: { width: '48.5%', minHeight: 150")
+write(rel,s)
+
+# ---------------- Controlled panel mode & creation permissions ----------------
+rel='src/screens/HomeScreen.tsx'; s=read(rel)
+s=s.replace("import { AnimatedPressable } from '../components/AnimatedPressable';", "import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';\nimport { AnimatedPressable } from '../components/AnimatedPressable';")
+s=s.replace("type PanelMode = 'business' | 'mechanic';", "export type PanelMode = 'business' | 'mechanic';")
+s=s.replace(
+"  onOpenOrders,\n}: {\n  onNewOrder: (mode?: ServiceType) => void;\n  onOpenOrders: () => void;\n}) {",
+"  onOpenOrders,\n  panelMode,\n  onPanelModeChange,\n}: {\n  onNewOrder: (mode?: ServiceType) => void;\n  onOpenOrders: () => void;\n  panelMode: PanelMode;\n  onPanelModeChange: (mode: PanelMode) => void;\n}) {")
+s=s.replace("  const [panelMode, setPanelMode] = useState<PanelMode>(isOwner ? 'business' : 'mechanic');\n", "")
+s=s.replace("    setPanelMode(isOwner ? 'business' : 'mechanic');\n", "")
+s=s.replace("{(['business', 'mechanic'] as PanelMode[]).map((value) => {", "{(['mechanic', 'business'] as PanelMode[]).map((value) => {")
+s=s.replace("onPress={() => setPanelMode(value)}", "onPress={() => onPanelModeChange(value)}")
+s=s.replace("{value === 'business' ? 'İşletme Paneli' : 'Usta Panelim'}", "{value === 'business' ? 'İşletme Panelim' : 'Usta Panelim'}")
