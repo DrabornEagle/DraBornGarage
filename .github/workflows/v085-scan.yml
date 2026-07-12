@@ -26,9 +26,18 @@ jobs:
             find src -type f | sort
           } > v085-scan.txt
           cat v085-scan.txt
+      - name: Create repository snapshot
+        run: |
+          zip -qr draborngarage-v085-repo.zip . -x '.git/*' 'node_modules/*' 'dist/*'
       - name: Upload scan report
         uses: actions/upload-artifact@v4
         with:
           name: draborngarage-v085-scan
           path: v085-scan.txt
+          retention-days: 7
+      - name: Upload repository snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: draborngarage-v085-repo
+          path: draborngarage-v085-repo.zip
           retention-days: 7
