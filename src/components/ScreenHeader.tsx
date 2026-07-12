@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   copy: { flex: 1 },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
   liveDot: { width: 7, height: 7, borderRadius: 7 },
-  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1.25, textTransform: 'uppercase' },
+  eyebrow: { fontSize: 13, fontWeight: '900', letterSpacing: 1.25, textTransform: 'uppercase' },
   microRail: { width: 24, height: 1 },
   title: { fontSize: 29, fontWeight: '900', letterSpacing: -0.8 },
   subtitle: { fontSize: 15, marginTop: 5, lineHeight: 20 },

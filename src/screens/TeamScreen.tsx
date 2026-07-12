@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
-import { MemberRole } from '../types';
+import { MechanicApplication, MemberRole } from '../types';
 
 const roleLabels: Record<MemberRole, string> = {
   owner: 'İşletme Sahibi',
@@ -26,6 +26,7 @@ export function TeamScreen() {
   const { workshop, workshops, membership, isAdmin, createInviteCode, selectWorkshop, createWorkshop, refreshWorkspace } = useAuth();
   const [members, setMembers] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [mechanicApplications, setMechanicApplications] = useState<MechanicApplication[]>([]);
   const [latestCode, setLatestCode] = useState<{ code: string; role: MemberRole } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
@@ -53,19 +54,29 @@ export function TeamScreen() {
   const load = useCallback(async () => {
     if (!workshop || !membership) return;
     if (isOwner) {
-      const [memberResult, serviceResult] = await Promise.all([
+      const [memberResult, serviceResult, applicationResult] = await Promise.all([
         supabase.from('workshop_members').select('user_id,role,is_active,joined_at,availability_status,staff_note,profile:profiles(full_name,phone)').eq('workshop_id', workshop.id).order('joined_at'),
         supabase.from('work_order_services').select('mechanic_id,price,completed').eq('workshop_id', workshop.id).eq('completed', true),
+        supabase.rpc('owner_get_mechanic_applications', { p_workshop_id: workshop.id }),
       ]);
       setMembers(memberResult.data ?? []);
       setServices(serviceResult.data ?? []);
+      setMechanicApplications((applicationResult.data as MechanicApplication[] | null) ?? []);
     } else {
+      setMechanicApplications([]);
       const { data } = await supabase.from('work_order_services').select('id,title,price,completed,created_at,work_order:work_orders(customer:customers(full_name),motorcycle:motorcycles(brand,model,plate))').eq('mechanic_id', membership.user_id).eq('completed', true).order('created_at', { ascending: false });
       setServices(data ?? []);
     }
   }, [workshop, membership, isOwner]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!workshop?.id || !isOwner) return;
+    const channel = supabase.channel(`owner-mechanic-applications-${workshop.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mechanic_applications', filter: `workshop_id=eq.${workshop.id}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, isOwner, load]);
 
   const generate = async (role: MemberRole) => {
     setLoading(true);
@@ -108,6 +119,26 @@ export function TeamScreen() {
     if (error) return Alert.alert('İşletme durumu değiştirilemedi', error.message);
     await refreshWorkspace(workshop?.id ?? null);
   };
+
+  const reviewMechanicApplication = (application: MechanicApplication, approve: boolean) => Alert.alert(
+    approve ? 'Usta başvurusunu onayla' : 'Usta başvurusunu reddet',
+    `${application.applicant_name || 'Usta adayı'} • ${application.applicant_phone || application.applicant_email || 'İletişim yok'}`,
+    [
+      { text: 'Vazgeç', style: 'cancel' },
+      { text: approve ? 'Onayla ve Usta Panelini Aç' : 'Reddet', style: approve ? 'default' : 'destructive', onPress: async () => {
+        setLoading(true);
+        const { error } = await supabase.rpc('owner_review_mechanic_application', {
+          p_application_id: application.id,
+          p_approve: approve,
+          p_note: approve ? 'İşletme tarafından Usta olarak onaylandı' : 'Başvuru işletme tarafından uygun bulunmadı',
+        });
+        setLoading(false);
+        if (error) return Alert.alert('Başvuru sonuçlandırılamadı', error.message);
+        await load();
+        Alert.alert(approve ? 'Usta paneli açıldı' : 'Başvuru reddedildi');
+      } },
+    ],
+  );
 
   const toggleStaff = async (member: any) => {
     const { error } = await supabase.rpc('set_staff_active', {
@@ -181,6 +212,13 @@ export function TeamScreen() {
         <PrimaryButton title="İşletme Bilgilerini Güncelle" onPress={saveBusiness} loading={loading} secondary />
       </GlassCard>
 
+      <View style={styles.sectionHeader}>
+        <View><Text style={[styles.sectionTitle, { color: colors.text }]}>Usta Başvuruları</Text><Text style={[styles.applicationSummary, { color: colors.textMuted }]}>{mechanicApplications.filter((item) => item.status === 'pending').length} başvuru işletme onayı bekliyor</Text></View>
+      </View>
+      <View style={styles.list}>
+        {mechanicApplications.length === 0 ? <GlassCard style={styles.applicationEmpty}><Ionicons name="checkmark-done-circle" size={35} color={colors.green} /><Text style={[styles.memberName, { color: colors.text }]}>Bekleyen Usta başvurusu yok</Text></GlassCard> : mechanicApplications.map((application) => { const accent = application.status === 'approved' ? colors.green : application.status === 'pending' ? colors.orange : application.status === 'rejected' ? colors.red : colors.textMuted; return <GlassCard key={application.id} style={[styles.applicationCard, { borderColor: `${accent}45` }]}><View style={styles.applicationTop}><View style={[styles.avatar, { backgroundColor: `${accent}1C` }]}><Text style={[styles.avatarText, { color: accent }]}>{application.applicant_name?.charAt(0) || 'U'}</Text></View><View style={styles.copy}><Text style={[styles.memberName, { color: colors.text }]}>{application.applicant_name || 'Usta adayı'}</Text><Text style={[styles.itemMeta, { color: colors.textMuted }]}>{application.applicant_phone || 'Telefon yok'} • {application.applicant_email || 'E-posta yok'}</Text><Text style={[styles.applicationNote, { color: colors.textSoft }]}>{application.applicant_note || 'Başvuru notu eklenmedi.'}</Text></View><Text style={[styles.applicationStatus, { color: accent }]}>{application.status === 'pending' ? 'BEKLİYOR' : application.status === 'approved' ? 'ONAYLI' : application.status === 'rejected' ? 'RED' : 'İPTAL'}</Text></View>{application.status === 'pending' && <View style={styles.applicationActions}><AnimatedPressable onPress={() => reviewMechanicApplication(application, false)} style={[styles.applicationButton, { backgroundColor: `${colors.red}0D`, borderColor: `${colors.red}40` }]}><Ionicons name="close" size={19} color={colors.red} /><Text style={[styles.applicationButtonText, { color: colors.red }]}>Reddet</Text></AnimatedPressable><AnimatedPressable onPress={() => reviewMechanicApplication(application, true)} style={[styles.applicationButton, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}40` }]}><Ionicons name="checkmark" size={19} color={colors.green} /><Text style={[styles.applicationButtonText, { color: colors.green }]}>Usta Olarak Onayla</Text></AnimatedPressable></View>}</GlassCard>; })}
+      </View>
+
       <GlassCard style={styles.inviteCard}>
         <View style={styles.inviteHeader}><View style={[styles.bigIcon, { backgroundColor: `${colors.primary}1C` }]}><Ionicons name="person-add" size={26} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.inviteTitle, { color: colors.text }]}>Personel daveti</Text><Text style={[styles.inviteText, { color: colors.textMuted }]}>Kod 30 gün geçerli ve tek kullanımlıdır. İşletme sahibi rolleri yalnız Admin tarafından oluşturulur.</Text></View></View>
         <View style={styles.inviteGrid}>
@@ -232,23 +270,23 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 17 },
   ownerSwitch: { minHeight: 56, borderWidth: 1, borderRadius: 19, padding: 5, flexDirection: 'row', gap: 5 },
   ownerSwitchButton: { flex: 1, minHeight: 44, borderRadius: 14, borderWidth: 1, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  ownerSwitchText: { fontSize: 10.5, fontWeight: '900' },
+  ownerSwitchText: { fontSize: 12, fontWeight: '900' },
   heroCard: { alignItems: 'center', gap: 10, paddingVertical: 25 },
   bigIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  totalLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  totalLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 1 },
   totalValue: { fontSize: 35, fontWeight: '900', letterSpacing: -1.2 },
-  disclaimer: { fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  disclaimer: { fontSize: 13, lineHeight: 18, textAlign: 'center' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   sectionTitle: { fontSize: 19, fontWeight: '900', marginTop: 4 },
   smallAction: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  smallActionText: { fontSize: 11, fontWeight: '900' },
+  smallActionText: { fontSize: 12.5, fontWeight: '900' },
   list: { gap: 10 },
   serviceCard: { padding: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   serviceIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1 },
   itemTitle: { fontSize: 14, fontWeight: '900' },
-  itemMeta: { fontSize: 11, marginTop: 3 },
+  itemMeta: { fontSize: 12.5, marginTop: 3 },
   amount: { fontSize: 15, fontWeight: '900' },
   empty: { textAlign: 'center', paddingVertical: 10 },
   formCard: { gap: 13 },
@@ -256,16 +294,25 @@ const styles = StyleSheet.create({
   businessMain: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   businessIcon: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   stateButton: { minHeight: 40, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  stateButtonText: { fontSize: 11, fontWeight: '900' },
+  stateButtonText: { fontSize: 12.5, fontWeight: '900' },
+  applicationSummary: { fontSize: 13, lineHeight: 17, marginTop: 4 },
+  applicationEmpty: { alignItems: 'center', gap: 9, paddingVertical: 25 },
+  applicationCard: { gap: 12, borderWidth: 1 },
+  applicationTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  applicationNote: { fontSize: 13, lineHeight: 17, marginTop: 6 },
+  applicationStatus: { fontSize: 12, fontWeight: '900' },
+  applicationActions: { flexDirection: 'row', gap: 8 },
+  applicationButton: { flex: 1, minHeight: 44, borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  applicationButtonText: { fontSize: 12.5, fontWeight: '900' },
   inviteCard: { gap: 14 },
   inviteHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   inviteTitle: { fontSize: 17, fontWeight: '900' },
-  inviteText: { fontSize: 12, lineHeight: 17, marginTop: 3 },
+  inviteText: { fontSize: 13, lineHeight: 17, marginTop: 3 },
   inviteGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   inviteButton: { width: '48.5%', minHeight: 50, borderWidth: 1, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  inviteButtonText: { fontSize: 11, fontWeight: '900' },
+  inviteButtonText: { fontSize: 12.5, fontWeight: '900' },
   codeBox: { minHeight: 72, borderWidth: 1, borderRadius: 18, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  codeLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  codeLabel: { fontSize: 11, fontWeight: '900', letterSpacing: 1 },
   code: { fontSize: 23, fontWeight: '900', letterSpacing: 3, marginTop: 4 },
   personCard: { padding: 14, gap: 11 },
   memberCard: { flexDirection: 'row', alignItems: 'center', gap: 11 },
@@ -273,8 +320,8 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 18, fontWeight: '900' },
   memberName: { fontSize: 14, fontWeight: '900' },
   memberRight: { alignItems: 'flex-end' },
-  recorded: { fontSize: 9, marginTop: 3 },
+  recorded: { fontSize: 11, marginTop: 3 },
   staffActions: { flexDirection: 'row', gap: 8 },
   staffButton: { flex: 1, minHeight: 40, borderWidth: 1, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  staffButtonText: { fontSize: 10, fontWeight: '900' },
+  staffButtonText: { fontSize: 12, fontWeight: '900' },
 });

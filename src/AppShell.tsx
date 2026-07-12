@@ -12,13 +12,13 @@ import { useNotifications } from './notifications/NotificationContext';
 import { AdminScreen } from './screens/AdminScreen';
 import { AppointmentsScreen } from './screens/AppointmentsScreen';
 import { CustomersScreen } from './screens/CustomersScreen';
-import { HomeScreen } from './screens/HomeScreen';
+import { HomeScreen, PanelMode } from './screens/HomeScreen';
 import { NewWorkOrderScreen } from './screens/NewWorkOrderScreen';
 import { ReceivablesScreen } from './screens/ReceivablesScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { TeamScreen } from './screens/TeamScreen';
 import { WorkOrdersScreen } from './screens/WorkOrdersScreen';
-import { ServiceType } from './types';
+import { ServiceType, WORKER_ROLES } from './types';
 
 type Tab = 'home' | 'orders' | 'appointments' | 'customers' | 'receivables' | 'team' | 'settings';
 
@@ -52,11 +52,20 @@ export function AppShell() {
   const { navigationTarget, consumeNavigationTarget } = useNotifications();
   const [tab, setTab] = useState<Tab>(isAdmin && !workshop ? 'team' : 'home');
   const [newOrderMode, setNewOrderMode] = useState<ServiceType | null>(null);
+  const canWork = Boolean(membership && WORKER_ROLES.includes(membership.role));
+  const [staffPanelMode, setStaffPanelMode] = useState<PanelMode>(isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic' ? 'business' : 'mechanic');
   const isApprentice = membership?.role === 'apprentice';
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
 
   const openOrders = () => setTab('orders');
-  const openNew = (mode: ServiceType = 'dropoff') => setNewOrderMode(mode);
+  const openNew = (mode: ServiceType = 'dropoff') => {
+    if (!canWork || staffPanelMode !== 'mechanic') return;
+    setNewOrderMode(mode);
+  };
+
+  useEffect(() => {
+    setStaffPanelMode(isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic' ? 'business' : 'mechanic');
+  }, [workshop?.id, membership?.role, isAdmin]);
 
   useEffect(() => {
     if (!navigationTarget) return;
@@ -69,9 +78,9 @@ export function AppShell() {
   }, [navigationTarget, consumeNavigationTarget, isApprentice]);
 
   const screen = tab === 'home'
-    ? <HomeScreen onNewOrder={openNew} onOpenOrders={openOrders} />
+    ? <HomeScreen onNewOrder={openNew} onOpenOrders={openOrders} panelMode={staffPanelMode} onPanelModeChange={setStaffPanelMode} />
     : tab === 'orders'
-      ? <WorkOrdersScreen onNewOrder={() => openNew('dropoff')} />
+      ? <WorkOrdersScreen onNewOrder={() => openNew('dropoff')} allowNewOrder={canWork && staffPanelMode === 'mechanic'} />
       : tab === 'appointments'
         ? <AppointmentsScreen />
         : tab === 'customers'
@@ -141,7 +150,7 @@ export function AppShell() {
         </BlurView>
       </View>
 
-      {newOrderMode && !isApprentice && (
+      {newOrderMode && !isApprentice && canWork && staffPanelMode === 'mechanic' && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}> 
           <PremiumBackground>
             <NewWorkOrderScreen
@@ -171,6 +180,6 @@ const styles = StyleSheet.create({
   navIconShell: { width: 39, height: 39, alignItems: 'center', justifyContent: 'center' },
   activeIcon: { width: 37, height: 37, borderRadius: 13, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 8, elevation: 6 },
   inactiveIcon: { width: 35, height: 35, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  navLabel: { fontSize: 8, fontWeight: '900', textAlign: 'center' },
+  navLabel: { fontSize: 10, fontWeight: '900', textAlign: 'center' },
   activeLine: { width: 15, height: 2.5, borderRadius: 3 },
 });

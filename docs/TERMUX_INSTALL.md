@@ -1,13 +1,13 @@
-# Termux — v0.8.3 Yedekle, v0.8.4 Kur
+# Termux — v0.8.4 Yedekle, v0.8.5 Kur
 
-Bu akış Python, patch, JDK, Perl, /tmp veya Git kullanmaz. Mevcut .env korunur.
+Bu akış mevcut `.env` dosyasını ve v0.8.4 klasörünü korur.
 
 ```bash
 cd ~
-KURULAN_SURUM="v0.8.4"
-YEDEKLENEN_SURUM="v0.8.3"
-YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.3-local-backup"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.4.zip"
+KURULAN_SURUM="v0.8.5"
+YEDEKLENEN_SURUM="v0.8.4"
+YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.4-local-backup"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.5.zip"
 ACILAN_KLASOR="$HOME/DraBornGarage-main"
 
 pkg update -y
@@ -30,6 +30,6 @@ node -p "require('./package.json').version"
 npx expo start -c --go
 ```
 
-Beklenen sürüm çıktısı: `0.8.4`. Bağlantı sorunu olursa `npx expo start -c --tunnel --go`.
+Beklenen sürüm: `0.8.5`. Bağlantı sorunu olursa `npx expo start -c --tunnel --go`.
 
-Kod geri dönüş yedeği: `backup/v0.8.3-before-v0.8.4`. Veritabanı şema rollback dosyası: `supabase/rollbacks/20260712220000_v0_8_4_business_approval_rollback.sql`. Kullanıcı/test verisi temizliği geri yüklenemez.
+Kod yedeği: `backup/v0.8.4-before-v0.8.5-20260712`. Silinen kullanıcı ve operasyonel veriler rollback ile geri getirilemez.
