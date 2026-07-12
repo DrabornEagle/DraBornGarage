@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Image, Linking, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Image, LayoutAnimation, Linking, Platform, ScrollView, Share, StyleSheet, Switch, Text, UIManager, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
@@ -15,6 +15,7 @@ import { PrimaryButton } from './PrimaryButton';
 type PlatformStatus = 'disabled' | 'open' | 'due_today' | 'overdue' | 'payment_reported' | 'partially_paid' | 'paid';
 type ReportStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 type BillingCycle = 'weekly' | 'monthly';
+type PlatformAccordionKey = 'paymentInfo' | 'paymentForm' | 'paymentReports' | 'periods' | 'charges';
 
 type PlatformSummary = {
   status: PlatformStatus;
@@ -196,6 +197,13 @@ export function PlatformFeesDashboard() {
   const [accountHolder, setAccountHolder] = useState('');
   const [iban, setIban] = useState('');
   const [globalNote, setGlobalNote] = useState('');
+  const [expandedSections, setExpandedSections] = useState<Record<PlatformAccordionKey, boolean>>({
+    paymentInfo: true,
+    paymentForm: false,
+    paymentReports: false,
+    periods: false,
+    charges: false,
+  });
 
   const load = useCallback(async () => {
     if (!workshop) return;
@@ -227,6 +235,17 @@ export function PlatformFeesDashboard() {
   }, [workshop, isAdmin]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const manager = UIManager as typeof UIManager & { setLayoutAnimationEnabledExperimental?: (enabled: boolean) => void };
+      manager.setLayoutAnimationEnabledExperimental?.(true);
+    }
+  }, []);
+
+  const toggleSection = (key: PlatformAccordionKey) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedSections((current) => ({ ...current, [key]: !current[key] }));
+  };
 
   const statusAccent = useMemo(() => {
     const status = dashboard?.summary.status;
@@ -366,21 +385,39 @@ export function PlatformFeesDashboard() {
 
     {!dashboard.settings.is_enabled && <GlassCard style={[styles.notice, { borderColor: `${colors.orange}45` }]}><Ionicons name="pause-circle" size={25} color={colors.orange} /><View style={styles.copy}><Text style={[styles.noticeTitle, { color: colors.text }]}>Platform bedeli bu işletmede kapalı</Text><Text style={[styles.noticeText, { color: colors.textMuted }]}>Admin etkinleştirdiğinde tamamlanan her servis için belirlenen işlem bedeli otomatik kaydedilir.</Text></View></GlassCard>}
 
-    <BankCard settings={g} />
+    <AccordionSection
+      title="Platform Ödeme Bilgileri"
+      subtitle={g.iban ? [g.bank_name || 'Banka', 'IBAN tanımlı'].join(' • ') : 'Banka ve IBAN bilgileri henüz tanımlanmadı'}
+      icon="business"
+      accent={colors.cyan}
+      open={expandedSections.paymentInfo}
+      onToggle={() => toggleSection('paymentInfo')}
+    >
+      <BankCard settings={g} />
+    </AccordionSection>
 
-    {number(s.available_to_report) > 0 && <GlassCard style={styles.formCard}>
-      <View style={styles.formTitleRow}><View style={[styles.formIcon, { backgroundColor: `${colors.green}15` }]}><Ionicons name="paper-plane" size={23} color={colors.green} /></View><View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>Ödeme Bildir</Text><Text style={[styles.formText, { color: colors.textMuted }]}>Gönderdiğin tutar en eski borç döneminden başlayarak otomatik dağıtılır.</Text></View></View>
-      <FormField label={`Gönderilen tutar • En fazla ${money(number(s.available_to_report))}`} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0,00" />
-      <FormField label="Ödeme tarihi • YYYY-MM-DD" value={paymentDate} onChangeText={setPaymentDate} autoCapitalize="none" />
-      <FormField label="Açıklama" value={paymentNote} onChangeText={setPaymentNote} multiline placeholder="Örn. Temmuz dönemi platform ödemesi" />
-      <AnimatedPressable onPress={pickReceipt} style={[styles.receiptPicker, { backgroundColor: colors.surfaceSoft, borderColor: receipt ? colors.green : colors.border }]}>
-        {receipt ? <Image source={{ uri: receipt.uri }} style={styles.receiptPreview} /> : <View style={[styles.receiptPlaceholder, { backgroundColor: `${colors.primary}12` }]}><Ionicons name="image" size={26} color={colors.primary} /></View>}
-        <View style={styles.copy}><Text style={[styles.receiptTitle, { color: colors.text }]}>{receipt ? 'Dekont seçildi' : 'Opsiyonel dekont ekle'}</Text><Text style={[styles.receiptText, { color: colors.textMuted }]}>{receipt?.fileName || 'Galeriden JPG, PNG veya WEBP seçebilirsin.'}</Text></View>
-        <Ionicons name={receipt ? 'checkmark-circle' : 'add-circle'} size={23} color={receipt ? colors.green : colors.primary} />
-      </AnimatedPressable>
-      {receipt && <AnimatedPressable onPress={() => setReceipt(null)}><Text style={[styles.removeReceipt, { color: colors.red }]}>Dekontu kaldır</Text></AnimatedPressable>}
-      <PrimaryButton title="Ödemeyi Admin Onayına Gönder" onPress={reportPayment} loading={saving} />
-    </GlassCard>}
+    <AccordionSection
+      title="Ödeme Bildir"
+      subtitle={number(s.available_to_report) > 0 ? 'Bildirilebilir tutar ' + money(number(s.available_to_report)) : 'Bildirilebilir açık borç bulunmuyor'}
+      icon="paper-plane"
+      accent={colors.green}
+      open={expandedSections.paymentForm}
+      onToggle={() => toggleSection('paymentForm')}
+    >
+      {number(s.available_to_report) > 0 ? <GlassCard style={styles.formCard}>
+        <View style={styles.formTitleRow}><View style={[styles.formIcon, { backgroundColor: colors.green + '15' }]}><Ionicons name="paper-plane" size={23} color={colors.green} /></View><View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>Yeni Ödeme Bildirimi</Text><Text style={[styles.formText, { color: colors.textMuted }]}>Gönderdiğin tutar en eski borç döneminden başlayarak otomatik dağıtılır.</Text></View></View>
+        <FormField label={'Gönderilen tutar • En fazla ' + money(number(s.available_to_report))} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0,00" />
+        <FormField label="Ödeme tarihi • YYYY-MM-DD" value={paymentDate} onChangeText={setPaymentDate} autoCapitalize="none" />
+        <FormField label="Açıklama" value={paymentNote} onChangeText={setPaymentNote} multiline placeholder="Örn. Temmuz dönemi platform ödemesi" />
+        <AnimatedPressable onPress={pickReceipt} style={[styles.receiptPicker, { backgroundColor: colors.surfaceSoft, borderColor: receipt ? colors.green : colors.border }]}>
+          {receipt ? <Image source={{ uri: receipt.uri }} style={styles.receiptPreview} /> : <View style={[styles.receiptPlaceholder, { backgroundColor: colors.primary + '12' }]}><Ionicons name="image" size={26} color={colors.primary} /></View>}
+          <View style={styles.copy}><Text style={[styles.receiptTitle, { color: colors.text }]}>{receipt ? 'Dekont seçildi' : 'Opsiyonel dekont ekle'}</Text><Text style={[styles.receiptText, { color: colors.textMuted }]}>{receipt?.fileName || 'Galeriden JPG, PNG veya WEBP seçebilirsin.'}</Text></View>
+          <Ionicons name={receipt ? 'checkmark-circle' : 'add-circle'} size={23} color={receipt ? colors.green : colors.primary} />
+        </AnimatedPressable>
+        {receipt && <AnimatedPressable onPress={() => setReceipt(null)}><Text style={[styles.removeReceipt, { color: colors.red }]}>Dekontu kaldır</Text></AnimatedPressable>}
+        <PrimaryButton title="Ödemeyi Admin Onayına Gönder" onPress={reportPayment} loading={saving} />
+      </GlassCard> : <Empty text="Şu anda bildirilebilecek açık platform borcu yok." />}
+    </AccordionSection>
 
     {isAdmin && <>
       <Text style={[styles.listTitle, { color: colors.text }]}>Admin Platform Ayarları</Text>
@@ -406,14 +443,38 @@ export function PlatformFeesDashboard() {
       </GlassCard>
     </>}
 
-    <Text style={[styles.listTitle, { color: colors.text }]}>Ödeme Bildirimleri</Text>
-    <View style={styles.stack}>{dashboard.payment_reports.length === 0 ? <Empty text="Henüz ödeme bildirimi yok." /> : dashboard.payment_reports.map((report) => <PaymentReportCard key={report.id} report={report} isAdmin={isAdmin} reviewNote={reviewNotes[report.id] || ''} onReviewNote={(value) => setReviewNotes((current) => ({ ...current, [report.id]: value }))} onApprove={() => review(report.id, true)} onReject={() => review(report.id, false)} onCancel={() => cancelReport(report.id)} onOpenReceipt={() => report.receipt_path && openReceipt(report.receipt_path)} loading={saving} />)}</View>
+    <AccordionSection
+      title="Ödeme Bildirimleri"
+      subtitle={dashboard.payment_reports.length + ' bildirim • ' + money(number(s.total_pending)) + ' onay bekliyor'}
+      icon="notifications"
+      accent={colors.cyan}
+      open={expandedSections.paymentReports}
+      onToggle={() => toggleSection('paymentReports')}
+    >
+      <View style={styles.stack}>{dashboard.payment_reports.length === 0 ? <Empty text="Henüz ödeme bildirimi yok." /> : dashboard.payment_reports.map((report) => <PaymentReportCard key={report.id} report={report} isAdmin={isAdmin} reviewNote={reviewNotes[report.id] || ''} onReviewNote={(value) => setReviewNotes((current) => ({ ...current, [report.id]: value }))} onApprove={() => review(report.id, true)} onReject={() => review(report.id, false)} onCancel={() => cancelReport(report.id)} onOpenReceipt={() => report.receipt_path && openReceipt(report.receipt_path)} loading={saving} />)}</View>
+    </AccordionSection>
 
-    <Text style={[styles.listTitle, { color: colors.text }]}>Dönem Borçları</Text>
-    <View style={styles.stack}>{dashboard.periods.length === 0 ? <Empty text="Henüz platform dönemi oluşmadı." /> : dashboard.periods.map((period) => <PeriodCard key={period.id} period={period} />)}</View>
+    <AccordionSection
+      title="Dönem Borçları"
+      subtitle={dashboard.periods.length + ' dönem • Kalan ' + money(number(s.total_outstanding))}
+      icon="calendar-number"
+      accent={colors.orange}
+      open={expandedSections.periods}
+      onToggle={() => toggleSection('periods')}
+    >
+      <View style={styles.stack}>{dashboard.periods.length === 0 ? <Empty text="Henüz platform dönemi oluşmadı." /> : dashboard.periods.map((period) => <PeriodCard key={period.id} period={period} />)}</View>
+    </AccordionSection>
 
-    <Text style={[styles.listTitle, { color: colors.text }]}>İşlem Başı Ücret Kayıtları</Text>
-    <View style={styles.stack}>{dashboard.charges.length === 0 ? <Empty text="Tamamlanan servise bağlı ücret kaydı bulunmuyor." /> : dashboard.charges.map((charge) => <ChargeCard key={charge.id} charge={charge} />)}</View>
+    <AccordionSection
+      title="İşlem Başı Ücret Kayıtları"
+      subtitle={dashboard.charges.length + ' kayıt • İşlem başı ' + money(number(dashboard.settings.fee_per_order))}
+      icon="receipt"
+      accent={colors.primary}
+      open={expandedSections.charges}
+      onToggle={() => toggleSection('charges')}
+    >
+      <View style={styles.stack}>{dashboard.charges.length === 0 ? <Empty text="Tamamlanan servise bağlı ücret kaydı bulunmuyor." /> : dashboard.charges.map((charge) => <ChargeCard key={charge.id} charge={charge} />)}</View>
+    </AccordionSection>
   </View>;
 }
 
@@ -434,12 +495,24 @@ function AdminOverview({ overview, selectedId, onSelect }: { overview: Overview;
   </View>;
 }
 
+function AccordionSection({ title, subtitle, icon, accent, open, onToggle, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return <View style={[styles.accordion, { backgroundColor: colors.card, borderColor: open ? accent + '55' : colors.border }]}>
+    <AnimatedPressable onPress={onToggle} style={styles.accordionHeader}>
+      <View style={[styles.accordionIcon, { backgroundColor: accent + '15' }]}><Ionicons name={icon} size={23} color={accent} /></View>
+      <View style={styles.copy}><Text style={[styles.accordionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.accordionSub, { color: colors.textMuted }]}>{subtitle}</Text></View>
+      <View style={[styles.accordionChevron, { backgroundColor: accent + '12', borderColor: accent + '35' }]}><Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={accent} /></View>
+    </AnimatedPressable>
+    {open && <View style={[styles.accordionBody, { borderTopColor: colors.border }]}>{children}</View>}
+  </View>;
+}
+
 function BankCard({ settings }: { settings: GlobalSettings }) {
   const { colors } = useTheme();
   const hasIban = Boolean(settings.iban);
   return <GlassCard style={styles.bankCard}>
     <View style={[styles.bankIcon, { backgroundColor: `${colors.cyan}15` }]}><Ionicons name="business" size={25} color={colors.cyan} /></View>
-    <View style={styles.copy}><Text style={[styles.bankTitle, { color: colors.text }]}>Platform Ödeme Bilgileri</Text><Text style={[styles.bankName, { color: colors.textMuted }]}>{settings.bank_name || 'Banka bilgisi Admin tarafından girilmedi'} • {settings.account_holder || 'Hesap sahibi yok'}</Text><Text selectable style={[styles.iban, { color: hasIban ? colors.text : colors.textMuted }]}>{settings.iban || 'IBAN henüz tanımlanmadı'}</Text>{settings.payment_note && <Text style={[styles.bankNote, { color: colors.textMuted }]}>{settings.payment_note}</Text>}</View>
+    <View style={styles.copy}><Text style={[styles.bankTitle, { color: colors.text }]}>Banka ve IBAN Bilgileri</Text><Text style={[styles.bankName, { color: colors.textMuted }]}>{settings.bank_name || 'Banka bilgisi Admin tarafından girilmedi'} • {settings.account_holder || 'Hesap sahibi yok'}</Text><Text selectable style={[styles.iban, { color: hasIban ? colors.text : colors.textMuted }]}>{settings.iban || 'IBAN henüz tanımlanmadı'}</Text>{settings.payment_note && <Text style={[styles.bankNote, { color: colors.textMuted }]}>{settings.payment_note}</Text>}</View>
     {hasIban && <AnimatedPressable onPress={() => Share.share({ message: `${settings.bank_name || ''}\n${settings.account_holder || ''}\n${settings.iban}\n${settings.payment_note || ''}` })}><Ionicons name="share-social" size={23} color={colors.primary} /></AnimatedPressable>}
   </GlassCard>;
 }
@@ -486,6 +559,7 @@ const styles = StyleSheet.create({
   adminHero: { minHeight: 132, borderRadius: 25, padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, adminHeroValue: { color: '#fff', fontSize: 28, fontWeight: '900', marginTop: 7 }, businessRow: { gap: 9, paddingRight: 8 }, businessCard: { width: 215, minHeight: 112, borderRadius: 19, borderWidth: 1, padding: 13, gap: 7 }, businessHead: { flexDirection: 'row', alignItems: 'center', gap: 7 }, businessName: { flex: 1, fontSize: 12.5, fontWeight: '900' }, businessAmount: { fontSize: 20, fontWeight: '900' }, businessMeta: { fontSize: 10, lineHeight: 13 },
   metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, metric: { width: '31.5%', minHeight: 105, borderRadius: 19, borderWidth: 1, padding: 10 }, metricIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, metricValue: { fontSize: 13, fontWeight: '900', marginTop: 8 }, metricLabel: { fontSize: 10, lineHeight: 12, fontWeight: '800', marginTop: 4 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 11 }, noticeTitle: { fontSize: 14, fontWeight: '900' }, noticeText: { fontSize: 12, lineHeight: 16, marginTop: 4 },
+  accordion: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' }, accordionHeader: { minHeight: 82, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 }, accordionIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, accordionTitle: { fontSize: 15.5, fontWeight: '900' }, accordionSub: { fontSize: 11.5, lineHeight: 15, marginTop: 4 }, accordionChevron: { width: 38, height: 38, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, accordionBody: { borderTopWidth: 1, padding: 12, gap: 12 },
   bankCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 }, bankIcon: { width: 47, height: 47, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, bankTitle: { fontSize: 15, fontWeight: '900' }, bankName: { fontSize: 11, marginTop: 4 }, iban: { fontSize: 13.5, fontWeight: '900', letterSpacing: 0.5, marginTop: 8 }, bankNote: { fontSize: 11, lineHeight: 14, marginTop: 6 },
   formCard: { gap: 13 }, formTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 }, formIcon: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, formTitle: { fontSize: 16, fontWeight: '900' }, formText: { fontSize: 12, lineHeight: 16, marginTop: 3 },
   receiptPicker: { minHeight: 76, borderRadius: 18, borderWidth: 1, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 }, receiptPreview: { width: 54, height: 54, borderRadius: 14 }, receiptPlaceholder: { width: 54, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, receiptTitle: { fontSize: 13, fontWeight: '900' }, receiptText: { fontSize: 11, marginTop: 4 }, removeReceipt: { fontSize: 12.5, fontWeight: '900', textAlign: 'center' },
