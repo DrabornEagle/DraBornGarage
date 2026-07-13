@@ -102,7 +102,7 @@ export function HomeScreen({
       todayIncome: mechanicView ? recorded : received,
       mechanicRecordedTotal: recorded,
     });
-    setRecent((ordersResult.data as unknown as WorkOrderListItem[]) ?? []);
+    setRecent(mechanicView ? ((ordersResult.data as unknown as WorkOrderListItem[]) ?? []) : []);
   }, [workshop, membership, panelMode, canWork, isApprentice]);
 
   useEffect(() => { load(); }, [load]);
@@ -234,19 +234,26 @@ export function HomeScreen({
         </>
       )}
 
-      <View style={styles.section}>
+      {!isApprentice && panelMode === 'business' && (
+        <GlassCard style={[styles.businessNotice, { borderColor: `${colors.cyan}38` }]}>
+          <View style={[styles.businessNoticeIcon, { backgroundColor: `${colors.cyan}14` }]}><Ionicons name="analytics" size={24} color={colors.cyan} /></View>
+          <View style={styles.quickCopy}><Text style={[styles.businessNoticeTitle, { color: colors.text }]}>İşletme Paneli özet görünümüdür</Text><Text style={[styles.businessNoticeText, { color: colors.textMuted }]}>Toplamlar, Usta kazançları, raporlar ve işletme ayarları burada yönetilir. Motosiklet kabulü ve bütün servis işlemleri yalnız Usta Panelinden yapılır.</Text></View>
+        </GlassCard>
+      )}
+
+      {(isApprentice || panelMode === 'mechanic') && <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Bugünkü Atölye Sırası</Text>
-            <Text style={[styles.sectionSubtitle, { color: colors.textMuted }]}>{isApprentice ? 'Finansal bilgiler gizlidir; yalnız görev ve servis akışı gösterilir.' : 'Plaka, işlem, sıra ve güncel servis durumu.'}</Text>
+            <Text style={[styles.sectionSubtitle, { color: colors.textMuted }]}>{isApprentice ? 'Finansal bilgiler gizlidir; yalnız görev ve servis akışı gösterilir.' : 'Yalnız sana atanmış plaka, işlem, sıra ve güncel servis durumu.'}</Text>
           </View>
           <AnimatedPressable onPress={onOpenOrders}><Text style={[styles.link, { color: colors.primary }]}>Tümünü gör</Text></AnimatedPressable>
         </View>
         <View style={styles.orderList}>
           {selectedOrders.length === 0 ? (
-            <GlassCard><Text style={[styles.emptyText, { color: colors.textMuted }]}>Atölye sırasında kayıt bulunmuyor.</Text></GlassCard>
+            <GlassCard><Text style={[styles.emptyText, { color: colors.textMuted }]}>Sana atanmış atölye kaydı bulunmuyor.</Text></GlassCard>
           ) : selectedOrders.map((order: any) => (
-            <AnimatedPressable key={order.id} onPress={onOpenOrders} style={[styles.orderCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+            <AnimatedPressable key={order.id} onPress={onOpenOrders} style={[styles.orderCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={[styles.queueBadge, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Text style={[styles.queueText, { color: colors.orange }]}>{order.queue_position ?? '-'}</Text></View>
               <View style={[styles.bikeIcon, { backgroundColor: `${colors.primary2}18` }]}><AnimatedMotorcycleIcon size={30} color={colors.primary2} /></View>
               <View style={styles.orderCopy}>
@@ -261,7 +268,7 @@ export function HomeScreen({
             </AnimatedPressable>
           ))}
         </View>
-      </View>
+      </View>}
     </ScrollView>
   );
 }
@@ -287,6 +294,7 @@ const styles = StyleSheet.create({
   heroValue: { color: '#fff', fontWeight: '900', fontSize: 34, letterSpacing: -1.2, marginTop: 7 },
   heroIcon: { width: 54, height: 54, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
   heroHint: { color: 'rgba(255,255,255,0.82)', fontSize: 13 },
+  businessNotice: { minHeight: 96, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }, businessNoticeIcon: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, businessNoticeTitle: { fontSize: 15.5, fontWeight: '900' }, businessNoticeText: { fontSize: 12.5, lineHeight: 18, marginTop: 4 },
   quickGrid: { gap: 10 },
   quickAction: { minHeight: 88, borderWidth: 1, borderRadius: 22, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   quickIcon: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },

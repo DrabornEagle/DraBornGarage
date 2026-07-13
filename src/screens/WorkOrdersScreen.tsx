@@ -45,7 +45,7 @@ export function WorkOrdersScreen({ onNewOrder, allowNewOrder }: { onNewOrder: ()
       .order('queue_position', { ascending: true })
       .order('arrived_at', { ascending: false });
 
-    if (membership.role === 'mechanic') query = query.eq('assigned_mechanic_id', membership.user_id);
+    if (membership.role === 'mechanic' || membership.role === 'owner_mechanic') query = query.eq('assigned_mechanic_id', membership.user_id);
     const { data, error } = await query;
     if (error) Alert.alert('Servis kayıtları alınamadı', error.message);
     setOrders((data as unknown as WorkOrderListItem[]) ?? []);

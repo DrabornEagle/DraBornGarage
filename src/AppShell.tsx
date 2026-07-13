@@ -50,32 +50,48 @@ export function AppShell() {
   const { colors, resolvedMode } = useTheme();
   const { membership, isAdmin, workshop } = useAuth();
   const { navigationTarget, consumeNavigationTarget } = useNotifications();
-  const [tab, setTab] = useState<Tab>(isAdmin && !workshop ? 'team' : 'home');
-  const [newOrderMode, setNewOrderMode] = useState<ServiceType | null>(null);
+  const isPureOwner = membership?.role === 'owner';
+  const isOwnerMechanic = membership?.role === 'owner_mechanic';
   const canWork = Boolean(membership && WORKER_ROLES.includes(membership.role));
-  const [staffPanelMode, setStaffPanelMode] = useState<PanelMode>(isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic' ? 'business' : 'mechanic');
+  const initialPanelMode: PanelMode = isAdmin || isPureOwner ? 'business' : 'mechanic';
+  const [tab, setTab] = useState<Tab>(isAdmin ? 'team' : 'home');
+  const [newOrderMode, setNewOrderMode] = useState<ServiceType | null>(null);
+  const [staffPanelMode, setStaffPanelMode] = useState<PanelMode>(initialPanelMode);
+  const [customerInitialTab, setCustomerInitialTab] = useState<'customers' | 'claims'>('customers');
+  const [customerNavigationKey, setCustomerNavigationKey] = useState(0);
   const isApprentice = membership?.role === 'apprentice';
-  const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
+  const isOwner = isAdmin || isPureOwner || isOwnerMechanic;
+  const businessRestricted = isAdmin || isPureOwner || (isOwnerMechanic && staffPanelMode === 'business');
 
-  const openOrders = () => setTab('orders');
+  const openOrders = () => { if (!businessRestricted) setTab('orders'); };
   const openNew = (mode: ServiceType = 'dropoff') => {
-    if (!canWork || staffPanelMode !== 'mechanic') return;
+    if (!canWork || staffPanelMode !== 'mechanic' || businessRestricted) return;
     setNewOrderMode(mode);
   };
 
   useEffect(() => {
-    setStaffPanelMode(isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic' ? 'business' : 'mechanic');
+    setStaffPanelMode(isAdmin || membership?.role === 'owner' ? 'business' : 'mechanic');
   }, [workshop?.id, membership?.role, isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin && tab !== 'team' && tab !== 'settings') setTab('team');
+    else if (businessRestricted && !['home', 'team', 'settings'].includes(tab)) setTab('home');
+  }, [businessRestricted, isAdmin, tab]);
 
   useEffect(() => {
     if (!navigationTarget) return;
     const target = navigationTarget.targetTab ? STAFF_NOTIFICATION_TAB_MAP[navigationTarget.targetTab] : undefined;
     if (target) {
       const allowedForApprentice = !isApprentice || target === 'home' || target === 'orders' || target === 'settings';
-      setTab(allowedForApprentice ? target : 'home');
+      const allowedForBusiness = !businessRestricted || target === 'home' || target === 'team' || target === 'settings';
+      if (target === 'customers' && navigationTarget.targetSection === 'claims' && allowedForBusiness) {
+        setCustomerInitialTab('claims');
+        setCustomerNavigationKey((value) => value + 1);
+      }
+      setTab(allowedForApprentice && allowedForBusiness ? target : isAdmin ? 'team' : 'home');
     }
     consumeNavigationTarget();
-  }, [navigationTarget, consumeNavigationTarget, isApprentice]);
+  }, [navigationTarget, consumeNavigationTarget, isApprentice, businessRestricted, isAdmin]);
 
   const screen = tab === 'home'
     ? <HomeScreen onNewOrder={openNew} onOpenOrders={openOrders} panelMode={staffPanelMode} onPanelModeChange={setStaffPanelMode} />
@@ -84,7 +100,7 @@ export function AppShell() {
       : tab === 'appointments'
         ? <AppointmentsScreen />
         : tab === 'customers'
-          ? <CustomersScreen />
+          ? <CustomersScreen key={`customers-${customerNavigationKey}`} initialTab={customerInitialTab} />
           : tab === 'receivables'
             ? <ReceivablesScreen />
             : tab === 'team'
@@ -108,9 +124,10 @@ export function AppShell() {
       },
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
-    if (isAdmin && !workshop) return all.filter((item) => ['team', 'settings'].includes(item.key));
+    if (isAdmin) return all.filter((item) => ['team', 'settings'].includes(item.key));
+    if (businessRestricted) return all.filter((item) => ['home', 'team', 'settings'].includes(item.key));
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
-  }, [colors, isAdmin, isOwner, isApprentice, workshop]);
+  }, [colors, isAdmin, isOwner, isApprentice, businessRestricted]);
 
   return (
     <PremiumBackground>
@@ -128,7 +145,7 @@ export function AppShell() {
               {tabs.map((item) => {
                 const active = tab === item.key;
                 return (
-                  <AnimatedPressable key={item.key} onPress={() => setTab(item.key)} style={styles.navItem}>
+                  <AnimatedPressable key={item.key} onPress={() => { if (item.key === 'customers') setCustomerInitialTab('customers'); setTab(item.key); }} style={styles.navItem}>
                     <View style={styles.navIconShell}>
                       {active ? (
                         <LinearGradient colors={[item.accent, item.accent2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.activeIcon}>
@@ -150,7 +167,7 @@ export function AppShell() {
         </BlurView>
       </View>
 
-      {newOrderMode && !isApprentice && canWork && staffPanelMode === 'mechanic' && (
+      {newOrderMode && !isApprentice && canWork && staffPanelMode === 'mechanic' && !businessRestricted && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}> 
           <PremiumBackground>
             <NewWorkOrderScreen

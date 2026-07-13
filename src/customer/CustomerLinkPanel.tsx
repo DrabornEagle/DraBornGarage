@@ -11,7 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { CustomerClaim, WorkshopSearchResult } from '../types';
 
-type Method = 'workshop' | 'phone' | 'tracking' | 'qr';
+type Method = 'workshop' | 'qr';
 
 function tokenFrom(value: string) {
   const trimmed = value.trim();
@@ -28,7 +28,6 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
   const [brand, setBrand] = useState(profile?.customer_motorcycle_brand ?? '');
   const [model, setModel] = useState(profile?.customer_motorcycle_model ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
-  const [code, setCode] = useState('');
   const [qrOrManualCode, setQrOrManualCode] = useState('');
   const [workshopQuery, setWorkshopQuery] = useState('');
   const [workshopResults, setWorkshopResults] = useState<WorkshopSearchResult[]>([]);
@@ -80,19 +79,15 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
     if (method === 'qr' && tokenFrom(qrOrManualCode).length < 6) return Alert.alert('Kod gerekli', 'QR kodu tara veya manuel servis kodunu yaz.');
 
     setLoading(true);
-    const result = method === 'phone'
-      ? await supabase.rpc('customer_claim_by_phone', { p_plate: normalizedPlate, p_phone: phone.trim() })
-      : method === 'tracking'
-        ? await supabase.rpc('customer_claim_by_tracking_code', { p_code: code.trim(), p_plate: normalizedPlate || null })
-        : method === 'qr'
-          ? await supabase.rpc('customer_claim_by_qr', { p_token: tokenFrom(qrOrManualCode) })
-          : await supabase.rpc('customer_request_workshop_motor_link', {
-              p_workshop_id: selectedWorkshop!.id,
-              p_plate: normalizedPlate,
-              p_brand: brand.trim(),
-              p_model: model.trim(),
-              p_phone: phone.trim() || null,
-            });
+    const result = method === 'qr'
+      ? await supabase.rpc('customer_claim_by_qr', { p_token: tokenFrom(qrOrManualCode) })
+      : await supabase.rpc('customer_request_workshop_motor_link', {
+          p_workshop_id: selectedWorkshop!.id,
+          p_plate: normalizedPlate,
+          p_brand: brand.trim(),
+          p_model: model.trim(),
+          p_phone: phone.trim() || null,
+        });
     setLoading(false);
 
     if (result.error) return Alert.alert('Eşleştirme yapılamadı', result.error.message);
@@ -113,13 +108,17 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
 
       <View style={styles.methods}>
         {([
-          ['workshop', 'İşletme Ara', 'search'],
-          ['phone', 'Plaka + Telefon', 'call'],
-          ['tracking', 'Takip Kodu', 'key'],
-          ['qr', 'QR / Manuel Kod', 'qr-code'],
-        ] as [Method, string, keyof typeof Ionicons.glyphMap][]).map(([value, label, icon]) => (
-          <AnimatedPressable key={value} onPress={() => setMethod(value)} style={[styles.method, { backgroundColor: method === value ? `${colors.primary}18` : colors.card, borderColor: method === value ? colors.primary : colors.border }]}><Ionicons name={icon} size={21} color={method === value ? colors.primary : colors.textMuted} /><Text style={[styles.methodText, { color: colors.text }]}>{label}</Text></AnimatedPressable>
-        ))}
+          ['workshop', 'İşletme Ara', 'İşletmeyi adına göre bul ve Usta onayına gönder', 'search'],
+          ['qr', 'QR / Manuel Kod', 'Servis kartını tara veya güvenli kodu elle gir', 'qr-code'],
+        ] as [Method, string, string, keyof typeof Ionicons.glyphMap][]).map(([value, label, subtitle, icon]) => {
+          const active = method === value;
+          const accent = value === 'workshop' ? colors.cyan : colors.primary;
+          return <AnimatedPressable key={value} onPress={() => setMethod(value)} style={[styles.method, { backgroundColor: active ? `${accent}14` : colors.card, borderColor: active ? accent : colors.border }]}>
+            <View style={[styles.methodIcon, { backgroundColor: `${accent}16`, borderColor: `${accent}38` }]}><Ionicons name={icon} size={24} color={accent} /></View>
+            <View style={styles.copy}><Text style={[styles.methodText, { color: colors.text }]}>{label}</Text><Text style={[styles.methodSub, { color: colors.textMuted }]}>{subtitle}</Text></View>
+            <Ionicons name={active ? 'checkmark-circle' : 'chevron-forward'} size={22} color={active ? accent : colors.textMuted} />
+          </AnimatedPressable>;
+        })}
       </View>
 
       <GlassCard style={styles.form}>
@@ -136,8 +135,6 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
           <FormField label="Motosiklet modeli" value={model} onChangeText={setModel} placeholder="Örn. Forza 250" autoCapitalize="words" />
           <FormField label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="05xx xxx xx xx" />
         </>}
-        {method === 'phone' && <><FormField label="Plaka" value={plate} onChangeText={(v) => setPlate(v.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" /><FormField label="İşletmede kayıtlı telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" /></>}
-        {method === 'tracking' && <><FormField label="Plaka" value={plate} onChangeText={(v) => setPlate(v.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" /><FormField label="8 haneli servis takip kodu" value={code} onChangeText={(v) => setCode(v.toUpperCase())} autoCapitalize="characters" /></>}
         {method === 'qr' && <>
           <AnimatedPressable onPress={openScanner} style={[styles.scan, { backgroundColor: `${colors.cyan}12`, borderColor: `${colors.cyan}42` }]}><Ionicons name="scan" size={25} color={colors.cyan} /><View style={styles.copy}><Text style={[styles.scanTitle, { color: colors.text }]}>Kamerayla QR Tara</Text><Text style={[styles.scanText, { color: colors.textMuted }]}>Servis kartındaki QR kodu okut.</Text></View></AnimatedPressable>
           <View style={[styles.orRow, { borderColor: colors.border }]}><Text style={[styles.orText, { color: colors.textMuted }]}>VEYA</Text></View>
@@ -157,5 +154,5 @@ export function CustomerLinkPanel({ onLinked }: { onLinked?: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  root: { gap: 14 }, hero: { flexDirection: 'row', alignItems: 'center', gap: 12 }, heroIcon: { width: 54, height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1, minWidth: 0 }, heroTitle: { fontSize: 17, fontWeight: '900' }, heroText: { fontSize: 12.5, lineHeight: 18, marginTop: 4 }, methods: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, method: { width: '48.7%', minHeight: 64, borderWidth: 1, borderRadius: 17, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 8 }, methodText: { flex: 1, fontSize: 12.5, fontWeight: '900' }, form: { gap: 13 }, results: { gap: 8 }, result: { minHeight: 68, borderWidth: 1, borderRadius: 16, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 9 }, resultIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, resultTitle: { fontSize: 14, fontWeight: '900' }, resultMeta: { fontSize: 12, lineHeight: 16, marginTop: 3 }, selected: { minHeight: 46, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, selectedText: { fontSize: 13, fontWeight: '900' }, scan: { minHeight: 70, borderWidth: 1, borderRadius: 17, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }, scanTitle: { fontSize: 13.5, fontWeight: '900' }, scanText: { fontSize: 12, lineHeight: 17, marginTop: 3 }, orRow: { borderTopWidth: 1, alignItems: 'center', marginVertical: 2 }, orText: { marginTop: -9, paddingHorizontal: 10, fontSize: 11, fontWeight: '900' }, pendingTitle: { fontSize: 15, fontWeight: '900' }, pendingRow: { minHeight: 60, borderTopWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }, pendingName: { fontSize: 13, fontWeight: '900' }, pendingMeta: { fontSize: 12, marginTop: 3 }, pendingBadge: { fontSize: 10, fontWeight: '900' }, modal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }, scannerCard: { padding: 18, paddingBottom: 34, borderTopLeftRadius: 28, borderTopRightRadius: 28, gap: 15 }, scannerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, scannerTitle: { fontSize: 19, fontWeight: '900' }, camera: { height: 380, borderRadius: 24, overflow: 'hidden' }, frame: { position: 'absolute', width: 230, height: 230, borderWidth: 4, borderRadius: 24, left: '50%', top: '50%', marginLeft: -115, marginTop: -115 },
+  root: { gap: 14 }, hero: { flexDirection: 'row', alignItems: 'center', gap: 12 }, heroIcon: { width: 54, height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1, minWidth: 0 }, heroTitle: { fontSize: 17, fontWeight: '900' }, heroText: { fontSize: 12.5, lineHeight: 18, marginTop: 4 }, methods: { gap: 9 }, method: { width: '100%', minHeight: 84, borderWidth: 1, borderRadius: 19, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 }, methodIcon: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, methodText: { fontSize: 14.5, fontWeight: '900' }, methodSub: { fontSize: 11.5, lineHeight: 15, marginTop: 4 }, form: { gap: 13 }, results: { gap: 8 }, result: { minHeight: 68, borderWidth: 1, borderRadius: 16, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 9 }, resultIcon: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, resultTitle: { fontSize: 14, fontWeight: '900' }, resultMeta: { fontSize: 12, lineHeight: 16, marginTop: 3 }, selected: { minHeight: 46, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }, selectedText: { fontSize: 13, fontWeight: '900' }, scan: { minHeight: 70, borderWidth: 1, borderRadius: 17, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }, scanTitle: { fontSize: 13.5, fontWeight: '900' }, scanText: { fontSize: 12, lineHeight: 17, marginTop: 3 }, orRow: { borderTopWidth: 1, alignItems: 'center', marginVertical: 2 }, orText: { marginTop: -9, paddingHorizontal: 10, fontSize: 11, fontWeight: '900' }, pendingTitle: { fontSize: 15, fontWeight: '900' }, pendingRow: { minHeight: 60, borderTopWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }, pendingName: { fontSize: 13, fontWeight: '900' }, pendingMeta: { fontSize: 12, marginTop: 3 }, pendingBadge: { fontSize: 10, fontWeight: '900' }, modal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }, scannerCard: { padding: 18, paddingBottom: 34, borderTopLeftRadius: 28, borderTopRightRadius: 28, gap: 15 }, scannerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, scannerTitle: { fontSize: 19, fontWeight: '900' }, camera: { height: 380, borderRadius: 24, overflow: 'hidden' }, frame: { position: 'absolute', width: 230, height: 230, borderWidth: 4, borderRadius: 24, left: '50%', top: '50%', marginLeft: -115, marginTop: -115 },
 });

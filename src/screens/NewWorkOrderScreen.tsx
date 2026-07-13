@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
@@ -62,7 +63,8 @@ export function NewWorkOrderScreen({
       setCustomers(nextCustomers);
       setMotorcycles(nextMotorcycles);
       setMembers(nextMembers);
-      if (!mechanicId) {
+      if (membership && WORKER_ROLES.includes(membership.role)) setMechanicId(membership.user_id);
+      else if (!mechanicId) {
         const firstWorker = nextMembers.find((item: any) => item.role === 'mechanic' || item.role === 'owner_mechanic');
         if (firstWorker) setMechanicId(firstWorker.user_id);
       }
@@ -192,7 +194,7 @@ export function NewWorkOrderScreen({
     onCreated();
   };
 
-  const canChooseWorker = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
+  const canChooseWorker = isAdmin || membership?.role === 'owner';
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -247,17 +249,17 @@ export function NewWorkOrderScreen({
               })}
             </View>
           )}
-          <Toggle value={newCustomer} onChange={(value) => { setNewCustomer(value); if (value) { setSelectedCustomerId(null); setSelectedMotorcycleId(null); setNewMotorcycle(true); } }} first="Yeni müşteri" second="Kayıtlı müşteri" />
+          <Toggle value={newCustomer} onChange={(value) => { setNewCustomer(value); if (value) { setSelectedCustomerId(null); setSelectedMotorcycleId(null); setNewMotorcycle(true); } }} first="Yeni müşteri" second="Kayıtlı müşteri" firstIcon="person-add" secondIcon="people" />
           {newCustomer ? (
             <><FormField label="Ad Soyad" value={customerName} onChangeText={setCustomerName} placeholder="Müşteri adı" /><FormField label="Telefon" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" placeholder="05xx xxx xx xx" /></>
           ) : (
-            <ChipList empty="Henüz kayıtlı müşteri yok." items={customers.map((item) => ({ id: item.id, label: item.full_name, sub: item.phone || 'Telefon yok' }))} selected={selectedCustomerId} onSelect={(id) => { setSelectedCustomerId(id); setSelectedMotorcycleId(null); setNewMotorcycle(true); }} />
+            <ChipList kind="customer" empty="Henüz kayıtlı müşteri yok." items={customers.map((item) => ({ id: item.id, label: item.full_name, sub: item.phone || 'Telefon yok' }))} selected={selectedCustomerId} onSelect={(id) => { setSelectedCustomerId(id); setSelectedMotorcycleId(null); setNewMotorcycle(true); }} />
           )}
         </GlassCard>
 
         <Section title="3. Motosiklet" />
         <GlassCard style={styles.formCard}>
-          {!newCustomer && selectedCustomerId && customerBikes.length > 0 && <Toggle value={newMotorcycle} onChange={setNewMotorcycle} first="Yeni motosiklet" second="Kayıtlı motosiklet" />}
+          {!newCustomer && selectedCustomerId && customerBikes.length > 0 && <Toggle value={newMotorcycle} onChange={setNewMotorcycle} first="Yeni motosiklet" second="Kayıtlı motosiklet" firstIcon="add-circle" secondIcon="speedometer" />}
           {newMotorcycle || newCustomer ? (
             <>
               <View style={styles.twoCol}><View style={styles.col}><FormField label="Marka" value={brand} onChangeText={setBrand} placeholder="Honda" /></View><View style={styles.col}><FormField label="Model" value={model} onChangeText={setModel} placeholder="PCX 125" /></View></View>
@@ -265,7 +267,7 @@ export function NewWorkOrderScreen({
               <FormField label="Kilometre" value={odometer} onChangeText={setOdometer} keyboardType="number-pad" placeholder="23500" />
             </>
           ) : (
-            <ChipList empty="Bu müşterinin kayıtlı motosikleti yok." items={customerBikes.map((item) => ({ id: item.id, label: `${item.brand} ${item.model}`, sub: `${item.plate || 'Plaka yok'} • ${item.odometer?.toLocaleString('tr-TR') ?? '-'} km` }))} selected={selectedMotorcycleId} onSelect={setSelectedMotorcycleId} />
+            <ChipList kind="motorcycle" empty="Bu müşterinin kayıtlı motosikleti yok." items={customerBikes.map((item) => ({ id: item.id, label: `${item.brand} ${item.model}`, sub: `${item.plate || 'Plaka yok'} • ${item.odometer?.toLocaleString('tr-TR') ?? '-'} km` }))} selected={selectedMotorcycleId} onSelect={setSelectedMotorcycleId} />
           )}
         </GlassCard>
 
@@ -281,6 +283,7 @@ export function NewWorkOrderScreen({
           )}
           <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>ATANACAK USTA</Text>
           <ChipList
+            kind="mechanic"
             empty="Aktif Usta veya İşletme Sahibi + Usta bulunamadı."
             items={members.filter((item) => item.role === 'mechanic' || item.role === 'owner_mechanic').map((item) => ({ id: item.user_id, label: item.profile?.full_name || 'Usta', sub: `${item.role === 'owner_mechanic' ? 'İşletme Sahibi + Usta' : 'Usta'} • ${item.availability_status === 'busy' ? 'Meşgul' : item.availability_status === 'off' ? 'Kapalı' : 'Müsait'}` }))}
             selected={mechanicId}
@@ -317,28 +320,19 @@ function Section({ title }: { title: string }) {
   return <Text style={[styles.section, { color: colors.text }]}>{title}</Text>;
 }
 
-function Toggle({ value, onChange, first, second }: { value: boolean; onChange: (value: boolean) => void; first: string; second: string }) {
+function Toggle({ value, onChange, first, second, firstIcon, secondIcon }: { value: boolean; onChange: (value: boolean) => void; first: string; second: string; firstIcon?: keyof typeof Ionicons.glyphMap; secondIcon?: keyof typeof Ionicons.glyphMap }) {
   const { colors } = useTheme();
   const options = [
-    { value: true, label: first },
-    { value: false, label: second },
+    { value: true, label: first, icon: firstIcon },
+    { value: false, label: second, icon: secondIcon },
   ];
   return (
-    <View style={[styles.toggle, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}> 
+    <View style={[styles.toggle, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>
       {options.map((option) => {
         const active = value === option.value;
         return (
-          <AnimatedPressable
-            key={String(option.value)}
-            onPress={() => onChange(option.value)}
-            style={[
-              styles.toggleItem,
-              {
-                backgroundColor: active ? colors.cardStrong : 'transparent',
-                borderColor: active ? `${colors.primary}7A` : 'transparent',
-              },
-            ]}
-          >
+          <AnimatedPressable key={String(option.value)} onPress={() => onChange(option.value)} style={[styles.toggleItem, { backgroundColor: active ? colors.cardStrong : 'transparent', borderColor: active ? `${colors.primary}7A` : 'transparent' }]}>
+            {option.icon && <View style={[styles.toggleOptionIcon, { backgroundColor: `${colors.primary}14` }]}><Ionicons name={option.icon} size={18} color={active ? colors.primary : colors.textMuted} /></View>}
             <Text numberOfLines={1} maxFontSizeMultiplier={1.02} style={[styles.toggleText, { color: active ? colors.text : colors.textMuted }]}>{option.label}</Text>
             {active && <View style={[styles.toggleDot, { backgroundColor: colors.primary }]} />}
           </AnimatedPressable>
@@ -389,10 +383,18 @@ function ChoiceGrid({ items, selected, onSelect }: { items: ChoiceItem[]; select
   );
 }
 
-function ChipList({ items, selected, onSelect, empty }: { items: { id: string; label: string; sub: string }[]; selected: string | null; onSelect: (id: string) => void; empty: string }) {
+function ChipList({ items, selected, onSelect, empty, kind = 'customer' }: { items: { id: string; label: string; sub: string }[]; selected: string | null; onSelect: (id: string) => void; empty: string; kind?: 'customer' | 'motorcycle' | 'mechanic' }) {
   const { colors } = useTheme();
   if (items.length === 0) return <Text style={[styles.empty, { color: colors.textMuted }]}>{empty}</Text>;
-  return <View style={styles.chips}>{items.map((item) => <AnimatedPressable key={item.id} onPress={() => onSelect(item.id)} style={[styles.chip, { backgroundColor: selected === item.id ? `${colors.primary}20` : colors.surfaceSoft, borderColor: selected === item.id ? colors.primary : colors.border }]}><View style={styles.chipCopy}><Text style={[styles.chipTitle, { color: colors.text }]}>{item.label}</Text><Text style={[styles.chipSub, { color: colors.textMuted }]}>{item.sub}</Text></View>{selected === item.id && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}</AnimatedPressable>)}</View>;
+  const accent = kind === 'motorcycle' ? colors.cyan : kind === 'mechanic' ? colors.orange : colors.primary;
+  return <View style={styles.chips}>{items.map((item) => {
+    const active = selected === item.id;
+    return <AnimatedPressable key={item.id} onPress={() => onSelect(item.id)} style={[styles.chip, { backgroundColor: active ? `${accent}18` : colors.surfaceSoft, borderColor: active ? accent : colors.border }]}>
+      <View style={[styles.chipIcon, { backgroundColor: `${accent}14`, borderColor: `${accent}34` }]}>{kind === 'motorcycle' ? <AnimatedMotorcycleIcon size={28} color={accent} /> : <Ionicons name={kind === 'mechanic' ? 'construct' : 'person'} size={21} color={accent} />}</View>
+      <View style={styles.chipCopy}><Text style={[styles.chipTitle, { color: colors.text }]}>{item.label}</Text><Text style={[styles.chipSub, { color: colors.textMuted }]}>{item.sub}</Text></View>
+      <Ionicons name={active ? 'checkmark-circle' : 'chevron-forward'} size={22} color={active ? accent : colors.textMuted} />
+    </AnimatedPressable>;
+  })}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -407,14 +409,14 @@ const styles = StyleSheet.create({
   section: { fontSize: 18, fontWeight: '900', marginTop: 6 },
   formCard: { gap: 14 },
   toggle: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: 17, borderWidth: 1 },
-  toggleItem: { flex: 1, minWidth: 0, minHeight: 46, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  toggleItem: { flex: 1, minWidth: 0, minHeight: 50, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 8 }, toggleOptionIcon: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   toggleText: { fontSize: 13, fontWeight: '900', textAlign: 'center' },
   toggleDot: { width: 18, height: 2.5, borderRadius: 3, marginTop: 4 },
   twoCol: { flexDirection: 'row', gap: 10 },
   col: { flex: 1, minWidth: 0 },
   fieldLabel: { fontSize: 12.5, fontWeight: '900', letterSpacing: 0.8 },
   chips: { gap: 9 },
-  chip: { minHeight: 59, borderRadius: 17, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  chip: { minHeight: 72, borderRadius: 18, borderWidth: 1, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 10 }, chipIcon: { width: 46, height: 46, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   chipCopy: { flex: 1, minWidth: 0 },
   chipTitle: { fontSize: 14, fontWeight: '900' },
   chipSub: { fontSize: 12.5, marginTop: 3 },
