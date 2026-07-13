@@ -11,7 +11,7 @@ Geliştirme sırası:
 3. v1.0’dan sonra web sürümü yalnızca opsiyonel olarak değerlendirilir.
 4. Bu planda v1.1, v1.2, v2.0, v2.1 veya v3.0 bulunmaz.
 
-**Güncel geliştirme durumu:** v0.1–v0.8 uygulama ve Supabase tarafında tamamlandı. Güncel sürüm `v0.8.10`dur. Fiziksel Expo Go ve ayrı gerçek rol hesabı testleri ilgili checklist belgelerinde ayrıca takip edilir.
+**Güncel geliştirme durumu:** v0.1–v0.8 uygulama ve Supabase tarafında tamamlandı. Güncel sürüm `v0.8.11`dir. Fiziksel Expo Go ve ayrı gerçek rol hesabı testleri ilgili checklist belgelerinde ayrıca takip edilir.
 
 ## v0.1 — Çok İşletmeli Çekirdek Sistem ✅
 
@@ -273,6 +273,17 @@ Expo Go Android üzerinde yerel bildirimler kullanılır. Uzaktan push bildirimi
 - [x] Ayarlar ana kategorilerini açılır-kapanır yapma
 - [x] Kullanıcı ve operasyon verilerini sıfırlama
 - [x] Ana e-posta için otomatik Admin kuralını doğrulama
+
+## v0.8.11 — Bildirim, Usta İş Akışı ve Platform Borcu ✅
+
+- [x] Eşleştirme talebi bildirimlerini düzeltme ve canlı vurgu
+- [x] Yeni bildirimlerde zil animasyonu
+- [x] Müşteri hesabı ve motor bağlantısı arayüz düzeni
+- [x] İşletme Panelini rapor/ayar kapsamına ayırma
+- [x] Her Ustanın yalnız kendi işlerini görmesi
+- [x] Platform borcunu işletme yerel gününe göre dönemlendirme
+- [x] İşlem başı ücret kaydından servis detayına geçiş
+- [x] Teslim sonrası borç ve tahsilat yönlendirmesi
 
 ## v0.9 — Google Play Uyum, Test ve Pilot
 

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Image, LayoutAnimation, Linking, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Image, LayoutAnimation, Linking, Modal, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
@@ -86,6 +86,7 @@ type PaymentReport = {
 
 type ChargeRow = {
   id: string;
+  work_order_id: string;
   amount: number;
   fee_per_order: number;
   charge_date: string;
@@ -96,6 +97,16 @@ type ChargeRow = {
   model: string;
   plate?: string | null;
   complaint: string;
+};
+
+type ChargeDetail = {
+  charge: { id: string; amount: number; fee_per_order: number; charge_date: string; source_status: string; charged_at?: string | null; voided_at?: string | null };
+  work_order: { id: string; status: string; service_type: string; complaint: string; total_amount: number; amount_received: number; remaining_amount: number; payment_status: string; receivable_status: string; arrived_at?: string | null; started_at?: string | null; ready_at?: string | null; delivered_at?: string | null };
+  customer: { id: string; full_name: string; phone?: string | null };
+  motorcycle: { id: string; brand: string; model: string; plate?: string | null; odometer?: number | null };
+  mechanic?: { id?: string | null; full_name?: string | null } | null;
+  services: { id: string; title: string; description?: string | null; price: number; completed: boolean }[];
+  parts: { id: string; part_name: string; quantity: number; unit_price: number; total_price: number }[];
 };
 
 type Dashboard = {
@@ -197,6 +208,8 @@ export function PlatformFeesDashboard() {
   const [accountHolder, setAccountHolder] = useState('');
   const [iban, setIban] = useState('');
   const [globalNote, setGlobalNote] = useState('');
+  const [selectedCharge, setSelectedCharge] = useState<ChargeDetail | null>(null);
+  const [chargeDetailLoading, setChargeDetailLoading] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<PlatformAccordionKey, boolean>>({
     paymentInfo: true,
     paymentForm: false,
@@ -292,6 +305,14 @@ export function PlatformFeesDashboard() {
       if (receiptPath) await supabase.storage.from('platform-receipts').remove([receiptPath]);
       Alert.alert('Ödeme bildirilemedi', error?.message || 'Bilinmeyen hata');
     } finally { setSaving(false); }
+  };
+
+  const openChargeDetail = async (chargeId: string) => {
+    setChargeDetailLoading(chargeId);
+    const { data, error } = await supabase.rpc('platform_get_charge_detail', { p_charge_id: chargeId });
+    setChargeDetailLoading(null);
+    if (error) return Alert.alert('Ücret kaydı açılamadı', error.message);
+    setSelectedCharge(data as ChargeDetail);
   };
 
   const saveGlobal = async () => {
@@ -466,8 +487,9 @@ export function PlatformFeesDashboard() {
       open={expandedSections.charges}
       onToggle={() => toggleSection('charges')}
     >
-      <View style={styles.stack}>{dashboard.charges.length === 0 ? <Empty text="Tamamlanan servise bağlı ücret kaydı bulunmuyor." /> : dashboard.charges.map((charge) => <ChargeCard key={charge.id} charge={charge} />)}</View>
+      <View style={styles.stack}>{dashboard.charges.length === 0 ? <Empty text="Tamamlanan servise bağlı ücret kaydı bulunmuyor." /> : dashboard.charges.map((charge) => <ChargeCard key={charge.id} charge={charge} loading={chargeDetailLoading === charge.id} onPress={() => openChargeDetail(charge.id)} />)}</View>
     </AccordionSection>
+    <ChargeDetailModal detail={selectedCharge} onClose={() => setSelectedCharge(null)} />
   </View>;
 }
 
@@ -530,10 +552,35 @@ function PeriodCard({ period }: { period: PeriodRow }) {
   return <GlassCard style={styles.periodCard}><View style={styles.row}><View style={[styles.periodIcon, { backgroundColor: `${accent}15` }]}><Ionicons name="calendar-number" size={22} color={accent} /></View><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{dateText(period.cycle_start)} – {dateText(period.cycle_end)}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>Son ödeme {dateText(period.due_date)} • {statusLabel[period.status]}</Text></View><Text style={[styles.rowAmount, { color: accent }]}>{money(number(period.remaining_amount))}</Text></View><View style={styles.periodMetrics}><Mini label="Oluşan" value={money(number(period.charge_amount))} /><Mini label="Onaylanan" value={money(number(period.approved_amount))} accent={colors.green} /><Mini label="Bekleyen" value={money(number(period.pending_amount))} accent={colors.cyan} /></View></GlassCard>;
 }
 
-function ChargeCard({ charge }: { charge: ChargeRow }) {
+function ChargeCard({ charge, onPress, loading }: { charge: ChargeRow; onPress: () => void; loading: boolean }) {
   const { colors } = useTheme();
-  return <GlassCard style={[styles.chargeCard, charge.voided_at && { opacity: 0.55 }]}><View style={styles.row}><View style={[styles.chargeIcon, { backgroundColor: `${colors.primary}15` }]}><Ionicons name="receipt" size={21} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{charge.customer_name} • {charge.plate || 'Plaka yok'}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{charge.brand} {charge.model} • {dateText(charge.charge_date)} • {charge.source_status}</Text></View><Text style={[styles.rowAmount, { color: charge.voided_at ? colors.textMuted : colors.green }]}>{money(number(charge.amount))}</Text></View><Text style={[styles.note, { color: colors.textSoft }]}>{charge.complaint}</Text></GlassCard>;
+  return <AnimatedPressable onPress={onPress} style={[styles.chargeCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: charge.voided_at ? 0.55 : 1 }]}>
+    <View style={styles.row}><View style={[styles.chargeIcon, { backgroundColor: `${colors.primary}15` }]}><Ionicons name={loading ? 'sync' : 'receipt'} size={21} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{charge.customer_name} • {charge.plate || 'Plaka yok'}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{charge.brand} {charge.model} • {dateText(charge.charge_date)} • {charge.source_status}</Text></View><Text style={[styles.rowAmount, { color: charge.voided_at ? colors.textMuted : colors.green }]}>{money(number(charge.amount))}</Text><Ionicons name="chevron-forward" size={20} color={colors.textMuted} /></View>
+    <Text style={[styles.note, { color: colors.textSoft }]}>{charge.complaint}</Text>
+  </AnimatedPressable>;
 }
+
+function ChargeDetailModal({ detail, onClose }: { detail: ChargeDetail | null; onClose: () => void }) {
+  const { colors } = useTheme();
+  if (!detail) return null;
+  const order = detail.work_order;
+  return <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+    <View style={styles.detailOverlay}>
+      <View style={[styles.detailModal, { backgroundColor: colors.cardStrong, borderColor: colors.border }]}>
+        <View style={styles.detailHeader}><View style={[styles.detailHeaderIcon, { backgroundColor: `${colors.primary}16` }]}><Ionicons name="receipt" size={24} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.detailTitle, { color: colors.text }]}>İşlem Başı Ücret Detayı</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{detail.motorcycle.brand} {detail.motorcycle.model} • {detail.motorcycle.plate || 'Plaka yok'}</Text></View><AnimatedPressable onPress={onClose}><Ionicons name="close-circle" size={31} color={colors.textMuted} /></AnimatedPressable></View>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.detailScroll}>
+          <LinearGradient colors={[colors.primary, colors.primary2, colors.cyan]} style={styles.detailHero}><View><Text style={styles.heroEyebrow}>PLATFORM ÜCRETİ</Text><Text style={styles.detailHeroValue}>{money(number(detail.charge.amount))}</Text><Text style={styles.heroSub}>{dateText(detail.charge.charge_date)} • {detail.charge.source_status}</Text></View><Ionicons name="checkmark-done-circle" size={36} color="#fff" /></LinearGradient>
+          <GlassCard style={styles.detailCard}><DetailLine icon="person" label="Müşteri" value={detail.customer.full_name} /><DetailLine icon="call" label="Telefon" value={detail.customer.phone || '-'} /><DetailLine icon="construct" label="Usta" value={detail.mechanic?.full_name || 'Atanmamış'} /><DetailLine icon="speedometer" label="Motosiklet" value={`${detail.motorcycle.brand} ${detail.motorcycle.model} • ${detail.motorcycle.plate || 'Plaka yok'}`} /></GlassCard>
+          <GlassCard style={styles.detailCard}><Text style={[styles.detailSectionTitle, { color: colors.text }]}>Servis ve Tahsilat</Text><Text style={[styles.note, { color: colors.textSoft }]}>{order.complaint}</Text><View style={styles.periodMetrics}><Mini label="Toplam" value={money(number(order.total_amount))} /><Mini label="Ödenen" value={money(number(order.amount_received))} accent={colors.green} /><Mini label="Kalan" value={money(number(order.remaining_amount))} accent={number(order.remaining_amount) > 0 ? colors.red : colors.green} /></View><DetailLine icon="time" label="Geliş" value={dateTime(order.arrived_at)} /><DetailLine icon="checkmark-circle" label="Teslim" value={dateTime(order.delivered_at || order.ready_at)} /></GlassCard>
+          <GlassCard style={styles.detailCard}><Text style={[styles.detailSectionTitle, { color: colors.text }]}>Yapılan İşlemler</Text>{detail.services.length === 0 ? <Text style={[styles.empty, { color: colors.textMuted }]}>İşlem satırı yok.</Text> : detail.services.map((item) => <View key={item.id} style={[styles.detailItem, { borderBottomColor: colors.border }]}><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{item.title}</Text>{item.description && <Text style={[styles.rowMeta, { color: colors.textMuted }]}>{item.description}</Text>}</View><Text style={[styles.rowAmount, { color: colors.green }]}>{money(number(item.price))}</Text></View>)}</GlassCard>
+          <GlassCard style={styles.detailCard}><Text style={[styles.detailSectionTitle, { color: colors.text }]}>Kullanılan Parçalar</Text>{detail.parts.length === 0 ? <Text style={[styles.empty, { color: colors.textMuted }]}>Parça kaydı yok.</Text> : detail.parts.map((item) => <View key={item.id} style={[styles.detailItem, { borderBottomColor: colors.border }]}><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{item.part_name}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{number(item.quantity)} adet × {money(number(item.unit_price))}</Text></View><Text style={[styles.rowAmount, { color: colors.text }]}>{money(number(item.total_price))}</Text></View>)}</GlassCard>
+        </ScrollView>
+      </View>
+    </View>
+  </Modal>;
+}
+
+function DetailLine({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) { const { colors } = useTheme(); return <View style={[styles.detailLine, { borderBottomColor: colors.border }]}><Ionicons name={icon} size={18} color={colors.textMuted} /><View style={styles.copy}><Text style={[styles.miniLabel, { color: colors.textMuted }]}>{label}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text></View></View>; }
 
 function Metric({ icon, label, value, accent }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; accent: string }) {
   const { colors } = useTheme();
@@ -558,5 +605,6 @@ const styles = StyleSheet.create({
   receiptPicker: { minHeight: 76, borderRadius: 18, borderWidth: 1, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 }, receiptPreview: { width: 54, height: 54, borderRadius: 14 }, receiptPlaceholder: { width: 54, height: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, receiptTitle: { fontSize: 13, fontWeight: '900' }, receiptText: { fontSize: 11, marginTop: 4 }, removeReceipt: { fontSize: 12.5, fontWeight: '900', textAlign: 'center' },
   toggleRow: { minHeight: 72, borderRadius: 17, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }, toggleTitle: { fontSize: 13.5, fontWeight: '900' }, toggleText: { fontSize: 11, lineHeight: 14, marginTop: 4 }, fieldLabel: { fontSize: 11, fontWeight: '900', letterSpacing: 1 }, segment: { flexDirection: 'row', gap: 8 }, choice: { flex: 1, minHeight: 50, borderRadius: 15, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, choiceText: { fontSize: 12.5, fontWeight: '900' }, choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, smallChoice: { minWidth: 48, minHeight: 41, borderRadius: 13, borderWidth: 1, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' }, smallChoiceText: { fontSize: 12, fontWeight: '900' },
   listTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 }, reportCard: { gap: 10 }, reportIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, rowTitle: { fontSize: 13.5, fontWeight: '900' }, rowMeta: { fontSize: 11, lineHeight: 14, marginTop: 3 }, rowAmount: { fontSize: 13, fontWeight: '900' }, note: { fontSize: 12, lineHeight: 16 }, allocationWrap: { gap: 6 }, allocation: { minHeight: 42, borderRadius: 12, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, allocationText: { fontSize: 10 }, allocationAmount: { fontSize: 12, fontWeight: '900' }, receiptOpen: { minHeight: 43, borderRadius: 13, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }, receiptOpenText: { fontSize: 12, fontWeight: '900' }, adminNote: { minHeight: 44, borderRadius: 13, borderWidth: 1, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 7 }, adminNoteText: { flex: 1, fontSize: 11, lineHeight: 14 }, reviewBox: { gap: 9 }, actionRow: { flexDirection: 'row', gap: 8 }, actionButton: { flex: 1, minHeight: 46, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, actionText: { fontSize: 12.5, fontWeight: '900' }, cancelButton: { minHeight: 42, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, cancelText: { fontSize: 12, fontWeight: '900' },
-  periodCard: { gap: 10 }, periodIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, periodMetrics: { flexDirection: 'row', gap: 6 }, mini: { flex: 1, minWidth: 0, minHeight: 57, borderRadius: 13, padding: 8, justifyContent: 'center' }, miniValue: { fontSize: 12, fontWeight: '900' }, miniLabel: { fontSize: 9.5, fontWeight: '800', marginTop: 4 }, chargeCard: { gap: 8 }, chargeIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  detailOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'flex-end' }, detailModal: { maxHeight: '91%', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, paddingTop: 14, overflow: 'hidden' }, detailHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 12 }, detailHeaderIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, detailTitle: { fontSize: 18, fontWeight: '900' }, detailScroll: { paddingHorizontal: 15, paddingBottom: 36, gap: 11 }, detailHero: { minHeight: 125, borderRadius: 23, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, detailHeroValue: { color: '#fff', fontSize: 30, fontWeight: '900', marginTop: 7 }, detailCard: { gap: 9 }, detailSectionTitle: { fontSize: 16, fontWeight: '900' }, detailLine: { minHeight: 54, borderBottomWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 9 }, detailValue: { fontSize: 13, fontWeight: '800', marginTop: 3 }, detailItem: { minHeight: 58, borderBottomWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  periodCard: { gap: 10 }, periodIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }, periodMetrics: { flexDirection: 'row', gap: 6 }, mini: { flex: 1, minWidth: 0, minHeight: 57, borderRadius: 13, padding: 8, justifyContent: 'center' }, miniValue: { fontSize: 12, fontWeight: '900' }, miniLabel: { fontSize: 9.5, fontWeight: '800', marginTop: 4 }, chargeCard: { gap: 8, borderWidth: 1, borderRadius: 18, padding: 13 }, chargeIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

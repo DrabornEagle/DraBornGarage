@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, LayoutAnimation, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
@@ -52,6 +52,8 @@ export function CustomerAccountScreen() {
   const [searching, setSearching] = useState(false);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<'mechanic' | 'history', boolean>>({ mechanic: false, history: false });
+  const toggleSection = (key: 'mechanic' | 'history') => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setOpenSections((current) => ({ ...current, [key]: !current[key] })); };
 
   const load = useCallback(async () => {
     const { data } = await supabase.rpc('customer_get_claims');
@@ -137,15 +139,7 @@ export function CustomerAccountScreen() {
         <Ionicons name="shield-checkmark" size={24} color={colors.green} />
       </GlassCard>
 
-      <GlassCard style={[styles.mechanicHub, { borderColor: `${colors.orange}45` }]}>
-        <View style={styles.hubHeader}>
-          <View style={[styles.hubIcon, { backgroundColor: `${colors.orange}1A` }]}><Ionicons name="construct" size={27} color={colors.orange} /></View>
-          <View style={styles.copy}>
-            <Text style={[styles.hubTitle, { color: colors.text }]}>Usta Paneline Katıl</Text>
-            <Text style={[styles.hubText, { color: colors.textMuted }]}>İşletme adını arayıp Usta başvurusu gönder veya işletmenin verdiği tek kullanımlık Usta kodunu gir.</Text>
-          </View>
-        </View>
-
+      <AccountAccordion title="Usta Paneline Katıl" subtitle="İşletmeye başvur veya personel davet kodunu kullan" icon="construct" accent={colors.orange} open={openSections.mechanic} onToggle={() => toggleSection('mechanic')}>
         <View style={[styles.methodBox, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>
           <View style={styles.methodHeader}><Ionicons name="search" size={21} color={colors.primary} /><View style={styles.copy}><Text style={[styles.methodTitle, { color: colors.text }]}>İşletme Ara ve Başvur</Text><Text style={[styles.methodText, { color: colors.textMuted }]}>İşletme onayladığında hesabın otomatik Usta paneline geçer.</Text></View></View>
           <FormField label="İşletme adı" value={workshopQuery} onChangeText={setWorkshopQuery} placeholder="Örn. Ankara Merkez Garage" autoCapitalize="words" />
@@ -183,20 +177,33 @@ export function CustomerAccountScreen() {
           <FormField label="Personel davet kodu" value={inviteCode} onChangeText={(value) => setInviteCode(value.toUpperCase())} placeholder="Örn. A1B2C3D4" autoCapitalize="characters" />
           <PrimaryButton title="Kodu Kullan ve Usta Panelini Aç" onPress={redeemInvite} loading={joining} />
         </View>
-      </GlassCard>
+      </AccountAccordion>
 
       <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: colors.text }]}>Bağlı İşletmeler</Text><AnimatedPressable onPress={() => setShowLink((value) => !value)} style={[styles.add, { borderColor: `${colors.primary}40`, backgroundColor: `${colors.primary}12` }]}><Ionicons name={showLink ? 'close' : 'add'} size={19} color={colors.primary} /><Text style={[styles.addText, { color: colors.primary }]}>{showLink ? 'Kapat' : 'Motor Ekle'}</Text></AnimatedPressable></View>
       {showLink && <CustomerLinkPanel onLinked={() => { setShowLink(false); load(); }} />}
       {customerWorkshops.map((item) => <GlassCard key={item.link_id} style={styles.workshop}><View style={[styles.icon, { backgroundColor: `${colors.cyan}15` }]}><Ionicons name="business" size={23} color={colors.cyan} /></View><View style={styles.copy}><Text style={[styles.workshopName, { color: colors.text }]}>{item.workshop_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.customer_name} • {methodText[item.link_method]}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.workshop_address || 'Adres eklenmedi'}</Text></View><AnimatedPressable onPress={() => unlink(item.link_id, item.workshop_name)}><Ionicons name="unlink" size={21} color={colors.red} /></AnimatedPressable></GlassCard>)}
       {customerWorkshops.length === 0 && !showLink && <GlassCard style={styles.empty}><Ionicons name="business-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Bağlı işletme yok</Text></GlassCard>}
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Eşleştirme Geçmişi</Text>
-      <GlassCard>{claims.length === 0 ? <Text style={[styles.emptyText, { color: colors.textMuted }]}>Henüz talep yok.</Text> : claims.slice(0, 10).map((item) => { const accent = item.status === 'approved' ? colors.green : item.status === 'pending' ? colors.orange : colors.red; return <View key={item.id} style={styles.claim}><Ionicons name={item.status === 'approved' ? 'checkmark-circle' : item.status === 'pending' ? 'time' : 'close-circle'} size={22} color={accent} /><View style={styles.copy}><Text style={[styles.claimTitle, { color: colors.text }]}>{item.brand} {item.model} • {item.plate}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.workshop_name} • {methodText[item.method]} • {shortDate(item.created_at)}</Text></View><Text style={[styles.status, { color: accent }]}>{item.status === 'approved' ? 'ONAYLI' : item.status === 'pending' ? 'BEKLİYOR' : 'RED'}</Text></View>; })}</GlassCard>
+      <AccountAccordion title="Eşleştirme Geçmişi" subtitle={`${claims.length} talep • onay ve bağlantı geçmişi`} icon="git-compare" accent={colors.primary} open={openSections.history} onToggle={() => toggleSection('history')}>
+        <GlassCard>{claims.length === 0 ? <Text style={[styles.emptyText, { color: colors.textMuted }]}>Henüz talep yok.</Text> : claims.slice(0, 10).map((item) => { const accent = item.status === 'approved' ? colors.green : item.status === 'pending' ? colors.orange : colors.red; return <View key={item.id} style={styles.claim}><Ionicons name={item.status === 'approved' ? 'checkmark-circle' : item.status === 'pending' ? 'time' : 'close-circle'} size={22} color={accent} /><View style={styles.copy}><Text style={[styles.claimTitle, { color: colors.text }]}>{item.brand} {item.model} • {item.plate}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.workshop_name} • {methodText[item.method]} • {shortDate(item.created_at)}</Text></View><Text style={[styles.status, { color: accent }]}>{item.status === 'approved' ? 'ONAYLI' : item.status === 'pending' ? 'BEKLİYOR' : 'RED'}</Text></View>; })}</GlassCard>
+      </AccountAccordion>
 
       {(memberships.length > 0 || isAdmin) && <AnimatedPressable onPress={async () => { const error = await setAccountMode('staff'); if (error) Alert.alert('Hata', error); }} style={[styles.mode, { borderColor: `${colors.orange}40`, backgroundColor: `${colors.orange}11` }]}><Ionicons name="construct" size={23} color={colors.orange} /><View style={styles.copy}><Text style={[styles.modeTitle, { color: colors.text }]}>Personel görünümüne geç</Text><Text style={[styles.meta, { color: colors.textMuted }]}>İşletme, Usta veya Admin panelini aç.</Text></View><Ionicons name="chevron-forward" size={21} color={colors.orange} /></AnimatedPressable>}
       <AnimatedPressable onPress={() => Alert.alert('Çıkış yapılsın mı?', '', [{ text: 'Vazgeç' }, { text: 'Çıkış', style: 'destructive', onPress: signOut }])} style={[styles.logout, { borderColor: `${colors.red}35`, backgroundColor: `${colors.red}10` }]}><Ionicons name="log-out-outline" size={21} color={colors.red} /><Text style={[styles.logoutText, { color: colors.red }]}>Hesaptan Çıkış Yap</Text></AnimatedPressable>
     </ScrollView>
   );
+}
+
+function AccountAccordion({ title, subtitle, icon, accent, open, onToggle, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return <View style={[styles.accountAccordion, { backgroundColor: colors.card, borderColor: open ? `${accent}58` : colors.border }]}>
+    <AnimatedPressable onPress={onToggle} style={styles.accountAccordionHeader}>
+      <View style={[styles.accountAccordionIcon, { backgroundColor: `${accent}15`, borderColor: `${accent}38` }]}><Ionicons name={icon} size={23} color={accent} /></View>
+      <View style={styles.copy}><Text style={[styles.accountAccordionTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.accountAccordionSub, { color: colors.textMuted }]}>{subtitle}</Text></View>
+      <View style={[styles.accountAccordionChevron, { borderColor: open ? `${accent}55` : colors.border }]}><Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={open ? accent : colors.textMuted} /></View>
+    </AnimatedPressable>
+    {open && <View style={[styles.accountAccordionBody, { borderTopColor: colors.border }]}>{children}</View>}
+  </View>;
 }
 
 const styles = StyleSheet.create({
@@ -207,6 +214,7 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 0 },
   name: { fontSize: 18, fontWeight: '900' },
   meta: { fontSize: 13, lineHeight: 17, marginTop: 4 },
+  accountAccordion: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' }, accountAccordionHeader: { minHeight: 82, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11 }, accountAccordionIcon: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, accountAccordionTitle: { fontSize: 16, fontWeight: '900' }, accountAccordionSub: { fontSize: 12, lineHeight: 16, marginTop: 4 }, accountAccordionChevron: { width: 38, height: 38, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, accountAccordionBody: { borderTopWidth: 1, padding: 13, gap: 15 },
   mechanicHub: { gap: 15, borderWidth: 1 },
   hubHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   hubIcon: { width: 54, height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
@@ -78,10 +78,8 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [notes, setNotes] = useState<WorkOrderNote[]>([]);
   const [events, setEvents] = useState<WorkOrderEvent[]>([]);
   const [saving, setSaving] = useState(false);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, details: false, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
-
-  const [diagnosis, setDiagnosis] = useState('');
-  const [internalNotes, setInternalNotes] = useState('');
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
+  const scrollRef = useRef<ScrollView>(null);
   const [priceType, setPriceType] = useState<PriceType>('fixed');
   const [fixedPrice, setFixedPrice] = useState('');
   const [estimateMin, setEstimateMin] = useState('');
@@ -129,8 +127,6 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     setExtras((extrasResult.data as ExtraWorkRequest[]) ?? []);
     setNotes((notesResult.data as WorkOrderNote[]) ?? []);
     setEvents((eventsResult.data as WorkOrderEvent[]) ?? []);
-    setDiagnosis(next.diagnosis ?? '');
-    setInternalNotes(next.notes ?? '');
     setPriceType(next.price_type ?? 'fixed');
     setFixedPrice(next.quoted_price ? String(next.quoted_price) : '');
     setEstimateMin(next.estimated_price_min ? String(next.estimated_price_min) : '');
@@ -147,11 +143,22 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     await load();
   };
 
+  const openReceivableFlow = () => {
+    setOpenSections((current) => ({ ...current, receivables: true }));
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 220);
+  };
+
   const changeStatus = async (status: WorkOrderStatus) => {
     const { error } = await supabase.rpc('update_work_order_status', { p_work_order_id: orderId, p_status: status });
     if (error) return Alert.alert('Durum değiştirilemedi', error.message);
     if (isApprentice) setOrder((current: any) => ({ ...current, status }));
     else await load();
+    if (status === 'delivered' && !isApprentice) {
+      Alert.alert('Motosiklet teslim edildi', 'Şimdi tahsilat, açık borç veya veresiye kaydını kontrol et.', [
+        { text: 'Daha Sonra', style: 'cancel' },
+        { text: 'Borç ve Tahsilata Git', onPress: openReceivableFlow },
+      ]);
+    }
   };
 
   if (!order) return <View style={styles.loading}><Text style={{ color: colors.textMuted }}>Servis kaydı yükleniyor…</Text></View>;
@@ -174,10 +181,6 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     </ScrollView>;
   }
 
-  const saveDetails = () => run(
-    () => supabase.rpc('staff_update_work_order_details', { p_work_order_id: orderId, p_diagnosis: diagnosis, p_internal_notes: internalNotes }),
-    'Servis detayları kaydedilemedi',
-  );
 
   const savePrice = async () => {
     const fixed = Number(fixedPrice.replace(',', '.'));
@@ -273,13 +276,12 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
 
   const deleteNote = (id: string) => run(() => supabase.rpc('staff_delete_work_order_note', { p_note_id: id }), 'Not silinemedi');
 
-  return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+  return <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <Header onBack={onBack} title={`${brand} ${model}`} subtitle={`${order.customer?.full_name || 'Müşteri'} • ${plate || 'Plaka yok'} • Sıra ${order.queue_position ?? '-'}`} status={order.status} />
 
     <GlassCard style={styles.stack}>
       <View style={styles.typeRow}><View style={[styles.typeIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name={order.service_type === 'quick' ? 'flash' : order.service_type === 'appointment' ? 'calendar' : 'key'} size={22} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{order.service_type === 'quick' ? 'Hızlı Servis' : order.service_type === 'appointment' ? 'Randevulu Servis' : 'Bırakılan Motor'}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{order.mechanic?.full_name || 'Atanmamış usta'}</Text></View></View>
       <Label text="MÜŞTERİ ŞİKAYETİ / YAPILACAK İŞ" /><Text style={[styles.body, { color: colors.text }]}>{order.complaint}</Text>
-      {!!order.diagnosis && <><Label text="TESPİT" /><Text style={[styles.body, { color: colors.text }]}>{order.diagnosis}</Text></>}
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.metrics}><Metric label="İŞÇİLİK" value={money(order.labor_amount)} /><Metric label="PARÇA" value={money(order.parts_amount)} /><Metric label="TOPLAM" value={money(order.total_amount)} accent={colors.green} /></View>
       <View style={styles.timeGrid}><TimeMetric label="GELİŞ" value={dateTime(order.arrived_at)} /><TimeMetric label="BAŞLANGIÇ" value={dateTime(order.started_at)} /><TimeMetric label="TEST" value={dateTime(order.testing_started_at)} /><TimeMetric label="HAZIR" value={dateTime(order.ready_at)} /></View>
@@ -289,9 +291,6 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
       <View style={styles.grid}>{statusFlow.map((status) => <StatusButton key={status} status={status} active={order.status === status} onPress={() => changeStatus(status)} />)}</View>
     </DetailAccordion>
 
-    <DetailAccordion title="Tespit ve Atölye Notu" subtitle="Arıza tespiti ve yalnız personelin görebileceği dahili notlar." icon="document-text" accent={colors.cyan} open={openSections.details} onToggle={() => toggleSection('details')} badge={diagnosis ? 'Kayıtlı' : 'Bekliyor'}>
-      <FormField label="Tespit" value={diagnosis} onChangeText={setDiagnosis} multiline /><FormField label="Dahili atölye notu" value={internalNotes} onChangeText={setInternalNotes} multiline /><PrimaryButton title="Servis Detaylarını Kaydet" onPress={saveDetails} loading={saving} />
-    </DetailAccordion>
 
     <DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Tamire başlamadan önce net veya tahmini fiyatı kaydet." icon="pricetag" accent={colors.green} open={openSections.price} onToggle={() => toggleSection('price')} badge={order.quoted_price ? money(order.quoted_price) : order.estimated_price_min ? 'Tahmini' : 'Girilmedi'}>
       <Toggle values={[['fixed', 'Net Fiyat'], ['estimated', 'Tahmini Fiyat']]} active={priceType} onChange={(value) => setPriceType(value as PriceType)} />

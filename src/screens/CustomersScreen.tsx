@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Animated, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
@@ -13,16 +13,20 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { useNotifications } from '../notifications/NotificationContext';
 import { Customer, Motorcycle, StaffCustomerClaim, StaffRegisteredCustomerMatch, WorkOrderStatus } from '../types';
 
 type Tab = 'customers' | 'claims';
 type Order = { id: string; customer_id: string; motorcycle_id: string; status: WorkOrderStatus; complaint: string; total_amount: number; amount_received: number; arrived_at: string };
 type Access = { work_order_id: string; tracking_code: string; claim_token: string; qr_payload: string; status: WorkOrderStatus; arrived_at: string };
 
-export function CustomersScreen() {
+export function CustomersScreen({ initialTab = 'customers' }: { initialTab?: Tab }) {
   const { colors } = useTheme();
   const { workshop } = useAuth();
-  const [tab, setTab] = useState<Tab>('customers');
+  const { notifications, markRead } = useNotifications();
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [acknowledgedClaimSignature, setAcknowledgedClaimSignature] = useState('');
+  const claimPulse = useRef(new Animated.Value(0)).current;
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [motorcycles, setMotorcycles] = useState<Motorcycle[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -50,9 +54,48 @@ export function CustomersScreen() {
     setCustomers((c.data as Customer[]) ?? []); setMotorcycles((m.data as Motorcycle[]) ?? []); setOrders((o.data as Order[]) ?? []); setClaims((cl.data as StaffCustomerClaim[] | null) ?? []);
   }, [workshop]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
+  useEffect(() => {
+    if (!workshop?.id) return;
+    const channel = supabase.channel(`customer-claims-attention-${workshop.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_claims', filter: `workshop_id=eq.${workshop.id}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, load]);
 
   const visible = useMemo(() => { const q = query.trim().toLocaleLowerCase('tr-TR'); if (!q) return customers; return customers.filter((c) => c.full_name.toLocaleLowerCase('tr-TR').includes(q) || c.phone?.includes(q) || motorcycles.filter((m) => m.customer_id === c.id).some((m) => `${m.brand} ${m.model} ${m.plate ?? ''}`.toLocaleLowerCase('tr-TR').includes(q))); }, [customers, motorcycles, query]);
-  const pending = claims.filter((item) => item.status === 'pending').length;
+  const pendingClaims = claims.filter((item) => item.status === 'pending');
+  const pending = pendingClaims.length;
+  const pendingClaimSignature = pendingClaims.map((item) => item.id).sort().join('|');
+  const needsClaimAttention = Boolean(pendingClaimSignature) && pendingClaimSignature !== acknowledgedClaimSignature && tab !== 'claims';
+
+  useEffect(() => {
+    if (!needsClaimAttention) {
+      claimPulse.stopAnimation();
+      claimPulse.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(claimPulse, { toValue: 1, duration: 720, useNativeDriver: true }),
+      Animated.timing(claimPulse, { toValue: 0, duration: 720, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [needsClaimAttention, claimPulse]);
+
+  useEffect(() => {
+    if (tab === 'claims' && pendingClaimSignature) setAcknowledgedClaimSignature(pendingClaimSignature);
+  }, [tab, pendingClaimSignature]);
+
+  const openClaims = async () => {
+    setTab('claims');
+    setAcknowledgedClaimSignature(pendingClaimSignature);
+    const unreadClaimNotifications = notifications.filter((item) => !item.read_at && item.notification_type === 'customer_claim_pending');
+    await Promise.all(unreadClaimNotifications.map((item) => markRead(item.id)));
+  };
+
+  const attentionScale = claimPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
+  const attentionOpacity = claimPulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] });
 
   const addCustomer = async () => { if (!workshop || !name.trim()) return Alert.alert('Müşteri adı gerekli'); setSaving(true); const { error } = await supabase.from('customers').insert({ workshop_id: workshop.id, full_name: name.trim(), phone: phone.trim() || null, note: note.trim() || null }); setSaving(false); if (error) return Alert.alert('Eklenemedi', error.message); setName(''); setPhone(''); setNote(''); setShowNew(false); await load(); };
   const addBike = async () => { if (!workshop || !selected || !brand.trim() || !model.trim()) return Alert.alert('Marka ve model gerekli'); setSaving(true); const { error } = await supabase.from('motorcycles').insert({ workshop_id: workshop.id, customer_id: selected, brand: brand.trim(), model: model.trim(), plate: plate.trim().toUpperCase() || null }); setSaving(false); if (error) return Alert.alert('Eklenemedi', error.message); setBrand(''); setModel(''); setPlate(''); setShowBike(false); await load(); };
@@ -99,7 +142,13 @@ export function CustomersScreen() {
 
   return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
     <ScreenHeader eyebrow="MÜŞTERİ HAFIZASI" title="Müşteriler" subtitle="Müşteri, motor, servis erişimi ve hesap eşleştirme talepleri." actionIcon={tab === 'customers' ? (showNew ? 'close' : 'person-add') : undefined} onAction={tab === 'customers' ? () => setShowNew((v) => !v) : undefined} />
-    <View style={[styles.tabs, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}><TabButton active={tab === 'customers'} label="Müşteriler" icon="people" onPress={() => setTab('customers')} /><TabButton active={tab === 'claims'} label="Eşleşme Talepleri" icon="shield-checkmark" badge={pending} onPress={() => setTab('claims')} /></View>
+    <View style={[styles.tabs, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>
+      <TabButton active={tab === 'customers'} label="Müşteriler" icon="people" onPress={() => setTab('customers')} />
+      <Animated.View style={[styles.claimTabWrap, needsClaimAttention && { opacity: attentionOpacity, transform: [{ scale: attentionScale }] }]}>
+        <TabButton active={tab === 'claims'} label="Eşleşme Talepleri" icon="shield-checkmark" badge={pending} onPress={openClaims} />
+        {needsClaimAttention && <Animated.View pointerEvents="none" style={[styles.claimAttentionRing, { borderColor: colors.orange, opacity: attentionOpacity }]} />}
+      </Animated.View>
+    </View>
 
     {tab === 'customers' ? <>
       <View style={[styles.search, { backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="search" size={20} color={colors.textMuted} /><TextInput value={query} onChangeText={setQuery} placeholder="Ad, telefon, marka veya plaka ara" placeholderTextColor={colors.textMuted} style={[styles.searchInput, { color: colors.text }]} /></View>
@@ -127,5 +176,5 @@ function TabButton({ active, label, icon, badge, onPress }: { active: boolean; l
 function Action({ label, accent, onPress }: { label: string; accent: string; onPress: () => void }) { return <AnimatedPressable onPress={onPress} style={[styles.action, { borderColor: `${accent}40`, backgroundColor: `${accent}0D` }]}><Text style={[styles.actionText, { color: accent }]}>{label}</Text></AnimatedPressable>; }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 14 }, accountSearch: { gap: 12 }, accountSearchHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 }, accountSearchIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, accountMatch: { minHeight: 76, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 }, linkAccountButton: { minHeight: 40, paddingHorizontal: 13, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, tabs: { flexDirection: 'row', gap: 5, padding: 5, borderWidth: 1, borderRadius: 18 }, tab: { flex: 1, minHeight: 47, borderWidth: 1, borderColor: 'transparent', borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, tabText: { fontSize: 12, fontWeight: '900' }, badge: { minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }, badgeText: { color: '#fff', fontSize: 11, fontWeight: '900' }, search: { minHeight: 54, borderWidth: 1, borderRadius: 18, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, gap: 10 }, searchInput: { flex: 1 }, form: { gap: 12 }, formTitle: { fontSize: 18, fontWeight: '900' }, customerCard: { padding: 14 }, customerTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, avatar: { width: 47, height: 47, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, avatarText: { fontSize: 19, fontWeight: '900' }, copy: { flex: 1, minWidth: 0 }, customerName: { fontSize: 15, fontWeight: '900' }, meta: { fontSize: 12, lineHeight: 14, marginTop: 3 }, debt: { fontSize: 12.5, fontWeight: '900' }, expanded: { borderTopWidth: 1, marginTop: 13, paddingTop: 12, gap: 9 }, bike: { borderWidth: 1, borderRadius: 18, padding: 11, gap: 9 }, bikeTop: { flexDirection: 'row', alignItems: 'center', gap: 9 }, bikeTitle: { fontSize: 13, fontWeight: '900' }, accessButton: { minHeight: 41, borderWidth: 1, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, accessText: { fontSize: 12, fontWeight: '900' }, accessPanel: { borderWidth: 1, borderRadius: 17, padding: 12, alignItems: 'center', gap: 8 }, qr: { backgroundColor: '#fff', padding: 9, borderRadius: 14 }, codeLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1 }, code: { fontSize: 25, fontWeight: '900', letterSpacing: 3 }, addBike: { minHeight: 43, borderWidth: 1, borderStyle: 'dashed', borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, addBikeText: { fontSize: 12.5, fontWeight: '900' }, twoCol: { flexDirection: 'row', gap: 8 }, flex: { flex: 1 }, empty: { alignItems: 'center', gap: 8, paddingVertical: 28 }, emptyTitle: { fontSize: 16, fontWeight: '900' }, claim: { gap: 11 }, claimTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, claimTitle: { fontSize: 14, fontWeight: '900' }, claimStatus: { fontSize: 10, fontWeight: '900' }, claimActions: { flexDirection: 'row', gap: 8 }, action: { flex: 1, minHeight: 43, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, actionText: { fontSize: 12, fontWeight: '900' },
+  content: { paddingHorizontal: 18, paddingTop: 56, paddingBottom: 120, gap: 14 }, accountSearch: { gap: 12 }, accountSearchHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 }, accountSearchIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, accountMatch: { minHeight: 76, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 9 }, linkAccountButton: { minHeight: 40, paddingHorizontal: 13, borderWidth: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, tabs: { flexDirection: 'row', gap: 5, padding: 5, borderWidth: 1, borderRadius: 18 }, claimTabWrap: { flex: 1, position: 'relative' }, claimAttentionRing: { position: 'absolute', left: -2, right: -2, top: -2, bottom: -2, borderRadius: 16, borderWidth: 2 }, tab: { flex: 1, minHeight: 47, borderWidth: 1, borderColor: 'transparent', borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, tabText: { fontSize: 12, fontWeight: '900' }, badge: { minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }, badgeText: { color: '#fff', fontSize: 11, fontWeight: '900' }, search: { minHeight: 54, borderWidth: 1, borderRadius: 18, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, gap: 10 }, searchInput: { flex: 1 }, form: { gap: 12 }, formTitle: { fontSize: 18, fontWeight: '900' }, customerCard: { padding: 14 }, customerTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, avatar: { width: 47, height: 47, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, avatarText: { fontSize: 19, fontWeight: '900' }, copy: { flex: 1, minWidth: 0 }, customerName: { fontSize: 15, fontWeight: '900' }, meta: { fontSize: 12, lineHeight: 14, marginTop: 3 }, debt: { fontSize: 12.5, fontWeight: '900' }, expanded: { borderTopWidth: 1, marginTop: 13, paddingTop: 12, gap: 9 }, bike: { borderWidth: 1, borderRadius: 18, padding: 11, gap: 9 }, bikeTop: { flexDirection: 'row', alignItems: 'center', gap: 9 }, bikeTitle: { fontSize: 13, fontWeight: '900' }, accessButton: { minHeight: 41, borderWidth: 1, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, accessText: { fontSize: 12, fontWeight: '900' }, accessPanel: { borderWidth: 1, borderRadius: 17, padding: 12, alignItems: 'center', gap: 8 }, qr: { backgroundColor: '#fff', padding: 9, borderRadius: 14 }, codeLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1 }, code: { fontSize: 25, fontWeight: '900', letterSpacing: 3 }, addBike: { minHeight: 43, borderWidth: 1, borderStyle: 'dashed', borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, addBikeText: { fontSize: 12.5, fontWeight: '900' }, twoCol: { flexDirection: 'row', gap: 8 }, flex: { flex: 1 }, empty: { alignItems: 'center', gap: 8, paddingVertical: 28 }, emptyTitle: { fontSize: 16, fontWeight: '900' }, claim: { gap: 11 }, claimTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, claimTitle: { fontSize: 14, fontWeight: '900' }, claimStatus: { fontSize: 10, fontWeight: '900' }, claimActions: { flexDirection: 'row', gap: 8 }, action: { flex: 1, minHeight: 43, borderWidth: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, actionText: { fontSize: 12, fontWeight: '900' },
 });

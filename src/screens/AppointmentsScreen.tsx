@@ -25,7 +25,7 @@ function dayBounds(date: Date) {
 export function AppointmentsScreen() {
   const { colors } = useTheme();
   const { workshop, membership, isAdmin, refreshWorkspace } = useAuth();
-  const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
+  const isOwner = isAdmin || membership?.role === 'owner';
   const canWork = membership?.role === 'mechanic' || membership?.role === 'owner_mechanic';
   const [tab, setTab] = useState<Tab>('calendar');
   const [date, setDate] = useState(daysFromToday(1)[0]);
