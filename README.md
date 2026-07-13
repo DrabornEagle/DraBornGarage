@@ -4,9 +4,9 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.8.16 — Tahsilat Yerleşim Düzeni**
+**v0.8.17 — Sesli Push ve Ödeme Odağı**
 
-v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat kartını düz ve gölgesiz hale getirir ve Servis Hareket Geçmişini servis detayının en altına taşır.
+v0.8.17; alternatif bildirim sesleri, native kapalı uygulama push altyapısı ve işletmeden gelen platform ödemesine doğrudan Admin onay yönlendirmesi ekler.
 
 ## Tamamlanan ana modüller
 

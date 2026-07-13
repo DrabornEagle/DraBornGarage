@@ -3,7 +3,7 @@
     "name": "DraBornGarage",
     "slug": "draborngarage",
     "scheme": "draborngarage",
-    "version": "0.8.16",
+    "version": "0.8.17",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -27,7 +27,13 @@
         "expo-notifications",
         {
           "color": "#7C5CFF",
-          "defaultChannel": "draborngarage-alerts"
+          "defaultChannel": "draborngarage-chime-v1",
+          "sounds": [
+            "./assets/sounds/garage_chime.wav",
+            "./assets/sounds/garage_pulse.wav",
+            "./assets/sounds/garage_alert.wav"
+          ],
+          "enableBackgroundRemoteNotifications": true
         }
       ]
     ],

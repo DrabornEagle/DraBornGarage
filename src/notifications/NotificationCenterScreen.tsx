@@ -7,8 +7,8 @@ import { AnimatedPressable } from '../components/AnimatedPressable';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useTheme } from '../context/ThemeContext';
-import { useNotifications } from './NotificationContext';
-import { GarageNotification, NotificationCategory, NotificationPreferences } from './types';
+import { NOTIFICATION_SOUND_OPTIONS, useNotifications } from './NotificationContext';
+import { GarageNotification, NotificationCategory, NotificationPreferences, NotificationSoundKey } from './types';
 
 type CenterTab = 'all' | 'unread' | 'upcoming' | 'settings';
 
@@ -64,6 +64,7 @@ export function NotificationCenterScreen() {
     upcomingCount,
     preferences,
     permissionStatus,
+    pushStatus,
     closeCenter,
     refresh,
     markAllRead,
@@ -71,6 +72,7 @@ export function NotificationCenterScreen() {
     openNotification,
     updatePreferences,
     requestLocalNotifications,
+    registerPushNotifications,
     sendTestNotification,
   } = useNotifications();
   const [tab, setTab] = useState<CenterTab>('all');
@@ -102,6 +104,24 @@ export function NotificationCenterScreen() {
     Alert.alert(enabled ? 'Telefon bildirimleri açıldı' : 'Bildirim izni verilmedi', enabled
       ? 'Randevu, borç ve platform hatırlatmaları uygun zamanda telefonda gösterilecek.'
       : 'Telefon ayarlarından DraBornGarage bildirim iznini açman gerekiyor.');
+  };
+
+  const selectSound = async (sound: NotificationSoundKey) => {
+    setSaving(true);
+    const error = await updatePreferences({ notification_sound: sound });
+    setSaving(false);
+    if (error) Alert.alert('Bildirim sesi kaydedilemedi', error);
+  };
+
+  const enablePush = async () => {
+    setSaving(true);
+    const error = await updatePreferences({ push_notifications_enabled: true });
+    const enabled = !error && await registerPushNotifications();
+    setSaving(false);
+    if (error) return Alert.alert('Push bildirimi açılamadı', error);
+    Alert.alert(enabled ? 'Uygulama kapalı bildirimleri hazır' : 'Native APK kurulumu gerekli', enabled
+      ? 'Yeni bildirimler uygulama kapalıyken de seçtiğin sesle gelebilir.'
+      : 'Expo Go Android uzaktan push alamaz. EAS ile oluşturulan APK kurulduğunda bu özellik otomatik etkinleşir.');
   };
 
   const testLocal = async () => {
@@ -164,9 +184,16 @@ export function NotificationCenterScreen() {
             {permissionStatus !== 'granted' && <PrimaryButton title="Telefon Bildirimlerini Aç" onPress={enableLocal} loading={saving} />}
             {permissionStatus === 'granted' && <PrimaryButton title="Test Bildirimi Gönder" onPress={testLocal} loading={saving} secondary />}
 
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Bildirim sesi</Text>
+            <View style={styles.soundGrid}>
+              {NOTIFICATION_SOUND_OPTIONS.map((option) => <SoundChoice key={option.key} active={preferences.notification_sound === option.key} label={option.label} subtitle={option.subtitle} icon={option.icon} onPress={() => selectSound(option.key)} />)}
+            </View>
+            <Text style={[styles.soundHint, { color: colors.textMuted }]}>{IS_EXPO_GO_TEXT(pushStatus)}</Text>
+
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Bildirim tercihleri</Text>
             <GlassCard style={styles.settingsCard}>
               <SettingRow icon="phone-portrait" title="Telefon bildirimleri" subtitle="Planlı hatırlatmaları cihazda göster." value={preferences.local_notifications_enabled} onChange={(value) => updatePreference({ local_notifications_enabled: value })} disabled={saving || permissionStatus !== 'granted'} />
+              <SettingRow icon="cloud-download" title="Uygulama kapalıyken bildir" subtitle={pushStatus === 'registered' ? 'Native push cihazı kayıtlı ve aktif.' : 'APK içinde uzaktan push bağlantısını etkinleştir.'} value={preferences.push_notifications_enabled} onChange={(value) => value ? enablePush() : updatePreference({ push_notifications_enabled: false })} disabled={saving} />
               <SettingRow icon="construct" title="Servis güncellemeleri" subtitle="Teslim alma, fiyat, tamir, parça, test, hazır ve teslim." value={preferences.service_updates} onChange={(value) => updatePreference({ service_updates: value })} disabled={saving} />
               <SettingRow icon="calendar" title="Randevu bildirimleri" subtitle="Yeni randevu, onay, değişiklik ve iptal." value={preferences.appointment_reminders} onChange={(value) => updatePreference({ appointment_reminders: value })} disabled={saving} />
               <SettingRow icon="time" title="24 saat önce" subtitle="Randevudan bir gün önce hatırlat." value={preferences.appointment_reminder_24h} onChange={(value) => updatePreference({ appointment_reminder_24h: value })} disabled={saving || !preferences.appointment_reminders} nested />
@@ -179,7 +206,7 @@ export function NotificationCenterScreen() {
 
             <GlassCard style={[styles.infoCard, { borderColor: `${colors.cyan}35` }]}>
               <Ionicons name="information-circle" size={23} color={colors.cyan} />
-              <Text style={[styles.infoText, { color: colors.textMuted }]}>Hatırlatmalar Supabase’de kullanıcıya özel hazırlanır. Uygulama açıldığında ve veri değiştiğinde canlı olarak yenilenir; yaklaşan kayıtlar telefonunda yerel bildirim olarak planlanır.</Text>
+              <Text style={[styles.infoText, { color: colors.textMuted }]}>Bildirimler Supabase’de kullanıcıya özel hazırlanır. Native APK içinde uygulama kapalıyken push olarak, yaklaşan kayıtlar ise seçtiğin sesle zamanlı bildirim olarak gönderilir.</Text>
             </GlassCard>
           </ScrollView>
         ) : (
@@ -227,10 +254,29 @@ function TabButton({ active, label, icon, badge, onPress }: { active: boolean; l
   );
 }
 
+function IS_EXPO_GO_TEXT(status: string) {
+  if (status === 'registered') return 'Seçtiğin ses native push ve zamanlı bildirimlerde aktif.';
+  if (status === 'expo_go') return 'Expo Go özel ses ve kapalı uygulama pushunu desteklemez; APK kurulunca seçimin aktif olur.';
+  if (status === 'missing_project') return 'EAS proje kimliği eklenince kapalı uygulama pushu otomatik kaydolur.';
+  return 'Sesi “Test Bildirimi Gönder” düğmesiyle dinleyebilirsin.';
+}
+
+function SoundChoice({ active, label, subtitle, icon, onPress }: { active: boolean; label: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) {
+  const { colors } = useTheme();
+  return <AnimatedPressable onPress={onPress} style={[styles.soundCard, { backgroundColor: active ? `${colors.primary}17` : colors.card, borderColor: active ? colors.primary : colors.border }]}>
+    <View style={[styles.soundIcon, { backgroundColor: active ? `${colors.primary}22` : colors.surfaceSoft }]}><Ionicons name={icon} size={20} color={active ? colors.primary : colors.textMuted} /></View>
+    <View style={styles.copy}><Text style={[styles.soundTitle, { color: active ? colors.primary : colors.text }]}>{label}</Text><Text style={[styles.soundSubtitle, { color: colors.textMuted }]}>{subtitle}</Text></View>
+    <View style={[styles.soundCheck, { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.primary : 'transparent' }]}>{active && <Ionicons name="checkmark" size={13} color="#fff" />}</View>
+  </AnimatedPressable>;
+}
+
 function NotificationCard({ item, upcoming, onOpen, onArchive }: { item: GarageNotification; upcoming: boolean; onOpen: () => void; onArchive: () => void }) {
   const { colors } = useTheme();
-  const meta = CATEGORY_META[item.category] || CATEGORY_META.system;
-  const accent = item.priority === 'urgent'
+  const incomingPayment = item.notification_type === 'platform_payment_reported';
+  const meta = incomingPayment ? { label: 'ÖDEME GELDİ', icon: 'cash' as keyof typeof Ionicons.glyphMap } : CATEGORY_META[item.category] || CATEGORY_META.system;
+  const accent = incomingPayment
+    ? colors.green
+    : item.priority === 'urgent'
     ? colors.red
     : item.priority === 'high'
       ? colors.orange
@@ -242,7 +288,7 @@ function NotificationCard({ item, upcoming, onOpen, onArchive }: { item: GarageN
   const unread = !item.read_at && !upcoming;
 
   return (
-    <AnimatedPressable onPress={onOpen} style={[styles.notificationCard, { backgroundColor: unread ? `${accent}10` : colors.card, borderColor: unread ? `${accent}55` : colors.border }]}>
+    <AnimatedPressable onPress={onOpen} style={[styles.notificationCard, incomingPayment && styles.incomingPaymentCard, { backgroundColor: unread ? `${accent}10` : colors.card, borderColor: incomingPayment ? accent : unread ? `${accent}55` : colors.border }]}>
       <View style={[styles.notificationIcon, { backgroundColor: `${accent}18`, borderColor: `${accent}35` }]}>
         <Ionicons name={meta.icon} size={22} color={accent} />
       </View>
@@ -251,7 +297,8 @@ function NotificationCard({ item, upcoming, onOpen, onArchive }: { item: GarageN
           <View style={[styles.categoryPill, { backgroundColor: `${accent}14` }]}><Text style={[styles.categoryText, { color: accent }]}>{meta.label}</Text></View>
           <Text style={[styles.time, { color: colors.textMuted }]}>{relativeTime(item.deliver_at)}</Text>
         </View>
-        <Text style={[styles.notificationTitle, { color: colors.text }]}>{item.title}</Text>
+        {incomingPayment && <View style={[styles.paymentArrivedBanner, { backgroundColor: `${colors.green}18`, borderColor: `${colors.green}45` }]}><View style={[styles.paymentPulse, { backgroundColor: colors.green }]} /><Text style={[styles.paymentArrivedText, { color: colors.green }]}>İŞLETME ÖDEMESİ • ONAY BEKLİYOR</Text><Ionicons name="chevron-forward" size={15} color={colors.green} /></View>}
+        <Text style={[styles.notificationTitle, incomingPayment && styles.incomingPaymentTitle, { color: colors.text }]}>{item.title}</Text>
         <Text style={[styles.notificationBody, { color: colors.textMuted }]}>{item.body}</Text>
         <View style={styles.notificationFooter}>
           <Text style={[styles.workshop, { color: colors.textSoft }]}>{item.workshop_name || 'DraBornGarage'} • {formatDateTime(item.deliver_at)}</Text>
@@ -311,6 +358,11 @@ const styles = StyleSheet.create({
   markAll: { minHeight: 45, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   markAllText: { fontSize: 12.5, fontWeight: '900' },
   notificationCard: { minHeight: 119, borderRadius: 21, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  incomingPaymentCard: { borderWidth: 2, minHeight: 146 },
+  paymentArrivedBanner: { minHeight: 27, borderRadius: 10, borderWidth: 1, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  paymentPulse: { width: 7, height: 7, borderRadius: 4 },
+  paymentArrivedText: { flex: 1, fontSize: 8.8, fontWeight: '900', letterSpacing: 0.45 },
+  incomingPaymentTitle: { fontSize: 15.5, marginTop: 7 },
   notificationIcon: { width: 45, height: 45, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   notificationHeader: { minHeight: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   categoryPill: { minHeight: 20, borderRadius: 999, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
@@ -331,6 +383,13 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 14, fontWeight: '900' },
   cardText: { fontSize: 12, lineHeight: 15, marginTop: 4 },
   sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 4 },
+  soundGrid: { gap: 8 },
+  soundCard: { minHeight: 67, borderRadius: 17, borderWidth: 1, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  soundIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  soundTitle: { fontSize: 13, fontWeight: '900' },
+  soundSubtitle: { fontSize: 10.5, marginTop: 2 },
+  soundCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  soundHint: { fontSize: 10.5, lineHeight: 15, paddingHorizontal: 3 },
   settingsCard: { paddingVertical: 2, paddingHorizontal: 13 },
   settingRow: { minHeight: 74, flexDirection: 'row', alignItems: 'center', gap: 10 },
   settingNested: { paddingLeft: 18, minHeight: 68 },

@@ -1,10 +1,10 @@
-# Termux — v0.8.15 Yedekle, v0.8.16 Kur
+# Termux — v0.8.16 Yedekle, v0.8.17 Kur
 
 ```bash
 cd ~
-KURULAN_SURUM="v0.8.16"
-YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.15-local-backup"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.16.zip"
+KURULAN_SURUM="v0.8.17"
+YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.16-local-backup"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.17.zip"
 ACILAN_KLASOR="$HOME/DraBornGarage-main"
 
 pkg update -y
@@ -36,4 +36,6 @@ node -p "require('./package.json').version"
 npx expo start -c --go
 ```
 
-Beklenen sürüm: `0.8.16`.
+Beklenen sürüm: `0.8.17`.
+
+Kapalı uygulama pushu ve özel ses için Expo Go yerine EAS preview APK kurulmalıdır.

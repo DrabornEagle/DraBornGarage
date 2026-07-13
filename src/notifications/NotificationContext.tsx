@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
@@ -9,19 +10,44 @@ import {
   NotificationCenterPayload,
   NotificationNavigationTarget,
   NotificationPreferences,
+  NotificationSoundKey,
+  PushRegistrationStatus,
 } from './types';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldPlaySound: false,
+    shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowBanner: true,
     shouldShowList: true,
   }),
 });
 
-const CHANNEL_ID = 'draborngarage-alerts';
 const DELIVERED_STORAGE_PREFIX = '@draborngarage/local-delivered/';
+const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
+const PUSH_TOKEN_STORAGE_KEY = '@draborngarage/expo-push-token';
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
+
+export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: string; subtitle: string; icon: 'musical-notes' | 'pulse' | 'alert-circle' | 'volume-mute' }[] = [
+  { key: 'garage_chime', label: 'Garage Chime', subtitle: 'Modern ve dengeli', icon: 'musical-notes' },
+  { key: 'garage_pulse', label: 'Garage Pulse', subtitle: 'Kısa ve enerjik', icon: 'pulse' },
+  { key: 'garage_alert', label: 'Garage Alert', subtitle: 'Daha dikkat çekici', icon: 'alert-circle' },
+  { key: 'silent', label: 'Sessiz', subtitle: 'Yalnız titreşim', icon: 'volume-mute' },
+];
+
+function soundFile(sound: NotificationSoundKey): string | false {
+  if (sound === 'silent') return false;
+  if (IS_EXPO_GO) return 'default';
+  return `${sound}.wav`;
+}
+
+function channelId(sound: NotificationSoundKey) {
+  if (sound === 'garage_pulse') return 'draborngarage-pulse-v1';
+  if (sound === 'garage_alert') return 'draborngarage-alert-v1';
+  if (sound === 'silent') return 'draborngarage-silent-v1';
+  return 'draborngarage-chime-v1';
+}
+
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   local_notifications_enabled: true,
@@ -33,6 +59,8 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   receivable_reminders: true,
   platform_reminders: true,
   customer_link_updates: true,
+  notification_sound: 'garage_chime',
+  push_notifications_enabled: true,
 };
 
 interface NotificationContextValue {
@@ -44,6 +72,7 @@ interface NotificationContextValue {
   upcomingCount: number;
   preferences: NotificationPreferences;
   permissionStatus: string;
+  pushStatus: PushRegistrationStatus;
   navigationTarget: NotificationNavigationTarget | null;
   openCenter: () => void;
   closeCenter: () => void;
@@ -54,23 +83,32 @@ interface NotificationContextValue {
   openNotification: (notification: GarageNotification) => Promise<void>;
   updatePreferences: (patch: Partial<NotificationPreferences>) => Promise<string | null>;
   requestLocalNotifications: () => Promise<boolean>;
+  registerPushNotifications: () => Promise<boolean>;
   sendTestNotification: () => Promise<boolean>;
   consumeNavigationTarget: () => NotificationNavigationTarget | null;
 }
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
-async function ensureAndroidChannel() {
+async function ensureAndroidChannels() {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: 'DraBornGarage Bildirimleri',
-    description: 'Servis, randevu, ödeme, alacak ve platform hatırlatmaları',
+  const channels: { key: NotificationSoundKey; name: string; description: string; vibrationPattern: number[] }[] = [
+    { key: 'garage_chime', name: 'Garage Chime', description: 'Modern ve dengeli DraBornGarage bildirim sesi', vibrationPattern: [0, 180, 90, 180] },
+    { key: 'garage_pulse', name: 'Garage Pulse', description: 'Kısa ve enerjik DraBornGarage bildirim sesi', vibrationPattern: [0, 120, 70, 120, 70, 160] },
+    { key: 'garage_alert', name: 'Garage Alert', description: 'Ödeme ve acil hareketler için dikkat çekici ses', vibrationPattern: [0, 230, 90, 230, 90, 260] },
+    { key: 'silent', name: 'DraBornGarage Sessiz', description: 'Ses olmadan titreşimli bildirim', vibrationPattern: [0, 180, 100, 180] },
+  ];
+  await Promise.all(channels.map((item) => Notifications.setNotificationChannelAsync(channelId(item.key), {
+    name: item.name,
+    description: item.description,
     importance: Notifications.AndroidImportance.HIGH,
-    vibrationPattern: [0, 220, 120, 220],
-    lightColor: '#7C5CFF',
+    vibrationPattern: item.vibrationPattern,
+    lightColor: item.key === 'garage_alert' ? '#FF5E78' : '#7C5CFF',
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-  });
+    sound: soundFile(item.key) || null,
+  })));
 }
+
 
 function notificationData(item: GarageNotification) {
   return {
@@ -78,6 +116,12 @@ function notificationData(item: GarageNotification) {
     notificationId: item.id,
     targetTab: typeof item.data?.target_tab === 'string' ? item.data.target_tab : undefined,
     targetSection: typeof item.data?.target_section === 'string' ? item.data.target_section : undefined,
+    workshopId: item.workshop_id ?? undefined,
+    workshop_id: item.workshop_id ?? undefined,
+    notificationType: item.notification_type,
+    notification_type: item.notification_type,
+    entityId: item.entity_id ?? undefined,
+    entity_id: item.entity_id ?? undefined,
     ...item.data,
   };
 }
@@ -96,6 +140,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
   const [permissionStatus, setPermissionStatus] = useState<string>('undetermined');
+  const [pushStatus, setPushStatus] = useState<PushRegistrationStatus>('idle');
   const [navigationTarget, setNavigationTarget] = useState<NotificationNavigationTarget | null>(null);
   const refreshingRef = useRef(false);
   const mountedRef = useRef(true);
@@ -120,7 +165,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      await ensureAndroidChannel();
+      await ensureAndroidChannels();
       const now = Date.now();
       const maxDate = now + 60 * 24 * 60 * 60 * 1000;
       const desired = items
@@ -157,14 +202,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           content: {
             title: item.title,
             body: item.body,
-            sound: false,
+            sound: soundFile(nextPreferences.notification_sound),
             badge: unreadCount + 1,
             data: { ...notificationData(item), deliverAt: item.deliver_at },
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DATE,
             date,
-            channelId: Platform.OS === 'android' ? CHANNEL_ID : undefined,
+            channelId: Platform.OS === 'android' ? channelId(nextPreferences.notification_sound) : undefined,
           },
         });
       }
@@ -198,9 +243,51 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [session?.user, syncLocalSchedules]);
 
+  const registerPushNotifications = useCallback(async () => {
+    if (!session?.user || !preferences.push_notifications_enabled) return false;
+    if (Platform.OS === 'android' && IS_EXPO_GO) {
+      setPushStatus('expo_go');
+      return false;
+    }
+    try {
+      await ensureAndroidChannels();
+      const permission = await Notifications.getPermissionsAsync();
+      if (permission.status !== 'granted') {
+        setPushStatus('denied');
+        return false;
+      }
+      const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID
+        || Constants.expoConfig?.extra?.eas?.projectId
+        || Constants.easConfig?.projectId;
+      if (!projectId) {
+        setPushStatus('missing_project');
+        return false;
+      }
+      let deviceId = await AsyncStorage.getItem(DEVICE_ID_STORAGE_KEY);
+      if (!deviceId) {
+        deviceId = `garage-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+        await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
+      }
+      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      const { error } = await supabase.rpc('notification_register_push_token', {
+        p_expo_push_token: token,
+        p_device_id: deviceId,
+        p_platform: Platform.OS,
+        p_app_version: Constants.expoConfig?.version || '0.8.17',
+      });
+      if (error) throw error;
+      await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
+      setPushStatus('registered');
+      return true;
+    } catch {
+      setPushStatus('error');
+      return false;
+    }
+  }, [session?.user, preferences.push_notifications_enabled]);
+
   const requestLocalNotifications = useCallback(async () => {
     try {
-      await ensureAndroidChannel();
+      await ensureAndroidChannels();
       const current = await Notifications.getPermissionsAsync();
       const result = current.status === 'granted' ? current : await Notifications.requestPermissionsAsync();
       if (mountedRef.current) setPermissionStatus(result.status);
@@ -218,13 +305,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         p_customer_link_updates: merged.customer_link_updates,
       });
       if (error) throw error;
-      setPreferences(merged);
-      await syncLocalSchedules(upcoming, merged);
-      return true;
+       setPreferences(merged);
+       await syncLocalSchedules(upcoming, merged);
+       if (merged.push_notifications_enabled) await registerPushNotifications();
+       return true;
     } catch {
       return false;
     }
-  }, [preferences, upcoming, syncLocalSchedules]);
+   }, [preferences, upcoming, syncLocalSchedules, registerPushNotifications]);
 
   const presentRealtimeNotification = useCallback(async (item: GarageNotification) => {
     if (!session?.user || !preferences.local_notifications_enabled || !isDue(item) || item.read_at) return;
@@ -235,27 +323,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const raw = await AsyncStorage.getItem(storageKey);
       const delivered: string[] = raw ? JSON.parse(raw) : [];
       if (delivered.includes(item.id)) return;
-      await ensureAndroidChannel();
+      await ensureAndroidChannels();
       await Notifications.scheduleNotificationAsync({
         content: {
           title: item.title,
           body: item.body,
-          sound: false,
+          sound: soundFile(preferences.notification_sound),
           badge: unreadCount + 1,
           data: notificationData(item),
         },
-        trigger: null,
+        trigger: Platform.OS === 'android' ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1, channelId: channelId(preferences.notification_sound) } : null,
       });
       const next = [...delivered.filter((id) => id !== item.id), item.id].slice(-250);
       await AsyncStorage.setItem(storageKey, JSON.stringify(next));
     } catch {
       // Sistem bildirimi gösterilemese bile uygulama içi kayıt kullanılabilir.
     }
-  }, [session?.user, preferences.local_notifications_enabled, unreadCount]);
+  }, [session?.user, preferences.local_notifications_enabled, preferences.notification_sound, unreadCount]);
 
   useEffect(() => {
     mountedRef.current = true;
-    ensureAndroidChannel().catch(() => undefined);
+    ensureAndroidChannels().catch(() => undefined);
     Notifications.getPermissionsAsync().then((status) => mountedRef.current && setPermissionStatus(status.status)).catch(() => undefined);
     return () => { mountedRef.current = false; };
   }, []);
@@ -268,12 +356,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setUnreadCount(0);
       setUpcomingCount(0);
       setPreferences(DEFAULT_PREFERENCES);
+      setPushStatus('idle');
       cancelGarageSchedules();
       Notifications.setBadgeCountAsync(0).catch(() => false);
       return;
     }
 
     refresh();
+    if (preferences.push_notifications_enabled) registerPushNotifications();
     const channel = supabase
       .channel(`garage-notifications-${session.user.id}`)
       .on('postgres_changes', {
@@ -295,12 +385,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       appState.remove();
       supabase.removeChannel(channel);
     };
-  }, [session?.user, refresh, presentRealtimeNotification, cancelGarageSchedules]);
+  }, [session?.user, refresh, presentRealtimeNotification, cancelGarageSchedules, registerPushNotifications, preferences.push_notifications_enabled]);
 
   useEffect(() => {
-    const response = Notifications.addNotificationResponseReceivedListener((event) => {
+    const handledResponseRef = { current: '' };
+    const handleResponse = (event: Notifications.NotificationResponse | null) => {
+      if (!event) return;
       const data = event.notification.request.content.data || {};
-      const notificationId = typeof data.notificationId === 'string' ? data.notificationId : undefined;
+      const responseKey = `${event.notification.request.identifier}:${event.actionIdentifier}`;
+      if (handledResponseRef.current === responseKey) return;
+      handledResponseRef.current = responseKey;
+      const notificationId = typeof data.notificationId === 'string' ? data.notificationId : typeof data.notification_id === 'string' ? data.notification_id : undefined;
       if (notificationId) supabase.rpc('notification_mark_read', { p_notification_id: notificationId }).then(() => refresh());
       setNavigationTarget({
         targetTab: typeof data.targetTab === 'string' ? data.targetTab : typeof data.target_tab === 'string' ? data.target_tab : undefined,
@@ -309,7 +404,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         data: data as Record<string, unknown>,
       });
       setOpen(false);
-    });
+    };
+    Notifications.getLastNotificationResponseAsync().then(handleResponse).catch(() => undefined);
+    const response = Notifications.addNotificationResponseReceivedListener(handleResponse);
     return () => response.remove();
   }, [refresh]);
 
@@ -325,15 +422,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       p_receivable_reminders: merged.receivable_reminders,
       p_platform_reminders: merged.platform_reminders,
       p_customer_link_updates: merged.customer_link_updates,
+      p_notification_sound: merged.notification_sound,
+      p_push_notifications_enabled: merged.push_notifications_enabled,
     });
     if (error) return error.message;
     const next = { ...DEFAULT_PREFERENCES, ...(data as NotificationPreferences) };
     setPreferences(next);
     if (!next.local_notifications_enabled) await cancelGarageSchedules();
     else await syncLocalSchedules(upcoming, next);
+    if (next.push_notifications_enabled) await registerPushNotifications();
     await refresh();
     return null;
-  }, [preferences, upcoming, cancelGarageSchedules, syncLocalSchedules, refresh]);
+  }, [preferences, upcoming, cancelGarageSchedules, syncLocalSchedules, refresh, registerPushNotifications]);
 
   const markRead = useCallback(async (notificationId: string) => {
     await supabase.rpc('notification_mark_read', { p_notification_id: notificationId });
@@ -363,7 +463,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!notification.read_at) await markRead(notification.id);
     const targetTab = typeof notification.data?.target_tab === 'string' ? notification.data.target_tab : undefined;
     const targetSection = typeof notification.data?.target_section === 'string' ? notification.data.target_section : undefined;
-    setNavigationTarget({ targetTab, targetSection, notificationId: notification.id, data: notification.data });
+    setNavigationTarget({ targetTab, targetSection, notificationId: notification.id, data: { ...notification.data, workshop_id: notification.workshop_id, workshopId: notification.workshop_id, notification_type: notification.notification_type, notificationType: notification.notification_type, entity_id: notification.entity_id, entityId: notification.entity_id } });
     setOpen(false);
   }, [markRead]);
 
@@ -371,21 +471,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const allowed = permissionStatus === 'granted' || await requestLocalNotifications();
     if (!allowed) return false;
     try {
-      await ensureAndroidChannel();
+      await ensureAndroidChannels();
       await Notifications.scheduleNotificationAsync({
         content: {
           title: 'DraBornGarage bildirim testi',
           body: 'Telefon bildirimleri çalışıyor. Servis ve hatırlatmalar burada görünecek.',
-          sound: false,
+          sound: soundFile(preferences.notification_sound),
           data: { source: 'draborngarage', targetTab: 'home' },
         },
-        trigger: null,
+        trigger: Platform.OS === 'android' ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1, channelId: channelId(preferences.notification_sound) } : null,
       });
       return true;
     } catch {
       return false;
     }
-  }, [permissionStatus, requestLocalNotifications]);
+  }, [permissionStatus, requestLocalNotifications, preferences.notification_sound]);
 
   const consumeNavigationTarget = useCallback(() => {
     const current = navigationTarget;
@@ -402,6 +502,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     upcomingCount,
     preferences,
     permissionStatus,
+    pushStatus,
     navigationTarget,
     openCenter: () => setOpen(true),
     closeCenter: () => setOpen(false),
@@ -412,9 +513,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     openNotification,
     updatePreferences,
     requestLocalNotifications,
+    registerPushNotifications,
     sendTestNotification,
     consumeNavigationTarget,
-  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, navigationTarget, refresh, markRead, markAllRead, archive, openNotification, updatePreferences, requestLocalNotifications, sendTestNotification, consumeNavigationTarget]);
+  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget, refresh, markRead, markAllRead, archive, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, consumeNavigationTarget]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

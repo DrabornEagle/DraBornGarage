@@ -48,7 +48,7 @@ const STAFF_NOTIFICATION_TAB_MAP: Record<string, Tab> = {
 
 export function AppShell() {
   const { colors, resolvedMode } = useTheme();
-  const { membership, isAdmin, workshop } = useAuth();
+  const { membership, isAdmin, workshop, selectWorkshop } = useAuth();
   const { navigationTarget, consumeNavigationTarget } = useNotifications();
   const isPureOwner = membership?.role === 'owner';
   const isOwnerMechanic = membership?.role === 'owner_mechanic';
@@ -59,6 +59,9 @@ export function AppShell() {
   const [staffPanelMode, setStaffPanelMode] = useState<PanelMode>(initialPanelMode);
   const [customerInitialTab, setCustomerInitialTab] = useState<'customers' | 'claims'>('customers');
   const [customerNavigationKey, setCustomerNavigationKey] = useState(0);
+  const [adminInitialSection, setAdminInitialSection] = useState<'management' | 'reports' | 'platform'>('management');
+  const [adminFocusPaymentReportId, setAdminFocusPaymentReportId] = useState<string | undefined>();
+  const [adminNavigationKey, setAdminNavigationKey] = useState(0);
   const isApprentice = membership?.role === 'apprentice';
   const isOwner = isAdmin || isPureOwner || isOwnerMechanic;
   const businessRestricted = isAdmin || isPureOwner || (isOwnerMechanic && staffPanelMode === 'business');
@@ -84,6 +87,15 @@ export function AppShell() {
     if (target) {
       const allowedForApprentice = !isApprentice || target === 'home' || target === 'orders' || target === 'settings';
       const allowedForBusiness = !businessRestricted || target === 'home' || target === 'team' || target === 'settings';
+      if (isAdmin && target === 'team' && navigationTarget.targetSection === 'platform') {
+        const data = navigationTarget.data || {};
+        const reportId = typeof data.focus_payment_report_id === 'string' ? data.focus_payment_report_id : typeof data.payment_report_id === 'string' ? data.payment_report_id : undefined;
+        const workshopId = typeof data.workshop_id === 'string' ? data.workshop_id : typeof data.workshopId === 'string' ? data.workshopId : undefined;
+        setAdminInitialSection('platform');
+        setAdminFocusPaymentReportId(reportId);
+        setAdminNavigationKey((value) => value + 1);
+        if (workshopId && workshopId !== workshop?.id) selectWorkshop(workshopId).catch(() => undefined);
+      }
       if (target === 'customers' && navigationTarget.targetSection === 'claims' && allowedForBusiness) {
         setCustomerInitialTab('claims');
         setCustomerNavigationKey((value) => value + 1);
@@ -91,7 +103,7 @@ export function AppShell() {
       setTab(allowedForApprentice && allowedForBusiness ? target : isAdmin ? 'team' : 'home');
     }
     consumeNavigationTarget();
-  }, [navigationTarget, consumeNavigationTarget, isApprentice, businessRestricted, isAdmin]);
+  }, [navigationTarget, consumeNavigationTarget, isApprentice, businessRestricted, isAdmin, workshop?.id, selectWorkshop]);
 
   const screen = tab === 'home'
     ? <HomeScreen onNewOrder={openNew} onOpenOrders={openOrders} panelMode={staffPanelMode} onPanelModeChange={setStaffPanelMode} />
@@ -104,7 +116,7 @@ export function AppShell() {
           : tab === 'receivables'
             ? <ReceivablesScreen />
             : tab === 'team'
-              ? isAdmin ? <AdminScreen /> : <TeamScreen />
+               ? isAdmin ? <AdminScreen key={`admin-${adminNavigationKey}`} initialSection={adminInitialSection} focusPaymentReportId={adminFocusPaymentReportId} /> : <TeamScreen />
               : <SettingsScreen />;
 
   const tabs = useMemo<TabItem[]>(() => {
