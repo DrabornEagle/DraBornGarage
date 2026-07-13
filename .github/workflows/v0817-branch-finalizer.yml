@@ -30,6 +30,16 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Normalize updater hotfixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/apply_v0817.py')
+          source = path.read_text(encoding='utf-8')
+          source = source.replace('"       setPreferences(merged);\\n       await syncLocalSchedules(upcoming, merged);\\n       return true;"', '"      setPreferences(merged);\\n      await syncLocalSchedules(upcoming, merged);\\n      return true;"')
+          path.write_text(source, encoding='utf-8')
+          PY
+
       - name: Apply updater with diagnostic capture
         shell: bash
         run: |
