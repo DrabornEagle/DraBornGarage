@@ -4,9 +4,9 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.8.13 — Giriş Düzeni ve Sürüm Bilgisi**
+**v0.8.14 — Usta Bildirimi ve Tahsilat Akışı**
 
-v0.8.13; giriş ekranındaki özellik kartlarını dengeler, uygulama içindeki sürüm/yedek bilgilerini güncel tutar ve v0.8 bildirim, servis, randevu, alacak ve platform altyapısını korur.
+v0.8.14; İşletme Sahibi + Usta hesaplarında bildirimleri Usta rolüne indirger, Motor Hazır aşamasında tahsilat akışını açar ve net fiyatın Borç/Veresiye hesabına doğru yansımasını sağlar.
 
 ## Tamamlanan ana modüller
 
