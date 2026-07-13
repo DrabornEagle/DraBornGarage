@@ -4,9 +4,9 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.8.14 — Usta Bildirimi ve Tahsilat Akışı**
+**v0.8.15 — Modern Tahsilat ve Otomatik Teslim**
 
-v0.8.14; İşletme Sahibi + Usta hesaplarında bildirimleri Usta rolüne indirger, Motor Hazır aşamasında tahsilat akışını açar ve net fiyatın Borç/Veresiye hesabına doğru yansımasını sağlar.
+v0.8.15; Tahsilat Kaydet alanını Nakit, IBAN ve Borç seçenekleriyle ana kategoriye dönüştürür; ödeme veya veresiye kaydı tamamlandığında motosikleti otomatik olarak Teslim Edildi durumuna geçirir.
 
 ## Tamamlanan ana modüller
 
