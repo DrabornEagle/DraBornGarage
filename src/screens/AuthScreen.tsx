@@ -90,7 +90,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.12 AKILLI SERVİS SİSTEMİ</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.13 AKILLI SERVİS SİSTEMİ</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -107,7 +107,7 @@ export function AuthScreen() {
             <View style={styles.featureRow}>
               <Feature icon="notifications" label="Akıllı Bildirim" color={colors.orange} />
               <Feature icon="construct" label="Canlı Servis" color={colors.green} />
-              <Feature icon="calendar" label="Zamanlı Hatırlatma" color={colors.cyan} />
+              <Feature icon="calendar" label="Zamanlı Hatırlatma" color={colors.cyan} contentOffset={5} />
             </View>
           </View>
 
@@ -169,9 +169,9 @@ export function AuthScreen() {
   );
 }
 
-function Feature({ icon, label, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }) {
+function Feature({ icon, label, color, contentOffset = 0 }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string; contentOffset?: number }) {
   const { colors } = useTheme();
-  return <View style={[styles.feature, { backgroundColor: `${color}10`, borderColor: `${color}34` }]}><Ionicons name={icon} size={16} color={color} /><Text style={[styles.featureText, { color: colors.textSoft }]}>{label}</Text></View>;
+  return <View style={[styles.feature, { backgroundColor: `${color}10`, borderColor: `${color}34` }]}><View style={[styles.featureContent, contentOffset ? { transform: [{ translateX: contentOffset }] } : undefined]}><Ionicons name={icon} size={16} color={color} /><Text style={[styles.featureText, { color: colors.textSoft }]}>{label}</Text></View></View>;
 }
 
 function AccountCard({ active, title, subtitle, icon, accent, onPress }: { active: boolean; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap | 'motorcycle'; accent: string; onPress: () => void }) {
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 }, content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingTop: 52, paddingBottom: 42, gap: 20 },
   hero: { alignItems: 'center', gap: 9 }, systemBadge: { minHeight: 30, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 7 }, onlineDot: { width: 7, height: 7, borderRadius: 7 }, systemText: { fontSize: 12, fontWeight: '900', letterSpacing: 1.05 },
   logoStage: { width: 132, height: 132, alignItems: 'center', justifyContent: 'center' }, logoGlow: { position: 'absolute', width: 104, height: 104, borderRadius: 36, shadowOpacity: 0.8, shadowRadius: 30, elevation: 16 }, logoRing: { position: 'absolute', width: 126, height: 126, borderRadius: 63, borderWidth: 1.5, borderStyle: 'dashed' }, logo: { width: 88, height: 88, borderRadius: 29, alignItems: 'center', justifyContent: 'center' }, miniGear: { position: 'absolute', right: 1, bottom: 11, width: 38, height: 38, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  brandTitle: { fontSize: 34, fontWeight: '900', letterSpacing: -1.3 }, brandText: { textAlign: 'center', maxWidth: 350, lineHeight: 20, fontSize: 13 }, featureRow: { width: '100%', flexDirection: 'row', gap: 7, marginTop: 5 }, feature: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 14, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }, featureText: { fontSize: 12, fontWeight: '900' },
+  brandTitle: { fontSize: 34, fontWeight: '900', letterSpacing: -1.3 }, brandText: { textAlign: 'center', maxWidth: 350, lineHeight: 20, fontSize: 13 }, featureRow: { width: '100%', flexDirection: 'row', gap: 7, marginTop: 5 }, feature: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 14, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center' }, featureContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }, featureText: { fontSize: 12, fontWeight: '900' },
   card: { gap: 15, paddingTop: 18 }, cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, cardEyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1.2 }, cardTitle: { fontSize: 20, fontWeight: '900', marginTop: 3 }, cardHeaderIcon: { width: 43, height: 43, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   segment: { flexDirection: 'row', gap: 6, padding: 5, borderRadius: 17, borderWidth: 1, overflow: 'hidden' }, segmentButton: { flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 }, segmentText: { fontSize: 13, fontWeight: '900' },
   label: { fontSize: 12, fontWeight: '900', letterSpacing: 0.9 }, motorCard: { borderWidth: 1, borderRadius: 19, padding: 13, gap: 12 }, motorHeader: { flexDirection: 'row', alignItems: 'center', gap: 9 }, motorCopy: { flex: 1 }, motorTitle: { fontSize: 13, fontWeight: '900' }, motorText: { fontSize: 12, lineHeight: 16, marginTop: 2 }, accountRow: { flexDirection: 'row', gap: 9 }, accountCard: { flex: 1, minHeight: 158, borderWidth: 1, borderRadius: 18, padding: 13, gap: 8, alignItems: 'flex-start' }, accountTitle: { fontSize: 14, fontWeight: '900' }, accountSub: { flex: 1, fontSize: 12, lineHeight: 16 },

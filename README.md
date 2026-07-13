@@ -4,9 +4,9 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.8.6 — İşletme Keşfi, Bağımsız Randevu ve Manuel Kod**
+**v0.8.13 — Giriş Düzeni ve Sürüm Bilgisi**
 
-v0.8.0; servis, fiyat, ödeme, ek işlem, randevu, borç/alacak, müşteri eşleştirme ve platform hareketlerini kullanıcıya özel canlı bildirim akışına dönüştürür. Yaklaşan randevu, borç ve platform ödeme kayıtları Expo yerel bildirim sistemiyle telefonda planlanır.
+v0.8.13; giriş ekranındaki özellik kartlarını dengeler, uygulama içindeki sürüm/yedek bilgilerini güncel tutar ve v0.8 bildirim, servis, randevu, alacak ve platform altyapısını korur.
 
 ## Tamamlanan ana modüller
 
