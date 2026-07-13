@@ -61,7 +61,23 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: TypeScript validation
-        run: npm run typecheck
+        run: |
+          set +e
+          npm run typecheck > /tmp/v0811-typecheck.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            git reset --hard HEAD
+            cp /tmp/v0811-typecheck.log docs/V0811_TYPECHECK_ERROR.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/V0811_TYPECHECK_ERROR.txt
+            git commit -m "ci: capture v0.8.11 typecheck error"
+            git pull --rebase origin feature/v0.8.11-notifications-mechanic-workflow-billing
+            git push origin HEAD:feature/v0.8.11-notifications-mechanic-workflow-billing
+            cat /tmp/v0811-typecheck.log
+            exit "$status"
+          fi
 
       - name: Android JavaScript bundle validation
         run: |
@@ -75,6 +91,7 @@ jobs:
           rm -f scripts/patch_v0811_updater.py
           rm -f .github/workflows/v0811-validate.yml
           rm -f docs/V0811_APPLY_ERROR.txt
+          rm -f docs/V0811_TYPECHECK_ERROR.txt
 
       - name: Commit validated v0.8.11
         run: |
