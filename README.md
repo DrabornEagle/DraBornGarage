@@ -4,9 +4,9 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.8.15 — Modern Tahsilat ve Otomatik Teslim**
+**v0.8.16 — Tahsilat Yerleşim Düzeni**
 
-v0.8.15; Tahsilat Kaydet alanını Nakit, IBAN ve Borç seçenekleriyle ana kategoriye dönüştürür; ödeme veya veresiye kaydı tamamlandığında motosikleti otomatik olarak Teslim Edildi durumuna geçirir.
+v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat kartını düz ve gölgesiz hale getirir ve Servis Hareket Geçmişini servis detayının en altına taşır.
 
 ## Tamamlanan ana modüller
 

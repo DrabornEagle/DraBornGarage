@@ -335,12 +335,12 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     </GlassCard>
     </DetailAccordion>
 
-    <DetailAccordion title="Servis Hareket Geçmişi" subtitle="Durum, ek işlem, parça, not ve işlem hareketlerinin zaman çizgisi." icon="time" accent={colors.primary} open={openSections.history} onToggle={() => toggleSection('history')} badge={`${events.length} Hareket`}>
-    <GlassCard style={styles.listCard}>{events.length === 0 ? <Empty text="Hareket kaydı yok." /> : events.map((item, index) => <View key={item.id} style={[styles.eventRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={[styles.eventDot, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="pulse" size={15} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{eventLabel[item.event_type] || item.event_type}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.old_status && item.new_status ? `${statusLabels[item.old_status]} → ${statusLabels[item.new_status]} • ` : ''}{dateTime(item.created_at)}</Text>{item.note && <Text style={[styles.bodySmall, { color: colors.textSoft }]}>{item.note}</Text>}</View></View>)}</GlassCard>
-    </DetailAccordion>
-
     <DetailAccordion title="Tahsilat Kaydet" subtitle="Nakit, IBAN veya Borç seçerek teslimat finansını tamamla." icon="card" accent={colors.green} open={openSections.receivables} onToggle={() => toggleSection('receivables')} badge={money(Number(order.total_amount || 0) - Number(order.amount_received || 0))}>
       <ReceivableManagerCard orderId={orderId} onChanged={load} />
+    </DetailAccordion>
+
+    <DetailAccordion title="Servis Hareket Geçmişi" subtitle="Durum, ek işlem, parça, not ve işlem hareketlerinin zaman çizgisi." icon="time" accent={colors.primary} open={openSections.history} onToggle={() => toggleSection('history')} badge={`${events.length} Hareket`}>
+    <GlassCard style={styles.listCard}>{events.length === 0 ? <Empty text="Hareket kaydı yok." /> : events.map((item, index) => <View key={item.id} style={[styles.eventRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={[styles.eventDot, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="pulse" size={15} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{eventLabel[item.event_type] || item.event_type}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.old_status && item.new_status ? `${statusLabels[item.old_status]} → ${statusLabels[item.new_status]} • ` : ''}{dateTime(item.created_at)}</Text>{item.note && <Text style={[styles.bodySmall, { color: colors.textSoft }]}>{item.note}</Text>}</View></View>)}</GlassCard>
     </DetailAccordion>
     </ScrollView>
     <ReadyPaymentModal

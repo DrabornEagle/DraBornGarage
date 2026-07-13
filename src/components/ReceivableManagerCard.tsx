@@ -163,7 +163,7 @@ export function ReceivableManagerCard({ orderId, onChanged }: { orderId: string;
           {isOpen && <PrimaryButton title="Tahsil Edilemedi / Kaydı Kapat" onPress={cancel} loading={loading} secondary />}
         </GlassCard>
       </>}
-    </> : <GlassCard style={[styles.completedCard, { borderColor: `${colors.green}42`, backgroundColor: `${colors.green}0C` }]}><View style={[styles.completedIcon, { backgroundColor: `${colors.green}18` }]}><Ionicons name="checkmark-done" size={28} color={colors.green} /></View><View style={styles.copy}><Text style={[styles.completedTitle, { color: colors.text }]}>Tahsilat tamamlandı</Text><Text style={[styles.completedText, { color: colors.textMuted }]}>Bu servis için açık kalan ödeme bulunmuyor.</Text></View></GlassCard>}
+    </> : <View style={[styles.completedCard, { borderColor: colors.border, backgroundColor: colors.card }]}><View style={[styles.completedIcon, { backgroundColor: `${colors.green}14` }]}><Ionicons name="checkmark-done" size={28} color={colors.green} /></View><View style={styles.copy}><Text style={[styles.completedTitle, { color: colors.text }]}>Tahsilat tamamlandı</Text><Text style={[styles.completedText, { color: colors.textMuted }]}>Bu servis için açık kalan ödeme bulunmuyor.</Text></View></View>}
 
     <GlassCard style={styles.listCard}>
       <View style={styles.historyHeader}><View style={[styles.smallIcon, { backgroundColor: `${colors.primary}16` }]}><Ionicons name="time" size={18} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>Tahsilat Geçmişi</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{detail.payments.length} ödeme kaydı</Text></View></View>
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   summaryIcon: { width: 50, height: 50, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   summaryTitle: { fontSize: 19, fontWeight: '900' },
   summaryMeta: { fontSize: 12.5, lineHeight: 17, marginTop: 3 },
-  remainingPill: { minWidth: 82, borderWidth: 1, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'flex-end' },
+  remainingPill: { minWidth: 82, borderWidth: 1, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
   remainingPillLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 0.7 },
   remainingPillValue: { fontSize: 15, fontWeight: '900', marginTop: 3 },
   metrics: { flexDirection: 'row', gap: 8 },
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '900' },
   meta: { fontSize: 11.5, lineHeight: 15, marginTop: 3 },
   remaining: { fontSize: 16, fontWeight: '900' },
-  completedCard: { borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  completedCard: { borderWidth: 1, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 11, shadowOpacity: 0, shadowRadius: 0, elevation: 0 },
   completedIcon: { width: 50, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   completedTitle: { fontSize: 16, fontWeight: '900' },
   completedText: { fontSize: 12, lineHeight: 16, marginTop: 3 },
