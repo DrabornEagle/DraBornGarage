@@ -1,9 +1,7 @@
 Traceback (most recent call last):
-  File "/home/runner/work/DraBornGarage/DraBornGarage/scripts/apply_v0817.py", line 238, in <module>
+  File "/home/runner/work/DraBornGarage/DraBornGarage/scripts/apply_v0817.py", line 243, in <module>
     replace_required(
   File "/home/runner/work/DraBornGarage/DraBornGarage/scripts/apply_v0817.py", line 24, in replace_required
     raise RuntimeError(f"{path}: hedef bulunamadı\n{before[:700]}")
 RuntimeError: src/notifications/NotificationContext.tsx: hedef bulunamadı
-       setPreferences(merged);
-       await syncLocalSchedules(upcoming, merged);
-       return true;
+   }, [preferences, upcoming, syncLocalSchedules]);
