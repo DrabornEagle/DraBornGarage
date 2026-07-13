@@ -6,6 +6,7 @@ on:
       - feature/v0.8.11-notifications-mechanic-workflow-billing
     paths:
       - scripts/apply_v0811.py
+      - scripts/patch_v0811_updater.py
       - .github/workflows/v0811-validate.yml
   pull_request:
     branches:
@@ -38,6 +39,7 @@ jobs:
 
       - name: Apply v0.8.11 changes
         run: |
+          python3 scripts/patch_v0811_updater.py
           set +e
           python3 scripts/apply_v0811.py > /tmp/v0811-apply.log 2>&1
           status=$?
@@ -70,6 +72,7 @@ jobs:
       - name: Remove one-time updater
         run: |
           rm -f scripts/apply_v0811.py
+          rm -f scripts/patch_v0811_updater.py
           rm -f .github/workflows/v0811-validate.yml
           rm -f docs/V0811_APPLY_ERROR.txt
 
