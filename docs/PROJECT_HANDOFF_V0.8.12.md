@@ -10,6 +10,10 @@
 - İşlem Başı Ücret Detayı penceresi yukarı taşındı, siyah perde azaltıldı ve metinler büyütüldü.
 - Birincil Admin e-postası için trigger koruması güçlendirildi.
 
-## Veri temizliği notu
-- Uygulama kodu ve Admin otomasyonu hazırdır.
-- Kullanıcı/auth ve işlem verilerinin toplu silinmesi ayrı bir canlı veritabanı işlemi olarak yürütülmelidir.
+## Canlı veri temizliği
+- Tüm Auth kullanıcıları silindi.
+- Profiller, işletmeler, personel üyelikleri, müşteriler ve motosikletler sıfırlandı.
+- İş emirleri, randevular, bildirimler, tahsilatlar ve platform ücret kayıtları temizlendi.
+- Platform genel ayar kaydı korundu.
+- Temizlik sonrası kullanıcı ve işlem tabloları `0` kayıt olarak doğrulandı.
+- `draborneagle@gmail.com` yeniden kayıt olduğunda hesap otomatik olarak Admin ve personel görünümünde açılır.
