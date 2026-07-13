@@ -92,8 +92,8 @@ as $$
       ), 0) as part_total
   ), extra_values as (
     select
-      coalesce(sum(x.labor_amount) filter (where x.status = 'approved'::public.extra_request_status), 0) as extra_labor,
-      coalesce(sum(x.parts_amount) filter (where x.status = 'approved'::public.extra_request_status), 0) as extra_parts
+      coalesce(sum(x.labor_amount) filter (where x.status = 'approved'::public.extra_work_status), 0) as extra_labor,
+      coalesce(sum(x.parts_amount) filter (where x.status = 'approved'::public.extra_work_status), 0) as extra_parts
     from public.work_order_extra_requests x
     where x.work_order_id = p_work_order_id
   )
