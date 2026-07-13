@@ -23,3 +23,7 @@ Tarih: 14 Temmuz 2026
 ## Native test notu
 - Android Expo Go, SDK 53 ve sonrasında uzaktan push desteklemez.
 - Kapalı uygulama pushu ve özel ses testi EAS preview APK ile yapılır.
+
+## Doğrulama
+- TypeScript kontrolü ve Android JavaScript bundle oluşturma testi başarıyla tamamlandı.
+- Üç özel WAV bildirim dosyasının üretildiği ve paket yapılandırmasına eklendiği doğrulandı.
