@@ -1,26 +1,11 @@
-# Termux — v0.8.10 Yedekle, v0.8.11 Kur
+# Termux — v0.8.11 Yedekle, v0.8.12 Kur
 
 ```bash
 cd ~
-
-KURULAN_SURUM="v0.8.11"
-YEDEKLENEN_SURUM="v0.8.10"
-YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.10-local-backup"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.11.zip"
+KURULAN_SURUM="v0.8.12"
+YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.11-local-backup"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.12.zip"
 ACILAN_KLASOR="$HOME/DraBornGarage-main"
-
-printf '
-========================================
-'
-printf 'KURULACAK YENİ SÜRÜM: %s
-' "$KURULAN_SURUM"
-printf 'YEDEKLENECEK SÜRÜM: %s
-' "$YEDEKLENEN_SURUM"
-printf 'YEDEK KLASÖRÜ: %s
-' "$YEDEK_KLASORU"
-printf '========================================
-
-'
 
 pkg update -y
 pkg install nodejs-lts curl unzip -y
@@ -30,10 +15,9 @@ rm -f "$ZIP_DOSYASI"
 if [ -d "$HOME/DraBornGarage" ]; then
   rm -rf "$YEDEK_KLASORU"
   mv "$HOME/DraBornGarage" "$YEDEK_KLASORU"
-  echo "Mevcut v0.8.10 sürümü yedeklendi."
 fi
 
-curl -L   --retry 10   --retry-delay 3   --connect-timeout 30   --max-time 600   "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/main.zip"   -o "$ZIP_DOSYASI"
+curl -L --retry 10 --retry-delay 3 --connect-timeout 30 --max-time 600   "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/main.zip"   -o "$ZIP_DOSYASI"
 
 unzip -o "$ZIP_DOSYASI" -d "$HOME"
 mv "$ACILAN_KLASOR" "$HOME/DraBornGarage"
@@ -46,25 +30,10 @@ else
 fi
 
 cd "$HOME/DraBornGarage"
-npm config set registry "https://registry.npmjs.org/"
-npm config set fetch-retries 10
-npm config set fetch-retry-factor 2
-npm config set fetch-retry-mintimeout 20000
-npm config set fetch-retry-maxtimeout 120000
-npm config set fetch-timeout 300000
 npm install --no-audit --no-fund
 npm run typecheck
 node -p "require('./package.json').version"
 npx expo start -c --go
 ```
 
-Beklenen sürüm: `0.8.11`.
-
-Expo Go bağlantı sorunu olursa:
-
-```bash
-cd ~/DraBornGarage
-npx expo start -c --tunnel --go
-```
-
-Kod yedeği: `backup/v0.8.10-before-v0.8.11-20260713`.
+Beklenen sürüm: `0.8.12`.

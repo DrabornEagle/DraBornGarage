@@ -132,7 +132,7 @@ export function AppShell() {
   return (
     <PremiumBackground>
       <View style={styles.flex}>{screen}</View>
-      {tab !== 'customers' && tab !== 'receivables' && <NotificationBell />}
+      {!['orders', 'appointments', 'customers', 'receivables'].includes(tab) && <NotificationBell />}
       <View style={[styles.navWrap, { borderColor: `${colors.primary}32`, shadowColor: colors.primary }]}> 
         <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
           <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}> 

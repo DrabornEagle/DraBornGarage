@@ -134,9 +134,9 @@ npm run test:bundle
 
 ## Güncel yedek ve geri dönüş
 
-- **Kurulan sürüm:** `v0.8.11`
+- **Kurulan sürüm:** `v0.8.12`
 - **Yedeklenen sürüm:** `v0.8.3`
-- **Kod yedeği:** `backup/v0.8.10-before-v0.8.11-20260713`
+- **Kod yedeği:** `backup/v0.8.10-before-v0.8.12-20260713`
 - **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql`](supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql)
 - **Kurulum ve geri alma:** [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
 - **Zorunlu politika:** [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
