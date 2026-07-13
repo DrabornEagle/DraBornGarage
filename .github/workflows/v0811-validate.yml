@@ -43,11 +43,12 @@ jobs:
           status=$?
           set -e
           if [ "$status" -ne 0 ]; then
+            git reset --hard HEAD
             cp /tmp/v0811-apply.log docs/V0811_APPLY_ERROR.txt
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add docs/V0811_APPLY_ERROR.txt
-            git commit -m "ci: capture v0.8.11 updater error" || true
+            git commit -m "ci: capture v0.8.11 updater error"
             git pull --rebase origin feature/v0.8.11-notifications-mechanic-workflow-billing
             git push origin HEAD:feature/v0.8.11-notifications-mechanic-workflow-billing
             cat /tmp/v0811-apply.log
