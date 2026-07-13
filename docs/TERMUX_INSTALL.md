@@ -1,9 +1,10 @@
-# Termux — v0.8.12 Yedekle, v0.8.13 Kur
+# Termux — v0.8.13 Yedekle, v0.8.14 Kur
 
 ```bash
 cd ~
-YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.12-local-backup"
-ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.13.zip"
+KURULAN_SURUM="v0.8.14"
+YEDEK_KLASORU="$HOME/DraBornGarage-v0.8.13-local-backup"
+ZIP_DOSYASI="$HOME/DraBornGarage-v0.8.14.zip"
 ACILAN_KLASOR="$HOME/DraBornGarage-main"
 
 pkg update -y
@@ -35,4 +36,4 @@ node -p "require('./package.json').version"
 npx expo start -c --go
 ```
 
-Beklenen sürüm: `0.8.13`.
+Beklenen sürüm: `0.8.14`.

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
@@ -78,6 +78,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [notes, setNotes] = useState<WorkOrderNote[]>([]);
   const [events, setEvents] = useState<WorkOrderEvent[]>([]);
   const [saving, setSaving] = useState(false);
+  const [readyPaymentPromptVisible, setReadyPaymentPromptVisible] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
   const scrollRef = useRef<ScrollView>(null);
   const [priceType, setPriceType] = useState<PriceType>('fixed');
@@ -153,11 +154,8 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     if (error) return Alert.alert('Durum değiştirilemedi', error.message);
     if (isApprentice) setOrder((current: any) => ({ ...current, status }));
     else await load();
-    if (status === 'delivered' && !isApprentice) {
-      Alert.alert('Motosiklet teslim edildi', 'Şimdi tahsilat, açık borç veya veresiye kaydını kontrol et.', [
-        { text: 'Daha Sonra', style: 'cancel' },
-        { text: 'Borç ve Tahsilata Git', onPress: openReceivableFlow },
-      ]);
+    if (status === 'ready' && !isApprentice) {
+      setReadyPaymentPromptVisible(true);
     }
   };
 
@@ -276,7 +274,8 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
 
   const deleteNote = (id: string) => run(() => supabase.rpc('staff_delete_work_order_note', { p_note_id: id }), 'Not silinemedi');
 
-  return <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+  return <>
+    <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <Header onBack={onBack} title={`${brand} ${model}`} subtitle={`${order.customer?.full_name || 'Müşteri'} • ${plate || 'Plaka yok'} • Sıra ${order.queue_position ?? '-'}`} status={order.status} />
 
     <GlassCard style={styles.stack}>
@@ -343,7 +342,39 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     <DetailAccordion title="Borç, Veresiye ve Tahsilat" subtitle="Kalan borç, ödeme sözü, Nakit/IBAN tahsilatı ve müşteri notları." icon="wallet" accent={colors.red} open={openSections.receivables} onToggle={() => toggleSection('receivables')} badge={money(Number(order.total_amount || 0) - Number(order.amount_received || 0))}>
       <ReceivableManagerCard orderId={orderId} onChanged={load} />
     </DetailAccordion>
-  </ScrollView>;
+    </ScrollView>
+    <ReadyPaymentModal
+      visible={readyPaymentPromptVisible}
+      total={Number(order.total_amount || order.quoted_price || 0)}
+      received={Number(order.amount_received || 0)}
+      onClose={() => setReadyPaymentPromptVisible(false)}
+      onOpenFinance={() => {
+        setReadyPaymentPromptVisible(false);
+        openReceivableFlow();
+      }}
+    />
+  </>;
+}
+
+function ReadyPaymentModal({ visible, total, received, onClose, onOpenFinance }: { visible: boolean; total: number; received: number; onClose: () => void; onOpenFinance: () => void }) {
+  const { colors } = useTheme();
+  const remaining = Math.max(total - received, 0);
+  return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <View style={styles.readyOverlay}>
+      <View style={[styles.readyModal, { backgroundColor: colors.cardStrong, borderColor: `${colors.green}55` }]}>
+        <View style={[styles.readyIcon, { backgroundColor: `${colors.green}18`, borderColor: `${colors.green}45` }]}><Ionicons name="checkmark-circle" size={36} color={colors.green} /></View>
+        <Text style={[styles.readyTitle, { color: colors.text }]}>Motosiklet Hazır</Text>
+        <Text style={[styles.readyText, { color: colors.textMuted }]}>Teslimden önce tahsilatı kaydet veya kalan tutarı Borç / Veresiye olarak aç.</Text>
+        <View style={[styles.readyAmountCard, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>
+          <View><Text style={[styles.readyAmountLabel, { color: colors.textMuted }]}>SERVİS TOPLAMI</Text><Text style={[styles.readyAmount, { color: colors.text }]}>{money(total)}</Text></View>
+          <View style={styles.readyAmountDivider} />
+          <View><Text style={[styles.readyAmountLabel, { color: colors.textMuted }]}>KALAN</Text><Text style={[styles.readyAmount, { color: remaining > 0 ? colors.orange : colors.green }]}>{money(remaining)}</Text></View>
+        </View>
+        <AnimatedPressable onPress={onOpenFinance} style={[styles.readyPrimary, { backgroundColor: colors.green }]}><Ionicons name="wallet" size={20} color="#07131B" /><Text style={styles.readyPrimaryText}>Borç, Veresiye ve Tahsilata Git</Text></AnimatedPressable>
+        <AnimatedPressable onPress={onClose} style={[styles.readySecondary, { borderColor: colors.border }]}><Text style={[styles.readySecondaryText, { color: colors.textMuted }]}>Şimdilik Kapat</Text></AnimatedPressable>
+      </View>
+    </View>
+  </Modal>;
 }
 
 function DetailAccordion({ title, subtitle, icon, accent, open, onToggle, badge, children }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; accent: string; open: boolean; onToggle: () => void; badge?: string; children: React.ReactNode }) {
@@ -440,4 +471,17 @@ const styles = StyleSheet.create({
   accordionBadge: { maxWidth: 88, minHeight: 30, borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'center' },
   accordionBadgeText: { fontSize: 11, fontWeight: '900' },
   accordionBody: { borderTopWidth: 1, padding: 14, gap: 12 },
+  readyOverlay: { flex: 1, backgroundColor: 'rgba(2,7,16,0.72)', alignItems: 'center', justifyContent: 'center', padding: 22 },
+  readyModal: { width: '100%', maxWidth: 430, borderWidth: 1, borderRadius: 27, padding: 20, alignItems: 'center' },
+  readyIcon: { width: 68, height: 68, borderRadius: 23, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  readyTitle: { fontSize: 24, fontWeight: '900', marginTop: 15 },
+  readyText: { fontSize: 14.5, lineHeight: 21, textAlign: 'center', marginTop: 8 },
+  readyAmountCard: { width: '100%', minHeight: 88, borderWidth: 1, borderRadius: 19, marginTop: 17, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  readyAmountDivider: { width: 1, height: 46, backgroundColor: 'rgba(148,163,184,0.22)' },
+  readyAmountLabel: { fontSize: 10.5, fontWeight: '900', letterSpacing: 0.8 },
+  readyAmount: { fontSize: 20, fontWeight: '900', marginTop: 5 },
+  readyPrimary: { width: '100%', minHeight: 54, borderRadius: 17, marginTop: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  readyPrimaryText: { color: '#07131B', fontSize: 14, fontWeight: '900' },
+  readySecondary: { width: '100%', minHeight: 48, borderRadius: 16, borderWidth: 1, marginTop: 9, alignItems: 'center', justifyContent: 'center' },
+  readySecondaryText: { fontSize: 13, fontWeight: '900' },
 });

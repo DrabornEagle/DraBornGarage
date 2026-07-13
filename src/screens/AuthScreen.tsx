@@ -90,7 +90,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.13 AKILLI SERVİS SİSTEMİ</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.14 AKILLI SERVİS SİSTEMİ</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -107,7 +107,7 @@ export function AuthScreen() {
             <View style={styles.featureRow}>
               <Feature icon="notifications" label="Akıllı Bildirim" color={colors.orange} />
               <Feature icon="construct" label="Canlı Servis" color={colors.green} />
-              <Feature icon="calendar" label="Zamanlı Hatırlatma" color={colors.cyan} contentOffset={5} />
+              <Feature icon="calendar" label="Zamanlı Hatırlatma" color={colors.cyan} contentOffset={10} />
             </View>
           </View>
 
