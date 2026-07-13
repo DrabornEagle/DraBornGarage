@@ -1,0 +1,20 @@
+
+> draborngarage@0.8.12 typecheck
+> tsc --noEmit
+
+src/components/PlatformFeesDashboard.tsx(583,404): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type '{ fontSize: number; lineHeight: number; fontWeight: "850"; marginTop: number; }' is not assignable to type 'Falsy | TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<Falsy | TextStyle | RegisteredStyle<TextStyle>> | readonly (Falsy | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type '{ fontSize: number; lineHeight: number; fontWeight: "850"; marginTop: number; }' is not assignable to type 'TextStyle'.
+        Types of property 'fontWeight' are incompatible.
+          Type '"850"' is not assignable to type '"bold" | "normal" | "light" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | "ultralight" | "thin" | "medium" | ... 6 more ... | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type '{ fontSize: number; lineHeight: number; fontWeight: "850"; marginTop: number; }' is not assignable to type 'Falsy | TextStyle | RegisteredStyle<TextStyle> | RecursiveArray<Falsy | TextStyle | RegisteredStyle<TextStyle>> | readonly (Falsy | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type '{ fontSize: number; lineHeight: number; fontWeight: "850"; marginTop: number; }' is not assignable to type 'TextStyle'.
+        Types of property 'fontWeight' are incompatible.
+          Type '"850"' is not assignable to type '"bold" | "normal" | "light" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | "ultralight" | "thin" | "medium" | ... 6 more ... | undefined'.
+src/components/PlatformFeesDashboard.tsx(594,34): error TS2345: Argument of type '{ stack: { gap: number; }; copy: { flex: number; minWidth: number; }; row: { flexDirection: "row"; alignItems: "center"; gap: number; }; loading: { flexDirection: "row"; alignItems: "center"; justifyContent: "center"; gap: number; }; ... 103 more ...; chargeIcon: { ...; }; }' is not assignable to parameter of type '{ stack: { gap: number; }; copy: { flex: number; minWidth: number; }; row: { flexDirection: "row"; alignItems: "center"; gap: number; }; loading: { flexDirection: "row"; alignItems: "center"; justifyContent: "center"; gap: number; }; ... 103 more ...; chargeIcon: { ...; }; } & NamedStyles<...>'.
+  Property 'detailValue' is incompatible with index signature.
+    Type '{ fontSize: number; lineHeight: number; fontWeight: "850"; marginTop: number; }' is not assignable to type 'ViewStyle | TextStyle | ImageStyle'.
+      Types of property 'fontWeight' are incompatible.
+        Type '"850"' is not assignable to type '"bold" | "normal" | "light" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | "ultralight" | "thin" | "medium" | ... 6 more ... | undefined'.
