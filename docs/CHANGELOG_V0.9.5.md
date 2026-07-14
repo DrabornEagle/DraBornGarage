@@ -9,6 +9,7 @@
 - Tamamlanan iki işin tek işlem olarak görünmesine yol açan işlem-satırı bağımlılığı kaldırıldı.
 - İşlem satırı bulunmayan tamamlanmış iş emri, atanmış Ustanın işçilik kaydına dahil edildi.
 - Motor Hazır, Tamamlandı ve Teslim Edildi durumları tamamlanmış iş hesabında eşitlendi.
+- Motor Hazır kaydın aynı anda aktif iş olarak görünmesi engellendi.
 - İş emri tamamlandığında açık kalan işlem satırları otomatik olarak tamamlanır.
 - Geçmiş teslim edilmiş servislerde yanlışlıkla açık kalan işlem satırları onarıldı.
 
@@ -23,6 +24,7 @@ DBGpro / DBGgarage örneğinde:
 - Bugünkü kayıtlı Usta iş tutarı: 1.000 TL
 - Tüm dönem kayıtlı Usta iş tutarı: 1.900 TL
 - Tamamlanan iş sayısı: 2
+- Motor Hazır/Teslim kayıtları aktif iş sayısından çıkarıldı
 
 ## Sürüm
 
@@ -31,4 +33,5 @@ DBGpro / DBGgarage örneğinde:
 - iOS buildNumber: 14
 - Yedek: backup/v0.9.4-before-v0.9.5-20260714
 - Migration: 20260714115331_v0_9_5_report_consistency_and_service_completion.sql
+- Migration: 20260714120905_v0_9_5_ready_not_active_report_fix.sql
 - Rollback: supabase/rollbacks/rollback_v0_9_5_to_v0_9_4.sql
