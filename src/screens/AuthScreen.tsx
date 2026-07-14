@@ -59,7 +59,7 @@ export function AuthScreen() {
 
     if (!email.trim() || passwordInvalid || (mode === 'register' && !fullName.trim()) || customerMotorMissing || businessMissing) {
       Alert.alert(
-        'Eksik veya güvensiz bilgi',
+        'Eksik bilgi',
         customerMotorMissing
           ? 'Kullanıcı hesabı için plaka, motosiklet markası ve modeli zorunludur.'
           : businessMissing
@@ -98,7 +98,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.9.0 PİLOT VE PLAY UYUMU</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v1.0.1 EXPO TEST</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -166,8 +166,8 @@ export function AuthScreen() {
               </>
             )}
             <FormField label="E-posta" value={email} onChangeText={setEmail} placeholder="hesap@email.com" keyboardType="email-address" autoCapitalize="none" />
-            <FormField label="Şifre" value={password} onChangeText={setPassword} placeholder={mode === 'register' ? 'Güçlü şifre oluştur' : 'Şifren'} secureTextEntry />
-            {mode === 'register' && <View style={[styles.secureStrip, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}30` }]}><Ionicons name="key" size={17} color={colors.primary} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>{PASSWORD_POLICY_SUMMARY} Yaygın ve sızdırılmış şifreler reddedilir.</Text></View>}
+            <FormField label="Şifre" value={password} onChangeText={setPassword} placeholder={mode === 'register' ? 'En az 6 karakter' : 'Şifren'} secureTextEntry />
+            {mode === 'register' && <View style={[styles.secureStrip, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}30` }]}><Ionicons name="key" size={17} color={colors.primary} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>{PASSWORD_POLICY_SUMMARY}</Text></View>}
             {mode === 'register' && isPrimaryAdminEmail && <View style={[styles.secureStrip, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}30` }]}><Ionicons name="shield-checkmark" size={17} color={colors.primary} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Ana Admin e-postası algılandı. Motor veya işletme başvuru bilgileri zorunlu değildir; hesap doğrudan Admin olarak açılır.</Text></View>}
             <PrimaryButton title={mode === 'login' ? 'Giriş Yap' : isPrimaryAdminEmail ? 'Ana Admin Hesabımı Oluştur' : registerMode === 'customer' ? 'Kullanıcı Hesabımı Oluştur' : 'İşletme Başvurumu Gönder'} onPress={submit} loading={loading} />
             <View style={[styles.secureStrip, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}28` }]}><Ionicons name="lock-closed" size={16} color={colors.green} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Müşteri motoru yalnız Usta onayı veya güvenli servis doğrulamasıyla işletmeye bağlanır.</Text></View>
