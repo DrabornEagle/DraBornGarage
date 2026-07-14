@@ -275,7 +275,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         p_expo_push_token: token,
         p_device_id: deviceId,
         p_platform: Platform.OS,
-        p_app_version: Constants.expoConfig?.version || '0.9.6',
+        p_app_version: Constants.expoConfig?.version || '0.9.7',
       });
       if (error) throw error;
       await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);

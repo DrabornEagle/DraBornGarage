@@ -472,7 +472,7 @@ export interface WorkOrderListItem {
 export interface DashboardStats {
   activeOrders: number;
   waitingOrders: number;
-  todayCompleted: number;
+  totalCompleted: number;
   todayIncome: number;
   mechanicRecordedTotal: number;
 }

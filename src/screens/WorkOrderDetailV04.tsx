@@ -150,6 +150,14 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   };
 
   const changeStatus = async (status: WorkOrderStatus) => {
+    if (status === 'ready' && Number(order?.total_amount || 0) <= 0) {
+      setPriceType('fixed');
+      setFixedPrice('');
+      setOpenSections((current) => ({ ...current, price: true, status: false }));
+      setTimeout(() => scrollRef.current?.scrollTo({ y: 420, animated: true }), 180);
+      Alert.alert('Tahsilat ücreti gerekli', 'Motoru hazır yapmadan önce müşteriden tahsil edilecek son net servis ücretini veya yapılan işlem tutarını kaydetmelisin. Tahmini fiyat tek başına yeterli değildir.');
+      return;
+    }
     if (status === 'delivered' && Number(order?.total_amount || 0) <= 0) {
       setPriceType('fixed');
       setFixedPrice('');
@@ -295,11 +303,12 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     </GlassCard>
 
     <DetailAccordion title="Servis Durumu" subtitle="Tamir akışını ve motorun güncel aşamasını yönet." icon="speedometer" accent={colors.primary} open={openSections.status} onToggle={() => toggleSection('status')} badge={statusLabels[order.status as WorkOrderStatus]}>
+      {Number(order.total_amount || 0) <= 0 && <View style={[styles.notice, { backgroundColor: colors.orange + '10', borderColor: colors.orange + '35' }]}><Ionicons name="warning" size={20} color={colors.orange} /><Text style={[styles.noticeText, { color: colors.textMuted }]}>Motor Hazır seçilemez. Önce son net tahsilat ücretini kaydet veya Yapılan İşlemler bölümüne ücretli işlem kalemi ekle. Tahmini fiyat bilgi amaçlıdır.</Text></View>}
       <View style={styles.grid}>{statusFlow.map((status) => <StatusButton key={status} status={status} active={order.status === status} onPress={() => changeStatus(status)} />)}</View>
     </DetailAccordion>
 
 
-    <DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Tamire başlamadan önce net veya tahmini fiyatı kaydet." icon="pricetag" accent={colors.green} open={openSections.price} onToggle={() => toggleSection('price')} badge={order.quoted_price ? money(order.quoted_price) : order.estimated_price_min ? 'Tahmini' : 'Girilmedi'}>
+    <DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Motor Hazır öncesi son net tahsilat ücretini kaydet. Tahmini fiyat yalnız bilgi amaçlıdır." icon="pricetag" accent={colors.green} open={openSections.price} onToggle={() => toggleSection('price')} badge={order.quoted_price ? money(order.quoted_price) : order.estimated_price_min ? 'Tahmini' : 'Girilmedi'}>
       <Toggle values={[['fixed', 'Net Fiyat'], ['estimated', 'Tahmini Fiyat']]} active={priceType} onChange={(value) => setPriceType(value as PriceType)} />
       {priceType === 'fixed' ? <FormField label="Net fiyat" value={fixedPrice} onChangeText={setFixedPrice} keyboardType="decimal-pad" /> : <View style={styles.twoCol}><View style={styles.flex}><FormField label="En az" value={estimateMin} onChangeText={setEstimateMin} keyboardType="decimal-pad" /></View><View style={styles.flex}><FormField label="En fazla" value={estimateMax} onChangeText={setEstimateMax} keyboardType="decimal-pad" /></View></View>}
       <PrimaryButton title="Ücreti Kaydet" onPress={savePrice} loading={saving} />

@@ -32,7 +32,7 @@ export function HomeScreen({
   const canWork = Boolean(membership && WORKER_ROLES.includes(membership.role));
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
   const isApprentice = membership?.role === 'apprentice';
-  const [stats, setStats] = useState<DashboardStats>({ activeOrders: 0, waitingOrders: 0, todayCompleted: 0, todayIncome: 0, mechanicRecordedTotal: 0 });
+  const [stats, setStats] = useState<DashboardStats>({ activeOrders: 0, waitingOrders: 0, totalCompleted: 0, todayIncome: 0, mechanicRecordedTotal: 0 });
   const [recent, setRecent] = useState<WorkOrderListItem[]>([]);
   const [apprenticeQueue, setApprenticeQueue] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,9 +70,17 @@ export function HomeScreen({
       .gte('arrived_at', today);
     if (mechanicView) todayOrdersQuery = todayOrdersQuery.eq('assigned_mechanic_id', membership.user_id);
 
-    const [ordersResult, todayOrdersResult, paymentsResult] = await Promise.all([
+    let completedOrdersQuery = supabase
+      .from('work_orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('workshop_id', workshop.id)
+      .in('status', ['ready', 'completed', 'delivered']);
+    if (mechanicView) completedOrdersQuery = completedOrdersQuery.eq('assigned_mechanic_id', membership.user_id);
+
+    const [ordersResult, todayOrdersResult, completedOrdersResult, paymentsResult] = await Promise.all([
       orderQuery,
       todayOrdersQuery,
+      completedOrdersQuery,
       supabase.from('payments').select('amount,payment_method,received_by').eq('workshop_id', workshop.id).gte('paid_at', today),
     ]);
 
@@ -90,7 +98,7 @@ export function HomeScreen({
     setStats({
       activeOrders: todayOrders.filter((order) => activeStatuses.includes(order.status)).length,
       waitingOrders: todayOrders.filter((order) => waitingStatuses.includes(order.status)).length,
-      todayCompleted: todayOrders.filter((order) => completedStatuses.includes(order.status)).length,
+      totalCompleted: completedOrdersResult.count ?? 0,
       todayIncome: mechanicView ? recorded : received,
       mechanicRecordedTotal: recorded,
     });
@@ -206,7 +214,7 @@ export function HomeScreen({
             </View>
             <View style={styles.heroIcon}><Ionicons name="speedometer" size={28} color="#fff" /></View>
           </View>
-          <Text style={styles.heroHint}>{stats.activeOrders} aktif motosiklet • {stats.todayCompleted} hazır/tamamlanan iş</Text>
+          <Text style={styles.heroHint}>{stats.activeOrders} aktif motosiklet • {stats.totalCompleted} toplam hazır/tamamlanan iş</Text>
         </LinearGradient>
       )}
 
@@ -232,7 +240,7 @@ export function HomeScreen({
             <StatCard label="Sırada" value={String(stats.waitingOrders)} icon="list" accent={colors.orange} />
           </View>
           <View style={styles.statsRow}>
-            <StatCard label="Hazır/Tamam" value={String(stats.todayCompleted)} icon="checkmark-done" accent={colors.green} />
+            <StatCard label="Hazır/Tamam" value={String(stats.totalCompleted)} icon="checkmark-done" accent={colors.green} />
             <StatCard label={panelMode === 'business' ? 'Tahsilat' : 'Kayıtlı Tutar'} value={money(panelMode === 'business' ? stats.todayIncome : stats.mechanicRecordedTotal)} icon="wallet" accent={colors.cyan} />
           </View>
         </>

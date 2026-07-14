@@ -4,9 +4,19 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v0.9.6 — Servis Akışı, Fiyat ve Bildirim Düzeltmeleri**
+**v0.9.7 — Toplam Tamamlanan İş ve Motor Hazır Ücret Koruması**
 
-v0.9.6; canlı panel sayaçlarını yeniler, fiyat girmeden tamire başlamayı destekler, tahmini fiyatı doğru gösterir, bildirimleri yeniden sıralar ve müşteri servis detayındaki kalkanı kaldırır.
+v0.9.7; Hazır/Tamam sayısını tüm dönem tamamlanan işlerle eşitler ve son net tahsilat ücreti oluşmadan Motor Hazır aşamasına geçilmesini engeller. Günlük kayıtlı tutar günlük kalmaya devam eder.
+
+## v0.9.7 ile tamamlananlar
+
+- Hazır/Tamam sayacının yalnız bugünü değil tüm tamamlanan işleri göstermesi
+- Usta görünümünde yalnız seçili Ustanın toplamının hesaplanması
+- İşletme görünümünde seçili işletmenin toplamının hesaplanması
+- Son net tahsilat ücreti olmadan Motor Hazır geçişinin engellenmesi
+- Motor Hazır seçildiğinde ücret bölümünün otomatik açılması ve açıklayıcı uyarı
+- Tahmini fiyatın final tahsilat ücreti sayılmaması
+- Veritabanında Motor Hazır, Tamamlandı ve Teslim Edildi ücret koruması
 
 ## v0.9.6 ile tamamlananlar
 
