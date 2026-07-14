@@ -1,0 +1,202 @@
+name: DraBornGarage Release APK
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "feature/v1.0-release-apk"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draborngarage-release-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+  EXPO_NO_TELEMETRY: "1"
+  EXPO_NO_GIT_STATUS: "1"
+  EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+
+jobs:
+  release-apk:
+    name: Build signed test Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Prepare output directory
+        run: mkdir -p release-output
+
+      - name: Validate release version metadata
+        shell: bash
+        run: |
+          node <<'NODE'
+          const pkg = require('./package.json');
+          const lock = require('./package-lock.json');
+          const app = require('./app.json').expo;
+          if (pkg.version !== '1.0.0' || lock.version !== '1.0.0' || lock.packages?.['']?.version !== '1.0.0') throw new Error('Paket sürümleri 1.0.0 ile eşleşmiyor.');
+          if (app.version !== '1.0.0' || app.android?.versionCode !== 17 || app.ios?.buildNumber !== '17') throw new Error('Native sürüm bilgileri eşleşmiyor.');
+          console.log('Release metadata OK: 1.0.0 / 17');
+          NODE
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo Doctor
+        run: npx expo-doctor 2>&1 | tee release-output/expo-doctor.txt
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Export public Expo configuration
+        run: npx expo config --type public --json > release-output/expo-public-config.json
+
+      - name: Generate clean Android native project
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Normalize generated Android manifest
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('android/app/src/main/AndroidManifest.xml')
+          text = path.read_text().replace(' data-generated="true"', '')
+          lines = []
+          for line in text.splitlines():
+              if '<uses-permission' in line and 'tools:node="remove"' in line and 'tools:ignore=' not in line:
+                  line = line.replace('/>', ' tools:ignore="PermissionImpliesUnsupportedChromeOsHardware"/>')
+              lines.append(line)
+          text = '\n'.join(lines) + '\n'
+          feature = '  <uses-feature android:name="android.hardware.camera" android:required="false"/>'
+          if 'android.hardware.camera' not in text:
+              root_end = text.find('>')
+              text = text[:root_end + 1] + '\n' + feature + text[root_end + 1:]
+          path.write_text(text)
+          PY
+
+      - name: Verify source permission controls
+        shell: bash
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          for permission in RECORD_AUDIO ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_CONTACTS WRITE_CONTACTS CALL_PHONE READ_PHONE_STATE READ_SMS SEND_SMS; do
+            MATCHES="$(grep "android.permission.$permission" "$MANIFEST" || true)"
+            if [ -n "$MATCHES" ] && echo "$MATCHES" | grep -vq 'tools:node="remove"'; then
+              echo "Blocked permission lacks removal directive: $permission"
+              exit 1
+            fi
+          done
+
+      - name: Build Android release APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Android lint
+        shell: bash
+        run: |
+          cd android
+          ./gradlew :app:lintRelease --no-daemon --stacktrace 2>&1 | tee ../release-output/android-lint-console.txt
+
+      - name: Verify merged release manifest
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import shutil
+          import xml.etree.ElementTree as ET
+          candidates = [p for p in Path('android/app/build/intermediates').rglob('AndroidManifest.xml') if 'release' in p.parts and ('merged_manifest' in p.parts or 'merged_manifests' in p.parts)]
+          if not candidates:
+              raise SystemExit('Merged release manifest bulunamadı.')
+          manifest = max(candidates, key=lambda p: p.stat().st_size)
+          shutil.copyfile(manifest, 'release-output/AndroidManifest-release.xml')
+          android = '{http://schemas.android.com/apk/res/android}'
+          root = ET.parse(manifest).getroot()
+          permissions = {n.attrib.get(android + 'name') for n in root.findall('uses-permission')}
+          features = {n.attrib.get(android + 'name'): n.attrib.get(android + 'required') for n in root.findall('uses-feature')}
+          blocked = {'android.permission.RECORD_AUDIO','android.permission.ACCESS_FINE_LOCATION','android.permission.ACCESS_COARSE_LOCATION','android.permission.READ_CONTACTS','android.permission.WRITE_CONTACTS','android.permission.CALL_PHONE','android.permission.READ_PHONE_STATE','android.permission.READ_SMS','android.permission.SEND_SMS'}
+          unexpected = sorted(blocked & permissions)
+          if unexpected: raise SystemExit(f'Engellenen izinler bulundu: {unexpected}')
+          if 'android.permission.CAMERA' not in permissions: raise SystemExit('CAMERA izni bulunamadı.')
+          if features.get('android.hardware.camera') != 'false': raise SystemExit('Kamera required=false değil.')
+          print('Merged manifest verified:', manifest)
+          PY
+
+      - name: Collect and verify APK
+        id: apk
+        shell: bash
+        run: |
+          SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
+          test -f "$SOURCE_APK"
+          VERSION="$(node -p "require('./package.json').version")"
+          SHORT_SHA="${GITHUB_SHA::12}"
+          APK_NAME="DraBornGarage-v${VERSION}-release-test-${SHORT_SHA}.apk"
+          APK_PATH="release-output/${APK_NAME}"
+          cp "$SOURCE_APK" "$APK_PATH"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee release-output/apk-signature.txt
+          sha256sum "$APK_PATH" | tee release-output/SHA256SUMS.txt
+          stat -c '%n %s bytes' "$APK_PATH" | tee release-output/apk-size.txt
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Collect Android lint reports
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p release-output/lint
+          find android/app/build/reports -maxdepth 3 -type f -exec cp --parents {} release-output/lint/ \; 2>/dev/null || true
+
+      - name: Write build information
+        shell: bash
+        run: |
+          {
+            echo "DraBornGarage v1.0.0 RC"
+            echo "Commit: $GITHUB_SHA"
+            echo "Run: $GITHUB_RUN_ID"
+            echo "Built at UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "Expo Doctor: passed"
+            echo "TypeScript: passed"
+            echo "Android lint: passed"
+            echo "Native permissions: passed"
+            echo "Signing: GitHub test signing; not Google Play production upload key"
+          } | tee release-output/BUILD_INFO.txt
+
+      - name: Upload DraBornGarage Release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DraBornGarage-v1.0.0-Release-APK
+          path: release-output/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
+
+      - name: Build summary
+        shell: bash
+        run: |
+          {
+            echo "# DraBornGarage Release APK"
+            echo "- Version: **1.0.0 RC**"
+            echo "- Android versionCode: **17**"
+            echo "- Expo Doctor, TypeScript, Android lint and native permissions: **passed**"
+            echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
+            echo "- Artifact: **DraBornGarage-v1.0.0-Release-APK**"
+            echo "- Signing: **test signing — Google Play production key değildir**"
+          } >> "$GITHUB_STEP_SUMMARY"

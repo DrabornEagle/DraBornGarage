@@ -4,9 +4,18 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v0.9.7 — Bugünkü Sıra ve Motor Hazır Ücret Koruması**
+**v1.0.0 RC — İlk GitHub Release APK Adayı**
 
-v0.9.7; Usta Panelindeki Bugünkü Atölye Sırasını yalnız bugünün kayıtlarıyla sınırlar ve tahsil edilecek son net ücret girilmeden Motor Hazır aşamasına geçilmesini engeller.
+v1.0.0 RC; v0.1–v0.9.7 arasındaki mobil özellikleri ilk kurulabilir GitHub Release APK çıktısında birleştirir. APK fiziksel cihaz testlerinden geçtikten sonra kalıcı Android upload key ve Google Play AAB aşamasına alınacaktır.
+
+## v1.0 Release APK hazırlığı
+
+- GitHub üzerinde DraBornGarage Release APK workflow'u
+- TypeScript, Expo Doctor, public config ve Android lint raporları
+- Temiz Expo prebuild ve native Android release derlemesi
+- APK imza doğrulaması ve SHA-256 checksum
+- Fiziksel cihaz test planı
+- v0.9.7 geri dönüş yedeği
 
 ## v0.9.7 ile tamamlananlar
 

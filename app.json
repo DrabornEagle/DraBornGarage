@@ -3,7 +3,7 @@
     "name": "DraBornGarage",
     "slug": "draborngarage",
     "scheme": "draborngarage",
-    "version": "0.9.7",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,7 +19,6 @@
         "expo-image-picker",
         {
           "photosPermission": "DraBornGarage yalnız seçtiğin platform ödeme dekontunu yüklemek için fotoğraflarına erişsin.",
-          "cameraPermission": false,
           "microphonePermission": false
         }
       ],
@@ -39,11 +38,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.draborneagle.draborngarage",
-      "buildNumber": "16"
+      "buildNumber": "17"
     },
     "android": {
       "package": "com.draborneagle.draborngarage",
-      "versionCode": 16,
+      "versionCode": 17,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": [
