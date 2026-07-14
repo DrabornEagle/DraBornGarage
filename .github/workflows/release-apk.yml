@@ -5,10 +5,10 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: ["feature/v1.0-release-apk"]
+    branches: [main, "feature/v1.0-release-apk"]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: draborngarage-release-apk-${{ github.ref }}
@@ -26,13 +26,9 @@ jobs:
     name: Build signed test Release APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
     steps:
-      - name: Checkout v1.0 feature branch
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: feature/v1.0-release-apk
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -49,41 +45,22 @@ jobs:
       - name: Prepare output directory
         run: mkdir -p release-output
 
-      - name: Synchronize visible v1.0 metadata
-        run: python3 scripts/sync_v1_metadata.py
-
-      - name: Synchronize lock metadata for v1.0 workspace
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-
-      - name: Commit synchronized release metadata when needed
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json README.md docs/TERMUX_INSTALL.md src/notifications/NotificationCenterScreen.tsx src/notifications/NotificationContext.tsx src/screens/SettingsScreen.tsx
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(v1.0): synchronize release metadata"
-            git push origin HEAD:feature/v1.0-release-apk
-          fi
-
       - name: Validate release version metadata
         shell: bash
         run: |
           node <<'NODE'
           const pkg = require('./package.json');
+          const lock = require('./package-lock.json');
           const app = require('./app.json').expo;
-          if (pkg.version !== '1.0.0') throw new Error(`package.json sürümü 1.0.0 değil: ${pkg.version}`);
-          if (app.version !== '1.0.0') throw new Error(`app.json sürümü 1.0.0 değil: ${app.version}`);
-          if (app.android?.versionCode !== 17) throw new Error(`Android versionCode 17 değil: ${app.android?.versionCode}`);
-          if (app.ios?.buildNumber !== '17') throw new Error(`iOS buildNumber 17 değil: ${app.ios?.buildNumber}`);
-          console.log('Release metadata OK:', pkg.version, app.android.versionCode, app.ios.buildNumber);
+          if (pkg.version !== '1.0.0' || lock.version !== '1.0.0' || lock.packages?.['']?.version !== '1.0.0') throw new Error('Paket sürümleri 1.0.0 ile eşleşmiyor.');
+          if (app.version !== '1.0.0' || app.android?.versionCode !== 17 || app.ios?.buildNumber !== '17') throw new Error('Native sürüm bilgileri eşleşmiyor.');
+          console.log('Release metadata OK: 1.0.0 / 17');
           NODE
 
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
       - name: Expo Doctor
-        shell: bash
         run: npx expo-doctor 2>&1 | tee release-output/expo-doctor.txt
 
       - name: TypeScript
@@ -115,20 +92,17 @@ jobs:
           path.write_text(text)
           PY
 
-      - name: Verify blocked-permission removal directives
+      - name: Verify source permission controls
         shell: bash
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          test -f "$MANIFEST"
           for permission in RECORD_AUDIO ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_CONTACTS WRITE_CONTACTS CALL_PHONE READ_PHONE_STATE READ_SMS SEND_SMS; do
             MATCHES="$(grep "android.permission.$permission" "$MANIFEST" || true)"
             if [ -n "$MATCHES" ] && echo "$MATCHES" | grep -vq 'tools:node="remove"'; then
-              echo "Blocked permission lacks tools:node=remove directive: $permission"
-              echo "$MATCHES"
+              echo "Blocked permission lacks removal directive: $permission"
               exit 1
             fi
           done
-          echo "Blocked permission removal directives are valid."
 
       - name: Build Android release APK
         working-directory: android
@@ -142,34 +116,28 @@ jobs:
           cd android
           ./gradlew :app:lintRelease --no-daemon --stacktrace 2>&1 | tee ../release-output/android-lint-console.txt
 
-      - name: Verify merged release manifest permissions
+      - name: Verify merged release manifest
         shell: bash
         run: |
           python3 <<'PY'
           from pathlib import Path
           import shutil
           import xml.etree.ElementTree as ET
-          candidates = list(Path('android/app/build/intermediates').rglob('AndroidManifest.xml'))
-          release_candidates = [path for path in candidates if 'release' in path.parts and ('merged_manifest' in path.parts or 'merged_manifests' in path.parts)]
-          if not release_candidates:
-              raise SystemExit('Merged release AndroidManifest.xml bulunamadı.')
-          manifest = max(release_candidates, key=lambda path: path.stat().st_size)
+          candidates = [p for p in Path('android/app/build/intermediates').rglob('AndroidManifest.xml') if 'release' in p.parts and ('merged_manifest' in p.parts or 'merged_manifests' in p.parts)]
+          if not candidates:
+              raise SystemExit('Merged release manifest bulunamadı.')
+          manifest = max(candidates, key=lambda p: p.stat().st_size)
           shutil.copyfile(manifest, 'release-output/AndroidManifest-release.xml')
           android = '{http://schemas.android.com/apk/res/android}'
           root = ET.parse(manifest).getroot()
-          permissions = {node.attrib.get(android + 'name') for node in root.findall('uses-permission')}
-          features = {node.attrib.get(android + 'name'): node.attrib.get(android + 'required') for node in root.findall('uses-feature')}
+          permissions = {n.attrib.get(android + 'name') for n in root.findall('uses-permission')}
+          features = {n.attrib.get(android + 'name'): n.attrib.get(android + 'required') for n in root.findall('uses-feature')}
           blocked = {'android.permission.RECORD_AUDIO','android.permission.ACCESS_FINE_LOCATION','android.permission.ACCESS_COARSE_LOCATION','android.permission.READ_CONTACTS','android.permission.WRITE_CONTACTS','android.permission.CALL_PHONE','android.permission.READ_PHONE_STATE','android.permission.READ_SMS','android.permission.SEND_SMS'}
-          unexpected = sorted(blocked.intersection(permissions))
-          if unexpected:
-              raise SystemExit(f'Engellenen izinler birleşmiş manifestte bulundu: {unexpected}')
-          if 'android.permission.CAMERA' not in permissions:
-              raise SystemExit('QR tarama için gerekli CAMERA izni birleşmiş manifestte bulunamadı.')
-          if features.get('android.hardware.camera') != 'false':
-              raise SystemExit('Kamera özelliği opsiyonel required=false olarak tanımlanmadı.')
-          print('Verified merged manifest:', manifest)
-          print('Camera permission and optional hardware feature are valid.')
-          print('Blocked permissions are absent.')
+          unexpected = sorted(blocked & permissions)
+          if unexpected: raise SystemExit(f'Engellenen izinler bulundu: {unexpected}')
+          if 'android.permission.CAMERA' not in permissions: raise SystemExit('CAMERA izni bulunamadı.')
+          if features.get('android.hardware.camera') != 'false': raise SystemExit('Kamera required=false değil.')
+          print('Merged manifest verified:', manifest)
           PY
 
       - name: Collect and verify APK
@@ -177,25 +145,17 @@ jobs:
         shell: bash
         run: |
           SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
-          if [ -z "$SOURCE_APK" ] || [ ! -f "$SOURCE_APK" ]; then
-            echo "Release APK bulunamadı."
-            exit 1
-          fi
+          test -f "$SOURCE_APK"
           VERSION="$(node -p "require('./package.json').version")"
           SHORT_SHA="${GITHUB_SHA::12}"
           APK_NAME="DraBornGarage-v${VERSION}-release-test-${SHORT_SHA}.apk"
           APK_PATH="release-output/${APK_NAME}"
           cp "$SOURCE_APK" "$APK_PATH"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          if [ -z "$APKSIGNER" ]; then
-            echo "apksigner bulunamadı."
-            exit 1
-          fi
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee release-output/apk-signature.txt
           sha256sum "$APK_PATH" | tee release-output/SHA256SUMS.txt
           stat -c '%n %s bytes' "$APK_PATH" | tee release-output/apk-size.txt
           echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
-          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Collect Android lint reports
         if: always()
@@ -209,14 +169,14 @@ jobs:
         run: |
           {
             echo "DraBornGarage v1.0.0 RC"
-            echo "Workflow: DraBornGarage Release APK"
             echo "Commit: $GITHUB_SHA"
-            echo "Ref: $GITHUB_REF"
             echo "Run: $GITHUB_RUN_ID"
             echo "Built at UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             echo "Expo Doctor: passed"
+            echo "TypeScript: passed"
             echo "Android lint: passed"
-            echo "Signing: GitHub test release signing; not Google Play production upload key"
+            echo "Native permissions: passed"
+            echo "Signing: GitHub test signing; not Google Play production upload key"
           } | tee release-output/BUILD_INFO.txt
 
       - name: Upload DraBornGarage Release APK artifact
@@ -233,15 +193,10 @@ jobs:
         run: |
           {
             echo "# DraBornGarage Release APK"
-            echo ""
             echo "- Version: **1.0.0 RC**"
             echo "- Android versionCode: **17**"
-            echo "- Expo Doctor: **passed**"
-            echo "- TypeScript: **passed**"
-            echo "- Android lint: **passed**"
-            echo "- Native permission verification: **passed**"
+            echo "- Expo Doctor, TypeScript, Android lint and native permissions: **passed**"
             echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
             echo "- Artifact: **DraBornGarage-v1.0.0-Release-APK**"
-            echo "- Signing: **test release signing — Google Play production key değildir**"
-            echo "- Next: APK'yı fiziksel cihazda docs/V1.0_RELEASE_APK_TEST_PLAN.md ile test et."
+            echo "- Signing: **test signing — Google Play production key değildir**"
           } >> "$GITHUB_STEP_SUMMARY"
