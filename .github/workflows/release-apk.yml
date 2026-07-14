@@ -65,15 +65,10 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Expo Doctor report
+      - name: Expo Doctor
         shell: bash
         run: |
-          set +e
           npx expo-doctor 2>&1 | tee release-output/expo-doctor.txt
-          DOCTOR_STATUS=${PIPESTATUS[0]}
-          echo "EXPO_DOCTOR_STATUS=$DOCTOR_STATUS" >> "$GITHUB_ENV"
-          echo "Expo Doctor exit code: $DOCTOR_STATUS"
-          exit 0
 
       - name: TypeScript
         run: npm run typecheck
@@ -83,6 +78,39 @@ jobs:
 
       - name: Generate clean Android native project
         run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Normalize generated Android manifest
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('android/app/src/main/AndroidManifest.xml')
+          text = path.read_text()
+
+          # Expo uses this marker to track generated intent filters. Android lint
+          # treats the namespace-less attribute as an error, but it is not needed
+          # in the compiled manifest.
+          text = text.replace(' data-generated="true"', '')
+
+          # Removal directives are intentional security controls. Suppress the
+          # ChromeOS implied-hardware lint false positive on those exact lines.
+          lines = []
+          for line in text.splitlines():
+              if '<uses-permission' in line and 'tools:node="remove"' in line and 'tools:ignore=' not in line:
+                  line = line.replace('/>', ' tools:ignore="PermissionImpliesUnsupportedChromeOsHardware"/>')
+              lines.append(line)
+          text = '\n'.join(lines) + '\n'
+
+          # QR scanning is optional; devices without a camera may still install
+          # and use the rest of DraBornGarage.
+          feature = '  <uses-feature android:name="android.hardware.camera" android:required="false"/>'
+          if 'android.hardware.camera' not in text:
+              root_end = text.find('>')
+              text = text[:root_end + 1] + '\n' + feature + text[root_end + 1:]
+
+          path.write_text(text)
+          PY
 
       - name: Verify blocked-permission removal directives
         shell: bash
@@ -105,16 +133,11 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
-      - name: Android lint report
+      - name: Android lint
         shell: bash
         run: |
-          set +e
           cd android
           ./gradlew :app:lintRelease --no-daemon --stacktrace 2>&1 | tee ../release-output/android-lint-console.txt
-          LINT_STATUS=${PIPESTATUS[0]}
-          echo "ANDROID_LINT_STATUS=$LINT_STATUS" >> "$GITHUB_ENV"
-          echo "Android lint exit code: $LINT_STATUS"
-          exit 0
 
       - name: Verify merged release manifest permissions
         shell: bash
@@ -125,13 +148,23 @@ jobs:
             exit 1
           fi
           cp "$MERGED_MANIFEST" release-output/AndroidManifest-release.xml
+
           for permission in RECORD_AUDIO ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_CONTACTS WRITE_CONTACTS CALL_PHONE READ_PHONE_STATE READ_SMS SEND_SMS; do
             if grep -q "android.permission.$permission" "$MERGED_MANIFEST"; then
               echo "Blocked permission is present in merged release manifest: $permission"
               exit 1
             fi
           done
-          echo "Merged release manifest contains no blocked permissions."
+
+          if ! grep -q 'android.permission.CAMERA' "$MERGED_MANIFEST"; then
+            echo "QR tarama için gerekli CAMERA izni birleşmiş manifestte bulunamadı."
+            exit 1
+          fi
+          if ! grep -q 'android.hardware.camera.*android:required="false"' "$MERGED_MANIFEST"; then
+            echo "Opsiyonel kamera uses-feature bildirimi bulunamadı."
+            exit 1
+          fi
+          echo "Merged release manifest permissions are valid."
 
       - name: Collect and verify APK
         id: apk
@@ -179,8 +212,8 @@ jobs:
             echo "Ref: $GITHUB_REF"
             echo "Run: $GITHUB_RUN_ID"
             echo "Built at UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            echo "Expo Doctor exit code: ${EXPO_DOCTOR_STATUS:-unknown}"
-            echo "Android lint exit code: ${ANDROID_LINT_STATUS:-unknown}"
+            echo "Expo Doctor: passed"
+            echo "Android lint: passed"
             echo "Signing: GitHub test release signing; not Google Play production upload key"
           } | tee release-output/BUILD_INFO.txt
 
@@ -201,8 +234,10 @@ jobs:
             echo ""
             echo "- Version: **1.0.0 RC**"
             echo "- Android versionCode: **17**"
-            echo "- Expo Doctor exit code: **${EXPO_DOCTOR_STATUS:-unknown}** (rapor artifact içindedir)"
-            echo "- Android lint exit code: **${ANDROID_LINT_STATUS:-unknown}** (rapor artifact içindedir)"
+            echo "- Expo Doctor: **passed**"
+            echo "- TypeScript: **passed**"
+            echo "- Android lint: **passed**"
+            echo "- Native permission verification: **passed**"
             echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
             echo "- Artifact: **DraBornGarage-v1.0.0-Release-APK**"
             echo "- Signing: **test release signing — Google Play production key değildir**"
