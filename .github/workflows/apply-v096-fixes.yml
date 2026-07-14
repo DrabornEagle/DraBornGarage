@@ -26,17 +26,28 @@ jobs:
         with:
           node-version: 20
 
-      - name: Apply source fixes
-        run: node scripts/apply-v096-fixes.mjs
-
-      - name: Commit generated changes
+      - name: Apply source fixes and capture log
+        id: apply
+        shell: bash
         run: |
-          if git diff --quiet; then
-            echo "No generated changes"
-            exit 0
-          fi
+          set +e
+          node scripts/apply-v096-fixes.mjs > /tmp/v096-apply.log 2>&1
+          STATUS=$?
+          cat /tmp/v096-apply.log
+          cp /tmp/v096-apply.log scripts/v096-apply.log
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Commit generated changes or diagnostic log
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md app.json package.json package-lock.json docs/TERMUX_INSTALL.md src
-          git commit -m "DraBornGarage v0.9.6: servis akışı, fiyat ve bildirim düzeltmeleri"
+          git add scripts/v096-apply.log
+          if [ "${{ steps.apply.outputs.status }}" = "0" ]; then
+            git add README.md app.json package.json package-lock.json docs/TERMUX_INSTALL.md src
+            MESSAGE="DraBornGarage v0.9.6: servis akışı, fiyat ve bildirim düzeltmeleri"
+          else
+            MESSAGE="diagnostic: v0.9.6 yama hata günlüğü"
+          fi
+          git diff --cached --quiet || git commit -m "$MESSAGE"
           git push origin HEAD:feature/v0.9.6-workflow-notifications-pricing
