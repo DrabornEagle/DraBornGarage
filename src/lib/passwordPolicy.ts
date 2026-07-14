@@ -3,7 +3,7 @@ export type PasswordPolicyResult = {
   message: string | null;
 };
 
-export function validateRegistrationPassword(password: string): PasswordPolicyResult {
+export function validateRegistrationPassword(password: string, _email?: string): PasswordPolicyResult {
   if (password.length < 6) {
     return { valid: false, message: 'Şifre en az 6 karakter olmalıdır.' };
   }
