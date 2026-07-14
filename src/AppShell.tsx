@@ -9,6 +9,7 @@ import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 import { NotificationBell } from './notifications/NotificationBell';
 import { useNotifications } from './notifications/NotificationContext';
+import { PrivacyCenter } from './privacy/PrivacyCenter';
 import { AdminScreen } from './screens/AdminScreen';
 import { AppointmentsScreen } from './screens/AppointmentsScreen';
 import { CustomersScreen } from './screens/CustomersScreen';
@@ -132,7 +133,8 @@ export function AppShell() {
   return (
     <PremiumBackground>
       <View style={styles.flex}>{screen}</View>
-      {!['orders', 'appointments', 'customers', 'receivables'].includes(tab) && <NotificationBell />}
+      {!['orders', 'appointments', 'customers', 'receivables', 'settings'].includes(tab) && <NotificationBell />}
+      {['appointments', 'settings'].includes(tab) && <PrivacyCenter />}
       <View style={[styles.navWrap, { borderColor: `${colors.primary}32`, shadowColor: colors.primary }]}> 
         <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
           <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}> 
