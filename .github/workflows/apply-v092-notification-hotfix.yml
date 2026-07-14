@@ -1,0 +1,61 @@
+name: Apply v0.9.2 Notification Hotfix
+
+on:
+  push:
+    branches: ["hotfix/v0.9.2-expo-go-notification-response"]
+    paths:
+      - .github/workflows/apply-v092-notification-hotfix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: hotfix/v0.9.2-expo-go-notification-response
+          fetch-depth: 0
+
+      - name: Replace unsafe notification response call
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          context_path = Path('src/notifications/NotificationContext.tsx')
+          text = context_path.read_text(encoding='utf-8')
+          old = "    Notifications.getLastNotificationResponseAsync().then(handleResponse).catch(() => undefined);"
+          new = """    const notificationApi = Notifications as typeof Notifications & {
+                getLastNotificationResponse?: () => Notifications.NotificationResponse | null;
+                getLastNotificationResponseAsync?: () => Promise<Notifications.NotificationResponse | null>;
+              };
+              if (typeof notificationApi.getLastNotificationResponseAsync === 'function') {
+                notificationApi.getLastNotificationResponseAsync().then(handleResponse).catch(() => undefined);
+              } else if (typeof notificationApi.getLastNotificationResponse === 'function') {
+                handleResponse(notificationApi.getLastNotificationResponse());
+              }"""
+          if old not in text:
+              raise SystemExit('Unsafe notification response call was not found')
+          context_path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          index_path = Path('index.ts')
+          index_text = index_path.read_text(encoding='utf-8')
+          index_text = index_text.replace("import './src/notifications/expoNotificationsCompatibility';\n", '', 1)
+          index_path.write_text(index_text, encoding='utf-8')
+
+          compatibility_path = Path('src/notifications/expoNotificationsCompatibility.ts')
+          if compatibility_path.exists():
+              compatibility_path.unlink()
+          PY
+
+      - name: Commit direct hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/notifications/NotificationContext.tsx index.ts
+          git add -u src/notifications/expoNotificationsCompatibility.ts
+          git commit -m "fix(v0.9.2): guard unavailable Expo notification response API"
+          git push origin HEAD:hotfix/v0.9.2-expo-go-notification-response
