@@ -49,17 +49,20 @@ jobs:
       - name: Prepare output directory
         run: mkdir -p release-output
 
+      - name: Synchronize visible v1.0 metadata
+        run: python3 scripts/sync_v1_metadata.py
+
       - name: Synchronize lock metadata for v1.0 workspace
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
-      - name: Commit synchronized lockfile when needed
+      - name: Commit synchronized release metadata when needed
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
+          git add package-lock.json README.md docs/TERMUX_INSTALL.md src/notifications/NotificationCenterScreen.tsx src/notifications/NotificationContext.tsx src/screens/SettingsScreen.tsx
           if ! git diff --cached --quiet; then
-            git commit -m "chore(v1.0): synchronize package lock"
+            git commit -m "chore(v1.0): synchronize release metadata"
             git push origin HEAD:feature/v1.0-release-apk
           fi
 
