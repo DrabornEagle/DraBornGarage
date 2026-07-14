@@ -1,4 +1,4 @@
-# Termux — DraBornGarage v0.9.3 Kurulum
+# Termux — DraBornGarage v0.9.4 Kurulum
 
 ## Temiz güncelleme
 
@@ -10,7 +10,7 @@ set -e
 REPO_URL="https://github.com/DrabornEagle/DraBornGarage.git"
 APP_DIR="$HOME/DraBornGarage"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
-EXPECTED_VERSION="0.9.3"
+EXPECTED_VERSION="0.9.4"
 
 pkg update -y
 pkg install -y git nodejs-lts
@@ -69,16 +69,20 @@ npm run test:bundle
 
 Bu komut Expo'nun Hermes masaüstü derleyicisini kullanır. Termux Android host platformu desteklenmediği için hata verir. Android bundle kontrolü GitHub Actions üzerinde otomatik çalıştırılır.
 
-## Motor Hazır IBAN testi
+## IBAN ve müşteri ödeme bildirimi testi
 
 1. Usta veya İşletme Sahibi + Usta hesabıyla giriş yap.
-2. Ayarlar → **Motor Hazır IBAN** bölümünü aç.
-3. Banka adı, hesap sahibi ve TR IBAN bilgisini gir.
-4. **Müşteriye göster** seçeneğini aç ve kaydet.
-5. Ustaya atanmış bir servisi **Motor Hazır** durumuna al.
+2. Ayarlar → **IBAN Ayarları** bölümünü aç.
+3. **Müşteriye göster** seçeneğinin varsayılan aktif olduğunu doğrula.
+4. Banka adı, hesap sahibi ve TR IBAN bilgisini girip kaydet.
+5. Ustaya atanmış bir servisi **Motor Hazır** durumuna al veya teslim edilmiş servis için açık veresiye kaydı oluştur.
 6. Bağlı müşteri hesabında Servisler → ilgili motor detayını aç.
-7. Motor Hazır IBAN kartında Usta, banka, hesap sahibi ve IBAN görünmelidir.
-8. Servis başka duruma alındığında kart görünmemelidir.
+7. Usta, banka, hesap sahibi, IBAN ve kalan borç görünmelidir.
+8. Müşteri tutarı girip **Ödemeyi Yaptım • Ustaya Bildir** düğmesine dokunur.
+9. Borcun henüz değişmediğini ve Usta onayı beklendiğini doğrula.
+10. Usta hesabında Alacak ekranını aç ve bekleyen bildirimi onayla.
+11. Kısmi ödemede kalan tutarın azaldığını; tam ödemede borcun kapandığını doğrula.
+12. Ret senaryosunda müşterinin borcunun değişmediğini doğrula.
 
 ## Bildirim sesi testi
 
@@ -115,13 +119,13 @@ cd "$HOME/DraBornGarage"
 npx eas-cli build --platform android --profile production
 ```
 
-## v0.9.2'ye kod geri dönüşü
+## v0.9.3'e kod geri dönüşü
 
 ```bash
 set -e
 
 APP_DIR="$HOME/DraBornGarage"
-TARGET_SHA="8f2a5155bc5374f35dcbd098f3b46544bbcad852"
+TARGET_SHA="e4f1018ad5edac6a9dd00847fb785ae287f1cd8a"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
 
 pkg update -y
