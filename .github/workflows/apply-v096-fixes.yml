@@ -25,6 +25,20 @@ jobs:
         with:
           node-version: 20
 
+      - name: Normalize NotificationCard patch indentation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/apply-v096-fixes.mjs')
+          source = path.read_text()
+          source = source.replace("`                 onArchive={() => Alert.alert", "`                onArchive={() => Alert.alert")
+          source = source.replace("\n                   { text: 'Vazgeç' },", "\n                  { text: 'Vazgeç' },")
+          source = source.replace("\n                   { text: 'Arşivle',", "\n                  { text: 'Arşivle',")
+          source = source.replace("\n                 ])}\n               />`", "\n                ])}\n              />`")
+          path.write_text(source)
+          PY
+
       - name: Apply source fixes and capture diagnostic
         id: apply
         shell: bash
