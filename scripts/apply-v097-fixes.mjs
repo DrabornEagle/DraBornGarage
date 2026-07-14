@@ -34,35 +34,15 @@ patch('src/screens/HomeScreen.tsx', (source) => {
     `  const [stats, setStats] = useState<DashboardStats>({ activeOrders: 0, waitingOrders: 0, totalCompleted: 0, todayIncome: 0, mechanicRecordedTotal: 0 });`,
     'Panel başlangıç istatistikleri',
   );
-
   source = replaceOnce(
     source,
     `    const [ordersResult, todayOrdersResult, paymentsResult] = await Promise.all([\n      orderQuery,\n      todayOrdersQuery,\n      supabase.from('payments').select('amount,payment_method,received_by').eq('workshop_id', workshop.id).gte('paid_at', today),\n    ]);`,
     `    let completedOrdersQuery = supabase\n      .from('work_orders')\n      .select('id', { count: 'exact', head: true })\n      .eq('workshop_id', workshop.id)\n      .in('status', ['ready', 'completed', 'delivered']);\n    if (mechanicView) completedOrdersQuery = completedOrdersQuery.eq('assigned_mechanic_id', membership.user_id);\n\n    const [ordersResult, todayOrdersResult, completedOrdersResult, paymentsResult] = await Promise.all([\n      orderQuery,\n      todayOrdersQuery,\n      completedOrdersQuery,\n      supabase.from('payments').select('amount,payment_method,received_by').eq('workshop_id', workshop.id).gte('paid_at', today),\n    ]);`,
     'Toplam tamamlanan iş sorgusu',
   );
-
-  source = replaceOnce(
-    source,
-    `      todayCompleted: todayOrders.filter((order) => completedStatuses.includes(order.status)).length,`,
-    `      totalCompleted: completedOrdersResult.count ?? 0,`,
-    'Panel toplam tamamlanan değeri',
-  );
-
-  source = replaceOnce(
-    source,
-    `          <Text style={styles.heroHint}>{stats.activeOrders} aktif motosiklet • {stats.todayCompleted} hazır/tamamlanan iş</Text>`,
-    `          <Text style={styles.heroHint}>{stats.activeOrders} aktif motosiklet • {stats.totalCompleted} toplam hazır/tamamlanan iş</Text>`,
-    'Hero toplam tamamlanan metni',
-  );
-
-  source = replaceOnce(
-    source,
-    `            <StatCard label="Hazır/Tamam" value={String(stats.todayCompleted)} icon="checkmark-done" accent={colors.green} />`,
-    `            <StatCard label="Hazır/Tamam" value={String(stats.totalCompleted)} icon="checkmark-done" accent={colors.green} />`,
-    'Hazır Tamam kartı toplam sayısı',
-  );
-
+  source = replaceOnce(source, `      todayCompleted: todayOrders.filter((order) => completedStatuses.includes(order.status)).length,`, `      totalCompleted: completedOrdersResult.count ?? 0,`, 'Panel toplam tamamlanan değeri');
+  source = replaceOnce(source, `          <Text style={styles.heroHint}>{stats.activeOrders} aktif motosiklet • {stats.todayCompleted} hazır/tamamlanan iş</Text>`, `          <Text style={styles.heroHint}>{stats.activeOrders} aktif motosiklet • {stats.totalCompleted} toplam hazır/tamamlanan iş</Text>`, 'Hero toplam tamamlanan metni');
+  source = replaceOnce(source, `            <StatCard label="Hazır/Tamam" value={String(stats.todayCompleted)} icon="checkmark-done" accent={colors.green} />`, `            <StatCard label="Hazır/Tamam" value={String(stats.totalCompleted)} icon="checkmark-done" accent={colors.green} />`, 'Hazır Tamam kartı toplam sayısı');
   return source;
 });
 
@@ -73,21 +53,13 @@ patch('src/screens/WorkOrderDetailV04.tsx', (source) => {
     `  const changeStatus = async (status: WorkOrderStatus) => {\n    if (status === 'ready' && Number(order?.total_amount || 0) <= 0) {\n      setPriceType('fixed');\n      setFixedPrice('');\n      setOpenSections((current) => ({ ...current, price: true, status: false }));\n      setTimeout(() => scrollRef.current?.scrollTo({ y: 420, animated: true }), 180);\n      Alert.alert('Tahsilat ücreti gerekli', 'Motoru hazır yapmadan önce müşteriden tahsil edilecek son net servis ücretini veya yapılan işlem tutarını kaydetmelisin. Tahmini fiyat tek başına yeterli değildir.');\n      return;\n    }\n    if (status === 'delivered' && Number(order?.total_amount || 0) <= 0) {`,
     'Motor Hazır ücret engeli',
   );
-
   source = replaceOnce(
     source,
     `    <DetailAccordion title="Servis Durumu" subtitle="Tamir akışını ve motorun güncel aşamasını yönet." icon="speedometer" accent={colors.primary} open={openSections.status} onToggle={() => toggleSection('status')} badge={statusLabels[order.status as WorkOrderStatus]}>\n      <View style={styles.grid}>{statusFlow.map((status) => <StatusButton key={status} status={status} active={order.status === status} onPress={() => changeStatus(status)} />)}</View>`,
-    `    <DetailAccordion title="Servis Durumu" subtitle="Tamir akışını ve motorun güncel aşamasını yönet." icon="speedometer" accent={colors.primary} open={openSections.status} onToggle={() => toggleSection('status')} badge={statusLabels[order.status as WorkOrderStatus]}>\n      {Number(order.total_amount || 0) <= 0 && <View style={[styles.notice, { backgroundColor: \\`${'${colors.orange}'}10\\`, borderColor: \\`${'${colors.orange}'}35\\` }]}><Ionicons name="warning" size={20} color={colors.orange} /><Text style={[styles.noticeText, { color: colors.textMuted }]}>Motor Hazır seçilemez. Önce son net tahsilat ücretini kaydet veya Yapılan İşlemler bölümüne ücretli işlem kalemi ekle. Tahmini fiyat bilgi amaçlıdır.</Text></View>}\n      <View style={styles.grid}>{statusFlow.map((status) => <StatusButton key={status} status={status} active={order.status === status} onPress={() => changeStatus(status)} />)}</View>`,
+    `    <DetailAccordion title="Servis Durumu" subtitle="Tamir akışını ve motorun güncel aşamasını yönet." icon="speedometer" accent={colors.primary} open={openSections.status} onToggle={() => toggleSection('status')} badge={statusLabels[order.status as WorkOrderStatus]}>\n      {Number(order.total_amount || 0) <= 0 && <View style={[styles.notice, { backgroundColor: colors.orange + '10', borderColor: colors.orange + '35' }]}><Ionicons name="warning" size={20} color={colors.orange} /><Text style={[styles.noticeText, { color: colors.textMuted }]}>Motor Hazır seçilemez. Önce son net tahsilat ücretini kaydet veya Yapılan İşlemler bölümüne ücretli işlem kalemi ekle. Tahmini fiyat bilgi amaçlıdır.</Text></View>}\n      <View style={styles.grid}>{statusFlow.map((status) => <StatusButton key={status} status={status} active={order.status === status} onPress={() => changeStatus(status)} />)}</View>`,
     'Servis durumu ücret bilgi kartı',
   );
-
-  source = replaceOnce(
-    source,
-    `<DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Tamire başlamadan önce net veya tahmini fiyatı kaydet." icon="pricetag" accent={colors.green}`,
-    `<DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Motor Hazır öncesi son net tahsilat ücretini kaydet. Tahmini fiyat yalnız bilgi amaçlıdır." icon="pricetag" accent={colors.green}`,
-    'Ücret bölümü açıklaması',
-  );
-
+  source = replaceOnce(source, `<DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Tamire başlamadan önce net veya tahmini fiyatı kaydet." icon="pricetag" accent={colors.green}`, `<DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Motor Hazır öncesi son net tahsilat ücretini kaydet. Tahmini fiyat yalnız bilgi amaçlıdır." icon="pricetag" accent={colors.green}`, 'Ücret bölümü açıklaması');
   return source;
 });
 
@@ -108,19 +80,15 @@ patch('README.md', (source) => replaceOnce(
   'README güncel sürüm',
 ));
 
-patch('docs/TERMUX_INSTALL.md', (source) => source
-  .replace('# Termux — DraBornGarage v0.9.6 Kurulum', '# Termux — DraBornGarage v0.9.7 Kurulum')
-  .replace('EXPECTED_VERSION="0.9.6"', 'EXPECTED_VERSION="0.9.7"'));
+patch('docs/TERMUX_INSTALL.md', (source) => source.replace('# Termux — DraBornGarage v0.9.6 Kurulum', '# Termux — DraBornGarage v0.9.7 Kurulum').replace('EXPECTED_VERSION="0.9.6"', 'EXPECTED_VERSION="0.9.7"'));
 
 const appJson = JSON.parse(read('app.json'));
 appJson.expo.version = '0.9.7';
 appJson.expo.ios.buildNumber = '16';
 appJson.expo.android.versionCode = 16;
 write('app.json', `${JSON.stringify(appJson, null, 2)}\n`);
-
 packageJson.version = '0.9.7';
 write('package.json', `${JSON.stringify(packageJson, null, 2)}\n`);
-
 const lockJson = JSON.parse(read('package-lock.json'));
 lockJson.version = '0.9.7';
 if (lockJson.packages?.['']) lockJson.packages[''].version = '0.9.7';
