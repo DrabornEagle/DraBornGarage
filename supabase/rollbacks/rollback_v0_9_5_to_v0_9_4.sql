@@ -23,6 +23,10 @@ begin
     $old$status in ('ready','completed','delivered')$old$,
     $new$status in ('completed','delivered')$new$
   );
+  v_sql := replace(v_sql,
+    $old$status not in ('ready','completed','delivered','cancelled')$old$,
+    $new$status not in ('completed','delivered','cancelled')$new$
+  );
 
   v_old := $old$'service_count',coalesce((select sum(public.mechanic_order_service_count(id,v_user_id,false)) from my_orders),0),
     'completed_service_count',coalesce((select sum(public.mechanic_order_service_count(id,v_user_id,true)) from my_orders),0),
@@ -74,6 +78,10 @@ begin
   v_sql := replace(v_sql,
     $old$status in ('ready','completed','delivered')$old$,
     $new$status in ('completed','delivered')$new$
+  );
+  v_sql := replace(v_sql,
+    $old$status not in ('ready','completed','delivered','cancelled')$old$,
+    $new$status not in ('completed','delivered','cancelled')$new$
   );
 
   v_old := $old$'service_count',coalesce((select sum(public.mechanic_order_service_count(wo.id,m.user_id,false)) from period_orders wo where wo.assigned_mechanic_id=m.user_id or exists(select 1 from public.work_order_services s where s.work_order_id=wo.id and s.mechanic_id=m.user_id)),0),
