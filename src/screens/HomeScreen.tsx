@@ -58,6 +58,7 @@ export function HomeScreen({
       .from('work_orders')
       .select('id,workshop_id,status,payment_status,service_type,customer_waiting_status,queue_position,complaint,total_amount,amount_received,price_type,estimated_price_min,estimated_price_max,quoted_price,arrived_at,assigned_mechanic_id,customer:customers(full_name,phone),motorcycle:motorcycles(brand,model,plate),mechanic:profiles!work_orders_assigned_mechanic_id_fkey(full_name)')
       .eq('workshop_id', workshop.id)
+      .gte('arrived_at', today)
       .order('queue_position', { ascending: true })
       .order('arrived_at', { ascending: false })
       .limit(8);

@@ -150,12 +150,16 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   };
 
   const changeStatus = async (status: WorkOrderStatus) => {
-    if (status === 'delivered' && Number(order?.total_amount || 0) <= 0) {
+    const requiresFinalCharge = ['ready', 'completed', 'delivered'].includes(status);
+    if (requiresFinalCharge && Number(order?.total_amount || 0) <= 0) {
       setPriceType('fixed');
       setFixedPrice('');
       setOpenSections((current) => ({ ...current, price: true, status: false }));
       setTimeout(() => scrollRef.current?.scrollTo({ y: 420, animated: true }), 180);
-      Alert.alert('Son net fiyat gerekli', 'Motor Hazır durumunda tahmini fiyat gösterilebilir; ancak teslim edilmeden önce son net fiyatı veya yapılan işlem tutarını kaydetmelisin.');
+      Alert.alert(
+        'Tahsil edilecek ücret gerekli',
+        'Motor Hazır yapılmadan önce müşteriden tahsil edilecek son net ücreti veya yapılan işlem tutarını kaydetmelisin.',
+      );
       return;
     }
     const { error } = await supabase.rpc('update_work_order_status', { p_work_order_id: orderId, p_status: status });
