@@ -1,0 +1,170 @@
+name: DraBornGarage Release APK
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ["feature/v1.0-release-apk"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draborngarage-release-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+  EXPO_NO_TELEMETRY: "1"
+  EXPO_NO_GIT_STATUS: "1"
+  EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+
+jobs:
+  release-apk:
+    name: Build signed test Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Prepare output directory
+        run: mkdir -p release-output
+
+      - name: Synchronize lock metadata for v1.0 workspace
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Validate release version metadata
+        shell: bash
+        run: |
+          node <<'NODE'
+          const pkg = require('./package.json');
+          const app = require('./app.json').expo;
+          if (pkg.version !== '1.0.0') throw new Error(`package.json sürümü 1.0.0 değil: ${pkg.version}`);
+          if (app.version !== '1.0.0') throw new Error(`app.json sürümü 1.0.0 değil: ${app.version}`);
+          if (app.android?.versionCode !== 17) throw new Error(`Android versionCode 17 değil: ${app.android?.versionCode}`);
+          if (app.ios?.buildNumber !== '17') throw new Error(`iOS buildNumber 17 değil: ${app.ios?.buildNumber}`);
+          console.log('Release metadata OK:', pkg.version, app.android.versionCode, app.ios.buildNumber);
+          NODE
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Export public Expo configuration
+        run: npx expo config --type public --json > release-output/expo-public-config.json
+
+      - name: Generate clean Android native project
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Verify blocked Android permissions
+        shell: bash
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          test -f "$MANIFEST"
+          for permission in RECORD_AUDIO ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_CONTACTS WRITE_CONTACTS CALL_PHONE READ_PHONE_STATE READ_SMS SEND_SMS; do
+            if grep -q "android.permission.$permission" "$MANIFEST"; then
+              echo "Blocked permission unexpectedly present: $permission"
+              exit 1
+            fi
+          done
+          echo "Blocked permissions are absent."
+
+      - name: Android lint and release APK build
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:lintRelease :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Collect and verify APK
+        id: apk
+        shell: bash
+        run: |
+          SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
+          if [ -z "$SOURCE_APK" ] || [ ! -f "$SOURCE_APK" ]; then
+            echo "Release APK bulunamadı."
+            exit 1
+          fi
+
+          VERSION="$(node -p "require('./package.json').version")"
+          SHORT_SHA="${GITHUB_SHA::12}"
+          APK_NAME="DraBornGarage-v${VERSION}-release-test-${SHORT_SHA}.apk"
+          APK_PATH="release-output/${APK_NAME}"
+          cp "$SOURCE_APK" "$APK_PATH"
+
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [ -z "$APKSIGNER" ]; then
+            echo "apksigner bulunamadı."
+            exit 1
+          fi
+          "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee release-output/apk-signature.txt
+
+          sha256sum "$APK_PATH" | tee release-output/SHA256SUMS.txt
+          stat -c '%n %s bytes' "$APK_PATH" | tee release-output/apk-size.txt
+
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Collect Android lint reports
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p release-output/lint
+          find android/app/build/reports -maxdepth 3 -type f -exec cp --parents {} release-output/lint/ \; 2>/dev/null || true
+
+      - name: Write build information
+        shell: bash
+        run: |
+          {
+            echo "DraBornGarage v1.0.0 RC"
+            echo "Workflow: DraBornGarage Release APK"
+            echo "Commit: $GITHUB_SHA"
+            echo "Ref: $GITHUB_REF"
+            echo "Run: $GITHUB_RUN_ID"
+            echo "Built at UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "Signing: GitHub test release signing; not Google Play production upload key"
+          } | tee release-output/BUILD_INFO.txt
+
+      - name: Upload DraBornGarage Release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DraBornGarage-v1.0.0-Release-APK
+          path: release-output/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
+
+      - name: Build summary
+        shell: bash
+        run: |
+          {
+            echo "# DraBornGarage Release APK"
+            echo ""
+            echo "- Version: **1.0.0 RC**"
+            echo "- Android versionCode: **17**"
+            echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
+            echo "- Artifact: **DraBornGarage-v1.0.0-Release-APK**"
+            echo "- Signing: **test release signing — Google Play production key değildir**"
+            echo "- Next: APK'yı fiziksel cihazda docs/V1.0_RELEASE_APK_TEST_PLAN.md ile test et."
+          } >> "$GITHUB_STEP_SUMMARY"
