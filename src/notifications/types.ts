@@ -1,3 +1,5 @@
+import { NotificationSoundKey } from './notificationSounds';
+
 export type NotificationCategory = 'service' | 'appointments' | 'payments' | 'receivables' | 'platform' | 'customer_links' | 'system';
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
 
@@ -20,6 +22,7 @@ export interface GarageNotification {
 
 export interface NotificationPreferences {
   local_notifications_enabled: boolean;
+  sound_key: NotificationSoundKey;
   service_updates: boolean;
   appointment_reminders: boolean;
   appointment_reminder_24h: boolean;
