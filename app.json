@@ -19,7 +19,6 @@
         "expo-image-picker",
         {
           "photosPermission": "DraBornGarage yalnız seçtiğin platform ödeme dekontunu yüklemek için fotoğraflarına erişsin.",
-          "cameraPermission": false,
           "microphonePermission": false
         }
       ],
