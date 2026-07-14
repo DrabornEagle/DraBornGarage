@@ -1,0 +1,40 @@
+name: Sync v0.9.1 Lockfile
+
+on:
+  push:
+    branches: ["feature/v0.9.1-navigation-sounds-payment-push"]
+    paths:
+      - package.json
+      - .github/workflows/sync-v091-lock.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v0.9.1-navigation-sounds-payment-push
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Synchronize lock metadata
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Commit and remove temporary workflow
+        run: |
+          rm -f .github/workflows/sync-v091-lock.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json .github/workflows/sync-v091-lock.yml
+          git commit -m "chore(v0.9.1): sync package lock"
+          git push origin HEAD:feature/v0.9.1-navigation-sounds-payment-push
