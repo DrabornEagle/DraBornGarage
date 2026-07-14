@@ -1,0 +1,31 @@
+name: Apply v0.9.5 Report Fixes
+
+on:
+  push:
+    branches:
+      - feature/v0.9.5-report-consistency-privacy-shield
+    paths:
+      - scripts/apply-v095-report-fixes.mjs
+      - .github/workflows/apply-v095-report-fixes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v0.9.5-report-consistency-privacy-shield
+          fetch-depth: 0
+      - name: Apply v0.9.5 changes
+        run: node scripts/apply-v095-report-fixes.mjs
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md app.json package.json package-lock.json docs/TERMUX_INSTALL.md docs/CHANGELOG_V0.9.5.md src/customer/CustomerShell.tsx src/screens/HomeScreen.tsx src/components/ReportsDashboard.tsx src/screens/SettingsScreen.tsx
+          git diff --cached --quiet || git commit -m "DraBornGarage v0.9.5: Usta rapor tutarlılığı ve kalkan konumu"
+          git push origin HEAD:feature/v0.9.5-report-consistency-privacy-shield
