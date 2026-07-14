@@ -7,34 +7,9 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  finalize-v091:
-    if: github.event_name == 'pull_request' && github.head_ref == 'feature/v0.9.1-navigation-sounds-payment-push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout v0.9.1 branch
-        uses: actions/checkout@v4
-        with:
-          ref: feature/v0.9.1-navigation-sounds-payment-push
-          fetch-depth: 0
-
-      - name: Apply v0.9.1 finalizer once
-        run: |
-          if [ -f .v091-finalized ]; then
-            echo "v0.9.1 is already finalized."
-            exit 0
-          fi
-          python scripts/finalize_v091.py
-          touch .v091-finalized
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "feat(v0.9.1): finalize calendar sounds payment and Play positioning"
-          git push origin HEAD:feature/v0.9.1-navigation-sounds-payment-push
-
   android-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 20
