@@ -69,6 +69,7 @@ export function NotificationCenterScreen() {
     refresh,
     markAllRead,
     archive,
+    deleteNotification,
     openNotification,
     updatePreferences,
     requestLocalNotifications,
@@ -79,9 +80,9 @@ export function NotificationCenterScreen() {
   const [saving, setSaving] = useState(false);
 
   const visible = useMemo(() => {
-    if (tab === 'unread') return notifications.filter((item) => !item.read_at);
     if (tab === 'upcoming') return upcoming;
-    return notifications;
+    const sourceItems = tab === 'unread' ? notifications.filter((item) => !item.read_at) : notifications;
+    return [...sourceItems].sort((a, b) => new Date(b.deliver_at).getTime() - new Date(a.deliver_at).getTime());
   }, [tab, notifications, upcoming]);
 
   const permissionLabel = permissionStatus === 'granted'
@@ -141,7 +142,7 @@ export function NotificationCenterScreen() {
 
         <View style={styles.header}>
           <View style={styles.copy}>
-            <Text style={[styles.eyebrow, { color: colors.primary }]}>v0.9.3 • SESLİ BİLDİRİM MERKEZİ</Text>
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>v0.9.6 • SESLİ BİLDİRİM MERKEZİ</Text>
             <Text style={[styles.title, { color: colors.text }]}>Bildirimler</Text>
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>Servis, randevu, ödeme, alacak ve platform hareketleri tek akışta.</Text>
           </View>
@@ -233,6 +234,10 @@ export function NotificationCenterScreen() {
                 onArchive={() => Alert.alert('Bildirim arşivlensin mi?', item.title, [
                   { text: 'Vazgeç' },
                   { text: 'Arşivle', onPress: () => archive(item.id) },
+                 ])}
+                 onDelete={() => Alert.alert('Bildirim kalıcı olarak silinsin mi?', item.title, [
+                  { text: 'Vazgeç' },
+                   { text: 'Sil', style: 'destructive', onPress: () => deleteNotification(item.id) },
                 ])}
               />
             ))}
@@ -270,7 +275,7 @@ function SoundChoice({ active, label, subtitle, icon, onPress }: { active: boole
   </AnimatedPressable>;
 }
 
-function NotificationCard({ item, upcoming, onOpen, onArchive }: { item: GarageNotification; upcoming: boolean; onOpen: () => void; onArchive: () => void }) {
+function NotificationCard({ item, upcoming, onOpen, onArchive, onDelete }: { item: GarageNotification; upcoming: boolean; onOpen: () => void; onArchive: () => void; onDelete: () => void }) {
   const { colors } = useTheme();
   const incomingPayment = item.notification_type === 'platform_payment_reported';
   const meta = incomingPayment ? { label: 'ÖDEME GELDİ', icon: 'cash' as keyof typeof Ionicons.glyphMap } : CATEGORY_META[item.category] || CATEGORY_META.system;
@@ -305,9 +310,14 @@ function NotificationCard({ item, upcoming, onOpen, onArchive }: { item: GarageN
           {unread && <View style={[styles.unreadDot, { backgroundColor: accent }]} />}
         </View>
       </View>
-      <AnimatedPressable onPress={onArchive} style={[styles.archive, { backgroundColor: `${colors.textMuted}0D` }]}>
-        <Ionicons name="archive-outline" size={17} color={colors.textMuted} />
-      </AnimatedPressable>
+      <View style={styles.notificationActions}>
+        <AnimatedPressable onPress={onArchive} style={[styles.archive, { backgroundColor: `${colors.textMuted}0D` }]}>
+          <Ionicons name="archive-outline" size={17} color={colors.textMuted} />
+        </AnimatedPressable>
+        <AnimatedPressable onPress={onDelete} style={[styles.deleteAction, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}35` }]}>
+          <Ionicons name="trash-outline" size={15} color={colors.red} />
+        </AnimatedPressable>
+      </View>
     </AnimatedPressable>
   );
 }
@@ -373,7 +383,9 @@ const styles = StyleSheet.create({
   notificationFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7 },
   workshop: { flex: 1, fontSize: 10, fontWeight: '700' },
   unreadDot: { width: 8, height: 8, borderRadius: 4 },
+  notificationActions: { gap: 7, alignItems: 'center' },
   archive: { width: 31, height: 31, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  deleteAction: { width: 27, height: 27, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   emptyCard: { minHeight: 260, alignItems: 'center', justifyContent: 'center', gap: 10 },
   emptyIcon: { width: 70, height: 70, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 17, fontWeight: '900' },

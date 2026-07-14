@@ -80,6 +80,7 @@ interface NotificationContextValue {
   markRead: (notificationId: string) => Promise<void>;
   markAllRead: () => Promise<void>;
   archive: (notificationId: string) => Promise<void>;
+  deleteNotification: (notificationId: string) => Promise<void>;
   openNotification: (notification: GarageNotification) => Promise<void>;
   updatePreferences: (patch: Partial<NotificationPreferences>) => Promise<string | null>;
   requestLocalNotifications: () => Promise<boolean>;
@@ -228,7 +229,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const payload = data as NotificationCenterPayload;
       const nextPreferences = { ...DEFAULT_PREFERENCES, ...(payload.preferences || {}) };
       if (!mountedRef.current) return;
-      setNotifications(payload.notifications || []);
+      const sortedNotifications = [...(payload.notifications || [])].sort((a, b) => new Date(b.deliver_at).getTime() - new Date(a.deliver_at).getTime());
+      setNotifications(sortedNotifications);
       setUpcoming(payload.upcoming || []);
       setUnreadCount(Number(payload.unread_count || 0));
       setUpcomingCount(Number(payload.upcoming_count || 0));
@@ -273,7 +275,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         p_expo_push_token: token,
         p_device_id: deviceId,
         p_platform: Platform.OS,
-        p_app_version: Constants.expoConfig?.version || '0.9.3',
+        p_app_version: Constants.expoConfig?.version || '0.9.6',
       });
       if (error) throw error;
       await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
@@ -467,6 +469,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const deleteNotification = useCallback(async (notificationId: string) => {
+    await supabase.rpc('notification_delete', { p_notification_id: notificationId });
+    setNotifications((items) => items.filter((item) => item.id !== notificationId));
+    setUpcoming((items) => items.filter((item) => item.id !== notificationId));
+    await Notifications.cancelScheduledNotificationAsync(`draborngarage-${notificationId}`).catch(() => undefined);
+    await refresh();
+  }, [refresh]);
+
   const openNotification = useCallback(async (notification: GarageNotification) => {
     if (!notification.read_at) await markRead(notification.id);
     const targetTab = typeof notification.data?.target_tab === 'string' ? notification.data.target_tab : undefined;
@@ -518,13 +528,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     markRead,
     markAllRead,
     archive,
+    deleteNotification,
     openNotification,
     updatePreferences,
     requestLocalNotifications,
     registerPushNotifications,
     sendTestNotification,
     consumeNavigationTarget,
-  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget, refresh, markRead, markAllRead, archive, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, consumeNavigationTarget]);
+  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, consumeNavigationTarget]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

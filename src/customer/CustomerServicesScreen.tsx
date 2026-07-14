@@ -29,7 +29,19 @@ function dateTime(value?: string | null) {
   return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
-export function CustomerServicesScreen({ onStartLink }: { onStartLink: () => void }) {
+function hasFinalPrice(item: { total_amount?: number | null }) {
+  return Number(item.total_amount || 0) > 0;
+}
+
+function displayedPrice(item: { total_amount?: number | null; price_type?: string | null; estimated_price_min?: number | null; estimated_price_max?: number | null }) {
+  if (hasFinalPrice(item)) return money(item.total_amount);
+  if (item.price_type === 'estimated' && Number(item.estimated_price_min || 0) > 0 && Number(item.estimated_price_max || 0) >= Number(item.estimated_price_min || 0)) {
+    return `Tahmini ${money(item.estimated_price_min)} – ${money(item.estimated_price_max)}`;
+  }
+  return 'Son fiyat bekleniyor';
+}
+
+export function CustomerServicesScreen({ onStartLink, onDetailStateChange }: { onStartLink: () => void; onDetailStateChange?: (open: boolean) => void }) {
   const { colors } = useTheme();
   const { customerWorkshop } = useAuth();
   const [items, setItems] = useState<CustomerServiceRecord[]>([]);
@@ -45,6 +57,10 @@ export function CustomerServicesScreen({ onStartLink }: { onStartLink: () => voi
   }, [customerWorkshop]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    onDetailStateChange?.(Boolean(selectedId));
+    return () => { onDetailStateChange?.(false); };
+  }, [selectedId, onDetailStateChange]);
 
   const visible = useMemo(() => items.filter((item) => {
     if (filter === 'all') return true;
@@ -63,7 +79,7 @@ export function CustomerServicesScreen({ onStartLink }: { onStartLink: () => voi
     {visible.length === 0 ? <GlassCard style={styles.empty}><Ionicons name="receipt-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Servis kaydı yok</Text></GlassCard> : visible.map((item) => <AnimatedPressable key={item.id} onPress={() => setSelectedId(item.id)} style={[styles.card, { backgroundColor: colors.card, borderColor: Number(item.pending_approval_count || 0) > 0 ? colors.orange : colors.border }]}>
       <View style={styles.top}><View style={[styles.icon, { backgroundColor: Number(item.pending_approval_count || 0) > 0 ? `${colors.orange}18` : `${colors.primary2}18` }]}>{item.pending_approval_count > 0 ? <Ionicons name="shield-half" size={24} color={colors.orange} /> : <AnimatedMotorcycleIcon size={31} color={colors.primary2} />}</View><View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>{item.brand} {item.model}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.plate} • {shortDate(item.arrived_at)}</Text>{Number(item.pending_approval_count || 0) > 0 && <Text style={[styles.approvalText, { color: colors.orange }]}>{item.pending_approval_count} ek işlem onayın bekliyor</Text>}</View><StatusPill status={item.status} /></View>
       <Text numberOfLines={2} style={[styles.complaint, { color: colors.textSoft }]}>{item.complaint}</Text>
-      <View style={styles.moneyRow}><Text style={[styles.amount, { color: colors.text }]}>{money(item.total_amount)}</Text><Text style={[styles.amount, { color: item.remaining_amount > 0 ? colors.orange : colors.green }]}>Kalan {money(item.remaining_amount)}</Text></View>
+      <View style={styles.moneyRow}><Text style={[styles.amount, { color: hasFinalPrice(item) ? colors.text : colors.orange }]}>{displayedPrice(item)}</Text><Text style={[styles.amount, { color: hasFinalPrice(item) ? (item.remaining_amount > 0 ? colors.orange : colors.green) : colors.textMuted }]}>{hasFinalPrice(item) ? `Kalan ${money(item.remaining_amount)}` : 'Ödeme durumu bekliyor'}</Text></View>
     </AnimatedPressable>)}
   </ScrollView>;
 }
@@ -104,6 +120,7 @@ function ServiceDetail({ orderId, onBack }: { orderId: string; onBack: () => voi
   if (!detail) return <View style={styles.loading}><Text style={{ color: colors.textMuted }}>Servis detayı yükleniyor…</Text></View>;
   const current = timeline.indexOf(detail.status);
   const pending = detail.extra_requests?.filter((item) => item.status === 'pending') ?? [];
+  const finalPriceReady = hasFinalPrice(detail);
 
   return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <View style={styles.detailHeader}><AnimatedPressable onPress={onBack} style={[styles.back, { backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="arrow-back" size={22} color={colors.text} /></AnimatedPressable><View style={styles.copy}><Text style={[styles.detailTitle, { color: colors.text }]}>{detail.brand} {detail.model}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{detail.plate} • {detail.workshop_name}</Text></View><StatusPill status={detail.status} /></View>
@@ -119,7 +136,7 @@ function ServiceDetail({ orderId, onBack }: { orderId: string; onBack: () => voi
       </GlassCard>)}
     </>}
 
-    <GlassCard style={styles.summary}><Text style={[styles.summaryTitle, { color: colors.text }]}>{detail.complaint}</Text>{detail.diagnosis && <Text style={[styles.diagnosis, { color: colors.textSoft }]}>Tespit: {detail.diagnosis}</Text>}<Text style={[styles.meta, { color: colors.textMuted }]}>{shortDate(detail.arrived_at)}</Text><View style={styles.priceGrid}><Price label="İŞÇİLİK" value={money(detail.labor_amount)} /><Price label="PARÇA" value={money(detail.parts_amount)} /><Price label="TOPLAM" value={money(detail.total_amount)} accent={colors.green} /></View><View style={styles.priceGrid}><Price label="ÖDENEN" value={money(detail.amount_received)} accent={colors.green} /><Price label="KALAN" value={money(detail.remaining_amount)} accent={detail.remaining_amount > 0 ? colors.orange : colors.green} /><Price label="HAZIR" value={dateTime(detail.ready_at)} /></View></GlassCard>
+    <GlassCard style={styles.summary}><Text style={[styles.summaryTitle, { color: colors.text }]}>{detail.complaint}</Text>{detail.diagnosis && <Text style={[styles.diagnosis, { color: colors.textSoft }]}>Tespit: {detail.diagnosis}</Text>}<Text style={[styles.meta, { color: colors.textMuted }]}>{shortDate(detail.arrived_at)}</Text><View style={styles.priceGrid}><Price label="İŞÇİLİK" value={money(detail.labor_amount)} /><Price label="PARÇA" value={money(detail.parts_amount)} /><Price label="TOPLAM" value={displayedPrice(detail)} accent={finalPriceReady ? colors.green : colors.orange} /></View><View style={styles.priceGrid}><Price label="ÖDENEN" value={money(detail.amount_received)} accent={colors.green} /><Price label="KALAN" value={finalPriceReady ? money(detail.remaining_amount) : 'Belirlenmedi'} accent={finalPriceReady ? (detail.remaining_amount > 0 ? colors.orange : colors.green) : colors.textMuted} /><Price label="HAZIR" value={dateTime(detail.ready_at)} /></View>{!finalPriceReady && <View style={[styles.pricePending, { backgroundColor: `${colors.orange}0D`, borderColor: `${colors.orange}38` }]}><Ionicons name="information-circle" size={20} color={colors.orange} /><Text style={[styles.pricePendingText, { color: colors.textMuted }]}>Bu tutar henüz kesinleşmedi. Tahmini aralık bilgi amaçlıdır; ödeme tamamlandı sayılmaz. İşletme motoru teslim etmeden önce son net fiyatı kaydedecek.</Text></View>}</GlassCard>
 
     <CustomerReadyPaymentCard orderId={orderId} status={detail.status} receivableStatus={detail.receivable_status} remainingAmount={detail.remaining_amount} payment={(detail as any).ready_payment} onUpdated={load} />
 
@@ -171,6 +188,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   summary: { gap: 9 },
   summaryTitle: { fontSize: 16, fontWeight: '900' },
+  pricePending: { minHeight: 66, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  pricePendingText: { flex: 1, fontSize: 11.5, lineHeight: 16 },
   diagnosis: { fontSize: 13, lineHeight: 18 },
   priceGrid: { flexDirection: 'row', gap: 7 },
   price: { flex: 1, minHeight: 65, borderRadius: 14, padding: 10, justifyContent: 'center' },

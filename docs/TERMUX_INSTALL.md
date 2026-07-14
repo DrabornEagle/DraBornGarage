@@ -1,4 +1,4 @@
-# Termux — DraBornGarage v0.9.5 Kurulum
+# Termux — DraBornGarage v0.9.6 Kurulum
 
 ## Temiz güncelleme
 
@@ -10,7 +10,7 @@ set -e
 REPO_URL="https://github.com/DrabornEagle/DraBornGarage.git"
 APP_DIR="$HOME/DraBornGarage"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
-EXPECTED_VERSION="0.9.5"
+EXPECTED_VERSION="0.9.6"
 
 pkg update -y
 pkg install -y git nodejs-lts
@@ -128,13 +128,13 @@ cd "$HOME/DraBornGarage"
 npx eas-cli build --platform android --profile production
 ```
 
-## v0.9.4'e kod geri dönüşü
+## v0.9.5'e kod geri dönüşü
 
 ```bash
 set -e
 
 APP_DIR="$HOME/DraBornGarage"
-TARGET_SHA="fc0ce7eb9a9ccb19841330e1ab7913c738e14aad"
+TARGET_SHA="0d9cbdd21245803e5e187e0b3f77e04dc9bc7193"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
 
 pkg update -y
@@ -164,8 +164,8 @@ npx expo start -c --go
 
 ## Supabase geri dönüşü
 
-Kod geri dönüşü canlı veritabanını otomatik değiştirmez. v0.9.5 Usta rapor tutarlılığı fonksiyonlarını ve otomatik işlem tamamlama tetikleyicisini kaldırmak için:
+Kod geri dönüşü canlı veritabanını otomatik değiştirmez. v0.9.6 fiyat, bildirim sıralama ve bildirim silme değişikliklerini kaldırmak için:
 
 ```text
-supabase/rollbacks/rollback_v0_9_5_to_v0_9_4.sql
+supabase/rollbacks/rollback_v0_9_6_to_v0_9_5.sql
 ```
