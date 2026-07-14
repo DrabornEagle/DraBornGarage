@@ -14,6 +14,7 @@ import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
 import { CustomerServiceDetail, CustomerServiceRecord, ExtraWorkRequest, WorkOrderStatus } from '../types';
 import { CustomerLockedState } from './CustomerLockedState';
+import { CustomerReadyPaymentCard } from './CustomerReadyPaymentCard';
 import { CustomerReceivableCard } from './CustomerReceivableCard';
 
 type Filter = 'all' | 'active' | 'approval' | 'ready' | 'history';
@@ -74,9 +75,12 @@ function ServiceDetail({ orderId, onBack }: { orderId: string; onBack: () => voi
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.rpc('customer_get_service_detail', { p_work_order_id: orderId });
-    if (error) return Alert.alert('Servis detayı alınamadı', error.message);
-    setDetail(data as CustomerServiceDetail);
+    const [serviceResult, paymentResult] = await Promise.all([
+      supabase.rpc('customer_get_service_detail', { p_work_order_id: orderId }),
+      supabase.rpc('customer_get_ready_payment_details', { p_work_order_id: orderId }),
+    ]);
+    if (serviceResult.error) return Alert.alert('Servis detayı alınamadı', serviceResult.error.message);
+    setDetail({ ...(serviceResult.data as CustomerServiceDetail), ready_payment: paymentResult.error ? null : paymentResult.data } as CustomerServiceDetail);
   }, [orderId]);
 
   useEffect(() => { load(); }, [load]);
@@ -116,6 +120,8 @@ function ServiceDetail({ orderId, onBack }: { orderId: string; onBack: () => voi
     </>}
 
     <GlassCard style={styles.summary}><Text style={[styles.summaryTitle, { color: colors.text }]}>{detail.complaint}</Text>{detail.diagnosis && <Text style={[styles.diagnosis, { color: colors.textSoft }]}>Tespit: {detail.diagnosis}</Text>}<Text style={[styles.meta, { color: colors.textMuted }]}>{shortDate(detail.arrived_at)}</Text><View style={styles.priceGrid}><Price label="İŞÇİLİK" value={money(detail.labor_amount)} /><Price label="PARÇA" value={money(detail.parts_amount)} /><Price label="TOPLAM" value={money(detail.total_amount)} accent={colors.green} /></View><View style={styles.priceGrid}><Price label="ÖDENEN" value={money(detail.amount_received)} accent={colors.green} /><Price label="KALAN" value={money(detail.remaining_amount)} accent={detail.remaining_amount > 0 ? colors.orange : colors.green} /><Price label="HAZIR" value={dateTime(detail.ready_at)} /></View></GlassCard>
+
+    <CustomerReadyPaymentCard status={detail.status} payment={(detail as any).ready_payment} />
 
     <CustomerReceivableCard detail={detail as any} />
 

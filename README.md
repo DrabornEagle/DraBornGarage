@@ -4,11 +4,11 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v0.9.1 — Takvim, Bildirim Sesi, Push ve Ödeme Odağı**
+**v0.9.3 — Motor Hazır IBAN ve Görsel Düzeltmeler**
 
-v0.9.1; v0.9.0 gizlilik ve pilot altyapısına modern Takvim/Müsaitlik kartları, seçilebilir özel bildirim sesleri, native kapalı uygulama push hazırlığı ve işletme ödemesinden doğrudan Admin onay kartına yönlendirme ekler.
+v0.9.3; güncel sürüm etiketlerini eşitler, Gizlilik ve Hesap kalkanını büyütür ve Motor Hazır durumunda müşteriye yalnız görüntüleme amaçlı Usta IBAN bilgisini gösterir. Uygulama ödeme işlemez, para tutmaz veya banka hesabına bağlanmaz.
 
-## v0.9.1 ile tamamlananlar
+## v0.9.3 ile tamamlananlar
 
 - Ayarlar ekranındaki sağ üst bildirim zilinin kaldırılması
 - Gizlilik ve Hesap kalkanının yalnız Takvim ile Ayarlar/Hesabım ekranında gösterilmesi

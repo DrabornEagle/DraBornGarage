@@ -5,6 +5,7 @@ import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native
 import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { GlassCard } from '../components/GlassCard';
+import { ReadyPaymentSettings } from '../components/ReadyPaymentSettings';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +16,7 @@ import { ThemeMode } from '../types';
 
 interface DemoStatus { active: boolean; customer_count: number; work_order_count: number; workshop_count?: number; }
 type ThemeOption = { value: ThemeMode; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; preview: [string, string] };
-type SettingsSection = 'themes' | 'demo' | 'business' | 'security' | 'app';
+type SettingsSection = 'themes' | 'demo' | 'business' | 'payment' | 'security' | 'app';
 
 const EMPTY_DEMO: DemoStatus = { active: false, customer_count: 0, work_order_count: 0, workshop_count: 0 };
 const PRIVACY_POLICY_URL = 'https://github.com/DrabornEagle/DraBornGarage/blob/main/docs/PRIVACY_POLICY.md';
@@ -42,6 +43,7 @@ export function SettingsScreen() {
   const [openSection, setOpenSection] = useState<SettingsSection | null>(null);
   const toggleSection = (section: SettingsSection) => setOpenSection((current) => current === section ? null : section);
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
+  const canConfigureReadyPayment = membership?.role === 'mechanic' || membership?.role === 'owner_mechanic';
 
   const loadDemo = useCallback(async () => {
     if (!workshop || !isOwner) return setDemo(EMPTY_DEMO);
@@ -106,14 +108,18 @@ export function SettingsScreen() {
       <GlassCard style={styles.info}><Info icon="business" label="İşletme" value={workshop?.name || '-'} /><Info icon="calendar" label="Randevu sistemi" value={workshop?.appointments_enabled === false ? 'Kapalı' : 'Açık'} /><Info icon="checkmark-done" label="Müşteri talebi" value={workshop?.appointment_auto_confirm ? 'Otomatik onay' : 'Usta onayı'} /><Info icon="today" label="Rezervasyon ufku" value={`${workshop?.appointment_booking_days ?? 30} gün`} /><Info icon="time" label="Minimum bildirim" value={`${workshop?.appointment_min_notice_minutes ?? 60} dakika`} /></GlassCard>
     </SettingsAccordion>
 
+    {canConfigureReadyPayment && <SettingsAccordion title="Motor Hazır IBAN" subtitle="Müşteriye gösterilecek Usta ödeme bilgisi" icon="card" accent={colors.green} open={openSection === 'payment'} onToggle={() => toggleSection('payment')}>
+      <ReadyPaymentSettings />
+    </SettingsAccordion>}
+
     <SettingsAccordion title="Gizlilik ve Yayın Güvenliği" subtitle="Rol denetimi • izinler • hesap silme" icon="shield-checkmark" accent={colors.green} open={openSection === 'security'} onToggle={() => toggleSection('security')}>
       <GlassCard style={styles.info}><Info icon="camera" label="Kamera" value="Yalnız QR tarama" /><Info icon="images" label="Fotoğraflar" value="Yalnız isteğe bağlı dekont" /><Info icon="notifications" label="Bildirim" value="Servis ve randevu hatırlatmaları" /><Info icon="location" label="Konum / Mikrofon / Rehber" value="Kullanılmıyor ve engelli" /><Info icon="person-remove" label="Hesap silme" value="Sağ üstteki kalkan ile talep oluşturma" /></GlassCard>
       <PrimaryButton title="Rol Erişim Denetimini Çalıştır" onPress={runRoleAudit} loading={auditLoading} />
       <PrimaryButton title="Gizlilik Politikasını Aç" onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} secondary />
     </SettingsAccordion>
 
-    <SettingsAccordion title="Uygulama" subtitle="v0.9.1 • Ses, push ve ödeme odağı" icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
-      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v0.9.1 • Takvim, Sesli Bildirim ve Ödeme Odağı" /><Info icon="shield-checkmark" label="Gizlilik" value="Uygulama içi politika + hesap silme talebi" /><Info icon="key" label="Şifre güvenliği" value="10 karakter + karmaşıklık + yaygın şifre engeli" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v0.9.0-before-v0.9.1-20260714" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v0.9.0" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + Android bundle + pilot checklist" /><Info icon="storefront" label="Mağaza durumu" value="Kapalı test metinleri ve veri güvenliği hazır" /></GlassCard>
+    <SettingsAccordion title="Uygulama" subtitle="v0.9.3 • Motor Hazır IBAN ve görsel düzeltmeler" icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
+      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v0.9.3 • Motor Hazır IBAN ve Görsel Düzeltmeler" /><Info icon="shield-checkmark" label="Gizlilik" value="Uygulama içi politika + hesap silme talebi" /><Info icon="key" label="Şifre güvenliği" value="10 karakter + karmaşıklık + yaygın şifre engeli" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v0.9.2-before-v0.9.3-20260714" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v0.9.2" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + Android bundle + pilot checklist" /><Info icon="storefront" label="Mağaza durumu" value="Auto & Vehicles • finansal hizmet değildir" /></GlassCard>
     </SettingsAccordion>
 
     <AnimatedPressable onPress={() => Alert.alert('Çıkış yapılsın mı?', '', [{ text: 'Vazgeç' }, { text: 'Çıkış', style: 'destructive', onPress: signOut }])} style={[styles.logout, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}35` }]}><Ionicons name="log-out-outline" size={21} color={colors.red} /><Text style={[styles.logoutText, { color: colors.red }]}>Hesaptan Çıkış Yap</Text></AnimatedPressable>
