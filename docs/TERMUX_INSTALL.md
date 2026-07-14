@@ -1,4 +1,4 @@
-# Termux — DraBornGarage v1.0.0 RC Kurulum
+# Termux — DraBornGarage v1.0.1 RC Kurulum
 
 ## Temiz güncelleme
 
@@ -10,7 +10,7 @@ set -e
 REPO_URL="https://github.com/DrabornEagle/DraBornGarage.git"
 APP_DIR="$HOME/DraBornGarage"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
-EXPECTED_VERSION="1.0.0"
+EXPECTED_VERSION="1.0.1"
 
 pkg update -y
 pkg install -y git nodejs-lts
