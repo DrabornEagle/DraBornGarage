@@ -14,19 +14,22 @@ Bu belge Play Console Veri Güvenliği formu doldurulurken kullanılacak teknik 
 | Vergi bilgileri | Evet | İşletme doğrulama başvurusu | İşletme için |
 | Araç/plaka bilgileri | Evet | Motosiklet ve servis takibi | Müşteri için |
 | Randevu ve servis verileri | Evet | Temel uygulama işlevi | Evet |
-| Ödeme/tahsilat kayıtları | Evet | Nakit/IBAN, alacak ve platform takibi | İşleme göre |
+| Ödeme/tahsilat kayıtları | Evet | Uygulama dışı Nakit/IBAN, alacak ve platform kayıt takibi | İşleme göre |
 | Fotoğraf/dosya | İsteğe bağlı | Platform ödeme dekontu | Hayır |
 | Uygulama etkileşimleri | Evet | Bildirim okundu/arşiv ve hata inceleme | İşleve göre |
+| Expo push tokenı ve uygulama cihaz kimliği | İsteğe bağlı | Kullanıcı izin verirse cihaz bildirimini yönlendirme | Hayır |
+| Uygulama sürümü ve cihaz platformu | Evet | Bildirim uyumluluğu ve hata inceleme | Bildirim özelliğinde |
 | Konum | Hayır | Kullanılmıyor | Hayır |
-| Mikrofon/ses | Hayır | Kullanılmıyor | Hayır |
+| Mikrofon/ses kaydı | Hayır | Kullanılmıyor | Hayır |
 | Rehber | Hayır | Kullanılmıyor | Hayır |
 | SMS/arama geçmişi | Hayır | Kullanılmıyor | Hayır |
 | Kredi kartı bilgisi | Hayır | Uygulama kartlı ödeme almaz | Hayır |
 
-## Veri paylaşımı
+## Veri paylaşımı ve hizmet sağlayıcılar
 
-- Veriler reklam ağlarıyla paylaşılmaz.
-- Supabase veri işleme altyapısı olarak kullanılır.
+- Veriler reklam ağlarıyla paylaşılmaz ve satılmaz.
+- Supabase kimlik doğrulama, veritabanı, depolama ve sunucu bildirim dağıtımı için kullanılır.
+- Expo Push Service, yalnız bildirim izni veren cihazlara bildirim ulaştırmak için Expo push tokenını işler.
 - Yetkili işletme ve rol kapsamındaki personel yalnız servis yürütmek için gerekli verilere erişir.
 - Yasal talep veya güvenlik zorunluluğu dışında üçüncü taraflara aktarım yapılmaz.
 
@@ -36,6 +39,7 @@ Bu belge Play Console Veri Güvenliği formu doldurulurken kullanılacak teknik 
 - Supabase Auth oturumları.
 - RLS ve rol tabanlı RPC kontrolleri.
 - İşletme bazlı veri ayrımı.
+- Push tokenlarında kullanıcı bazlı RLS ve devre dışı bırakma.
 - Private Storage ve yetkili dosya erişimi.
 - Güçlü parola kuralı ve yaygın parola engeli.
 - Hesap silme talebi uygulama içinden sunulur.
@@ -44,11 +48,12 @@ Bu belge Play Console Veri Güvenliği formu doldurulurken kullanılacak teknik 
 
 - Gizlilik: `docs/PRIVACY_POLICY.md`
 - Silme açıklaması: `docs/ACCOUNT_DELETION.md`
-- Uygulama içi yol: sol üst kalkan → Gizlilik ve Hesap → Hesap Silme Talebi Oluştur
+- Uygulama içi yol: Takvim veya Ayarlar/Hesabım sağ üst kalkan → Gizlilik ve Hesap → Hesap Silme Talebi Oluştur
 
 ## İzin açıklamaları
 
 - Kamera yalnız QR tarama sırasında.
 - Fotoğraf erişimi yalnız kullanıcı dekont seçtiğinde.
-- Bildirim izni servis/randevu hatırlatmaları için.
+- Bildirim izni servis, randevu, alacak ve platform hatırlatmaları için.
+- Kullanıcı bildirim sesini uygulama içinden değiştirebilir.
 - Konum, mikrofon, rehber, SMS ve telefon izinleri Android yapılandırmasında engellenmiştir.

@@ -185,7 +185,7 @@ function dateTime(value?: string | null) {
   return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
-export function PlatformFeesDashboard() {
+export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentReportId?: string }) {
   const { colors } = useTheme();
   const { workshop, workshops, isAdmin, selectWorkshop } = useAuth();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
@@ -213,7 +213,7 @@ export function PlatformFeesDashboard() {
   const [expandedSections, setExpandedSections] = useState<Record<PlatformAccordionKey, boolean>>({
     paymentInfo: true,
     paymentForm: false,
-    paymentReports: false,
+    paymentReports: Boolean(focusPaymentReportId),
     periods: false,
     charges: false,
   });
@@ -248,6 +248,7 @@ export function PlatformFeesDashboard() {
   }, [workshop, isAdmin]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (focusPaymentReportId) setExpandedSections((current) => ({ ...current, paymentReports: true })); }, [focusPaymentReportId]);
   const toggleSection = (key: PlatformAccordionKey) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedSections((current) => ({ ...current, [key]: !current[key] }));
@@ -374,6 +375,7 @@ export function PlatformFeesDashboard() {
 
   const s = dashboard.summary;
   const g = dashboard.global_settings;
+  const focusedPaymentReport = focusPaymentReportId ? dashboard.payment_reports.find((item) => item.id === focusPaymentReportId) : undefined;
 
   return <View style={styles.stack}>
     {isAdmin && overview && <AdminOverview overview={overview} selectedId={workshop.id} onSelect={async (id) => { await selectWorkshop(id); }} />}
@@ -382,6 +384,15 @@ export function PlatformFeesDashboard() {
       <View style={styles.copy}><Text style={[styles.sectionTitle, { color: colors.text }]}>Seçili İşletme Platform Hesabı</Text><Text style={[styles.sectionSub, { color: colors.textMuted }]}>{workshop.name} • işlem başı {money(number(dashboard.settings.fee_per_order))}</Text></View>
       <AnimatedPressable onPress={load} style={[styles.refresh, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}><Ionicons name="refresh" size={18} color={colors.primary} /></AnimatedPressable>
     </View>
+
+    {isAdmin && focusedPaymentReport && <View style={[styles.incomingPaymentFocus, { borderColor: `${colors.green}70`, backgroundColor: `${colors.green}0B` }]}>
+      <LinearGradient colors={[colors.green, colors.cyan, colors.primary]} style={styles.incomingPaymentFocusHeader}>
+        <View style={styles.incomingPaymentFocusIcon}><Ionicons name="cash" size={25} color="#fff" /></View>
+        <View style={styles.copy}><Text style={styles.incomingPaymentFocusEyebrow}>İŞLETMEDEN ÖDEME GELDİ</Text><Text style={styles.incomingPaymentFocusTitle}>{money(number(focusedPaymentReport.amount))} • Onayını bekliyor</Text><Text style={styles.incomingPaymentFocusText}>{focusedPaymentReport.reported_by_name} • {dateText(focusedPaymentReport.payment_date)}</Text></View>
+        <Ionicons name="arrow-down-circle" size={28} color="#fff" />
+      </LinearGradient>
+      <PaymentReportCard report={focusedPaymentReport} focused isAdmin reviewNote={reviewNotes[focusedPaymentReport.id] || ''} onReviewNote={(value) => setReviewNotes((current) => ({ ...current, [focusedPaymentReport.id]: value }))} onApprove={() => review(focusedPaymentReport.id, true)} onReject={() => review(focusedPaymentReport.id, false)} onCancel={() => cancelReport(focusedPaymentReport.id)} onOpenReceipt={() => focusedPaymentReport.receipt_path && openReceipt(focusedPaymentReport.receipt_path)} loading={saving} />
+    </View>}
 
     <LinearGradient colors={[statusAccent, colors.primary2, colors.black]} style={styles.hero}>
       <View style={styles.copy}><Text style={styles.heroEyebrow}>{statusLabel[s.status]}</Text><Text style={styles.heroValue}>{money(number(s.total_outstanding))}</Text><Text style={styles.heroSub}>Toplam kalan platform borcu • {number(s.charge_count)} ücret kaydı</Text></View>
@@ -465,7 +476,7 @@ export function PlatformFeesDashboard() {
       open={expandedSections.paymentReports}
       onToggle={() => toggleSection('paymentReports')}
     >
-      <View style={styles.stack}>{dashboard.payment_reports.length === 0 ? <Empty text="Henüz ödeme bildirimi yok." /> : dashboard.payment_reports.map((report) => <PaymentReportCard key={report.id} report={report} isAdmin={isAdmin} reviewNote={reviewNotes[report.id] || ''} onReviewNote={(value) => setReviewNotes((current) => ({ ...current, [report.id]: value }))} onApprove={() => review(report.id, true)} onReject={() => review(report.id, false)} onCancel={() => cancelReport(report.id)} onOpenReceipt={() => report.receipt_path && openReceipt(report.receipt_path)} loading={saving} />)}</View>
+      <View style={styles.stack}>{dashboard.payment_reports.length === 0 ? <Empty text="Henüz ödeme bildirimi yok." /> : dashboard.payment_reports.filter((report) => !isAdmin || report.id !== focusPaymentReportId).map((report) => <PaymentReportCard key={report.id} report={report} isAdmin={isAdmin} reviewNote={reviewNotes[report.id] || ''} onReviewNote={(value) => setReviewNotes((current) => ({ ...current, [report.id]: value }))} onApprove={() => review(report.id, true)} onReject={() => review(report.id, false)} onCancel={() => cancelReport(report.id)} onOpenReceipt={() => report.receipt_path && openReceipt(report.receipt_path)} loading={saving} />)}</View>
     </AccordionSection>
 
     <AccordionSection
@@ -532,10 +543,11 @@ function BankCard({ settings }: { settings: GlobalSettings }) {
   </GlassCard>;
 }
 
-function PaymentReportCard({ report, isAdmin, reviewNote, onReviewNote, onApprove, onReject, onCancel, onOpenReceipt, loading }: { report: PaymentReport; isAdmin: boolean; reviewNote: string; onReviewNote: (value: string) => void; onApprove: () => void; onReject: () => void; onCancel: () => void; onOpenReceipt: () => void; loading: boolean }) {
+function PaymentReportCard({ report, isAdmin, reviewNote, onReviewNote, onApprove, onReject, onCancel, onOpenReceipt, loading, focused = false }: { report: PaymentReport; isAdmin: boolean; reviewNote: string; onReviewNote: (value: string) => void; onApprove: () => void; onReject: () => void; onCancel: () => void; onOpenReceipt: () => void; loading: boolean; focused?: boolean }) {
   const { colors } = useTheme();
   const accent = report.status === 'approved' ? colors.green : report.status === 'rejected' || report.status === 'cancelled' ? colors.red : colors.cyan;
-  return <GlassCard style={styles.reportCard}>
+  return <GlassCard style={[styles.reportCard, focused && { borderColor: colors.green, borderWidth: 2 }]}>
+    {focused && <View style={[styles.focusedReportPill, { backgroundColor: `${colors.green}18`, borderColor: `${colors.green}45` }]}><View style={[styles.focusedReportDot, { backgroundColor: colors.green }]} /><Text style={[styles.focusedReportPillText, { color: colors.green }]}>YENİ ÖDEME • ŞİMDİ İNCELE</Text></View>}
     <View style={styles.row}><View style={[styles.reportIcon, { backgroundColor: `${accent}15` }]}><Ionicons name={report.status === 'approved' ? 'checkmark-done' : report.status === 'rejected' ? 'close-circle' : 'hourglass'} size={23} color={accent} /></View><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{money(number(report.amount))} • {reportLabel[report.status]}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{report.reported_by_name} • Ödeme {dateText(report.payment_date)} • Bildirim {dateTime(report.created_at)}</Text></View></View>
     {report.note && <Text style={[styles.note, { color: colors.textSoft }]}>{report.note}</Text>}
     <View style={styles.allocationWrap}>{report.allocations.map((item) => <View key={item.statement_id} style={[styles.allocation, { backgroundColor: colors.surfaceSoft }]}><Text style={[styles.allocationText, { color: colors.textMuted }]}>{dateText(item.cycle_start)}–{dateText(item.cycle_end)}</Text><Text style={[styles.allocationAmount, { color: colors.text }]}>{money(number(item.amount))}</Text></View>)}</View>
@@ -593,6 +605,15 @@ function Empty({ text }: { text: string }) { const { colors } = useTheme(); retu
 
 const styles = StyleSheet.create({
   stack: { gap: 12 }, copy: { flex: 1, minWidth: 0 }, row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  incomingPaymentFocus: { borderWidth: 2, borderRadius: 25, padding: 8, gap: 8 },
+  incomingPaymentFocusHeader: { minHeight: 91, borderRadius: 19, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  incomingPaymentFocusIcon: { width: 49, height: 49, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
+  incomingPaymentFocusEyebrow: { color: 'rgba(255,255,255,0.76)', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.85 },
+  incomingPaymentFocusTitle: { color: '#fff', fontSize: 18, fontWeight: '900', marginTop: 3 },
+  incomingPaymentFocusText: { color: 'rgba(255,255,255,0.78)', fontSize: 11, marginTop: 3 },
+  focusedReportPill: { minHeight: 30, borderRadius: 11, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 },
+  focusedReportDot: { width: 8, height: 8, borderRadius: 4 },
+  focusedReportPillText: { fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
   loading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }, loadingText: { fontSize: 12.5, fontWeight: '800' }, empty: { textAlign: 'center', paddingVertical: 10, fontSize: 12.5 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 }, sectionTitle: { fontSize: 19, fontWeight: '900' }, sectionSub: { fontSize: 12, marginTop: 4 }, refresh: { width: 42, height: 42, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   hero: { minHeight: 154, borderRadius: 27, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 12 }, heroEyebrow: { color: 'rgba(255,255,255,0.82)', fontSize: 11, fontWeight: '900', letterSpacing: 1 }, heroValue: { color: '#fff', fontSize: 31, fontWeight: '900', marginTop: 8 }, heroSub: { color: 'rgba(255,255,255,0.76)', fontSize: 12, marginTop: 5 }, heroRight: { alignItems: 'flex-end', gap: 10 }, heroRightText: { color: '#fff', fontSize: 11, lineHeight: 15, textAlign: 'right', fontWeight: '800' },

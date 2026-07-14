@@ -11,14 +11,12 @@ import { supabase } from '../lib/supabase';
 const PRIVACY_POLICY_URL = 'https://github.com/DrabornEagle/DraBornGarage/blob/main/docs/PRIVACY_POLICY.md';
 const ACCOUNT_DELETION_URL = 'https://github.com/DrabornEagle/DraBornGarage/blob/main/docs/ACCOUNT_DELETION.md';
 
+type DeletionStatus = 'pending' | 'cancelled' | 'processing' | 'completed' | 'rejected';
+
 interface DeletionRequest {
   id: string;
-  status: 'pending' | 'cancelled' | 'processing' | 'completed' | 'rejected';
-  reason?: string | null;
+  status: DeletionStatus;
   requested_at: string;
-  updated_at: string;
-  cancelled_at?: string | null;
-  processed_at?: string | null;
   admin_note?: string | null;
 }
 
@@ -27,7 +25,7 @@ interface PrivacyStatus {
   deletion_request?: DeletionRequest | null;
 }
 
-const statusLabel: Record<DeletionRequest['status'], string> = {
+const statusLabel: Record<DeletionStatus, string> = {
   pending: 'İnceleme bekliyor',
   processing: 'İşleniyor',
   completed: 'Tamamlandı',
@@ -64,10 +62,10 @@ export function PrivacyCenter() {
   const request = status?.deletion_request;
   const hasActiveRequest = request?.status === 'pending' || request?.status === 'processing';
 
-  const requestDeletion = () => {
+  const createDeletionRequest = () => {
     Alert.alert(
       'Hesap silme talebi oluşturulsun mu?',
-      'Talep oluşturulduğunda hesabın hemen silinmez. Aktif servis, borç, yasal saklama ve işletme sorumlulukları kontrol edildikten sonra en geç 30 gün içinde işleme alınır.',
+      'Hesabın hemen silinmez. Aktif servis, borç, yasal saklama ve işletme sorumlulukları kontrol edildikten sonra talep en geç 30 gün içinde işleme alınır.',
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -75,10 +73,9 @@ export function PrivacyCenter() {
           style: 'destructive',
           onPress: async () => {
             setSubmitting(true);
-            const { data, error } = await supabase.rpc('account_request_deletion', { p_reason: 'Uygulama içi hesap silme talebi' });
+            const { error } = await supabase.rpc('account_request_deletion', { p_reason: 'Uygulama içi hesap silme talebi' });
             setSubmitting(false);
             if (error) return Alert.alert('Talep oluşturulamadı', error.message);
-            setStatus((current) => ({ ...(current ?? {}), deletion_request: (data as any)?.deletion_request ?? data }));
             await loadStatus();
             Alert.alert('Talebin alındı', 'Hesap silme talebin kayıt altına alındı. Durumu bu ekrandan takip edebilirsin.');
           },
@@ -87,7 +84,7 @@ export function PrivacyCenter() {
     );
   };
 
-  const cancelDeletion = () => {
+  const cancelDeletionRequest = () => {
     Alert.alert('Silme talebi iptal edilsin mi?', '', [
       { text: 'Vazgeç', style: 'cancel' },
       {
@@ -118,7 +115,7 @@ export function PrivacyCenter() {
         <View style={[styles.modal, { backgroundColor: colors.background }]}> 
           <View style={[styles.header, { borderBottomColor: colors.border }]}> 
             <View style={[styles.headerIcon, { backgroundColor: `${colors.green}16` }]}><Ionicons name="shield-checkmark" size={25} color={colors.green} /></View>
-            <View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>Gizlilik ve Hesap</Text><Text style={[styles.subtitle, { color: colors.textMuted }]}>Verilerini, izinleri ve silme talebini yönet.</Text></View>
+            <View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>Gizlilik ve Hesap</Text><Text style={[styles.subtitle, { color: colors.textMuted }]}>Verilerini, izinlerini ve silme talebini yönet.</Text></View>
             <AnimatedPressable accessibilityLabel="Kapat" onPress={() => setVisible(false)} style={[styles.close, { borderColor: colors.border }]}><Ionicons name="close" size={22} color={colors.text} /></AnimatedPressable>
           </View>
 
@@ -147,7 +144,7 @@ export function PrivacyCenter() {
             <PrivacySection icon="people" title="Paylaşım ve saklama" accent={colors.primary2} items={[
               'Veriler yalnız yetkili kullanıcı, ilgili işletme ve rol kapsamındaki personelle gösterilir',
               'Supabase altyapısı kimlik doğrulama, veritabanı, depolama ve canlı güncelleme için kullanılır',
-              'Hesap silinse bile yasal yükümlülük veya açık finansal kayıt gerektiren bilgiler gerekli süre boyunca sınırlı tutulabilir',
+              'Yasal yükümlülük veya açık finansal kayıt gerektiren bilgiler gerekli süre boyunca sınırlı tutulabilir',
               'Silme tamamlandığında erişim hesabı ve silinmesi mümkün kişisel bağlantılar kaldırılır veya anonimleştirilir',
             ]} />
 
@@ -164,8 +161,7 @@ export function PrivacyCenter() {
                   <View style={styles.copy}><Text style={[styles.statusTitle, { color: colors.text }]}>{statusLabel[request.status]}</Text><Text style={[styles.body, { color: colors.textMuted }]}>Talep tarihi: {new Date(request.requested_at).toLocaleDateString('tr-TR')}{request.admin_note ? ` • ${request.admin_note}` : ''}</Text></View>
                 </View>
               ) : <Text style={[styles.body, { color: colors.textMuted }]}>Bu hesap için aktif silme talebi bulunmuyor.</Text>}
-
-              {hasActiveRequest ? <PrimaryButton title="Silme Talebini İptal Et" onPress={cancelDeletion} loading={submitting} secondary /> : <PrimaryButton title="Hesap Silme Talebi Oluştur" onPress={requestDeletion} loading={submitting} />}
+              {hasActiveRequest ? <PrimaryButton title="Silme Talebini İptal Et" onPress={cancelDeletionRequest} loading={submitting} secondary /> : <PrimaryButton title="Hesap Silme Talebi Oluştur" onPress={createDeletionRequest} loading={submitting} />}
               <Text style={[styles.footnote, { color: colors.textMuted }]}>Destek: draborneagle@gmail.com</Text>
             </GlassCard>
           </ScrollView>
@@ -181,7 +177,7 @@ function PrivacySection({ icon, title, accent, items }: { icon: keyof typeof Ion
 }
 
 const styles = StyleSheet.create({
-  floatingButton: { position: 'absolute', zIndex: 80, top: 50, left: 14, width: 43, height: 43, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.28, shadowRadius: 10, elevation: 10 },
+  floatingButton: { position: 'absolute', zIndex: 80, top: 50, right: 14, width: 43, height: 43, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.28, shadowRadius: 10, elevation: 10 },
   modal: { flex: 1 },
   header: { minHeight: 86, paddingHorizontal: 18, paddingTop: 22, paddingBottom: 12, borderBottomWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 11 },
   headerIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },

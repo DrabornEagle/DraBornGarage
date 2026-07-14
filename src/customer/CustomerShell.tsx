@@ -10,6 +10,7 @@ import { PremiumBackground } from '../components/PremiumBackground';
 import { useTheme } from '../context/ThemeContext';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { useNotifications } from '../notifications/NotificationContext';
+import { PrivacyCenter } from '../privacy/PrivacyCenter';
 import { CustomerAccountScreen } from './CustomerAccountScreen';
 import { CustomerAppointmentsScreen } from './CustomerAppointmentsScreen';
 import { CustomerHomeScreen } from './CustomerHomeScreen';
@@ -69,7 +70,8 @@ export function CustomerShell() {
 
   return <PremiumBackground>
     <View style={[styles.flex, { paddingBottom: reservedBottom }]}>{screen}</View>
-    {!['appointments', 'services'].includes(tab) && <NotificationBell />}
+    {['home', 'motorcycles'].includes(tab) && <NotificationBell />}
+    {['appointments', 'account'].includes(tab) && <PrivacyCenter />}
     <View style={[styles.navWrap, { bottom: navBottom, borderColor: `${colors.primary}32`, shadowColor: colors.primary }]}>
       <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
         <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}>

@@ -1,5 +1,7 @@
 export type NotificationCategory = 'service' | 'appointments' | 'payments' | 'receivables' | 'platform' | 'customer_links' | 'system';
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type NotificationSoundKey = 'garage_chime' | 'garage_pulse' | 'garage_alert' | 'silent';
+export type PushRegistrationStatus = 'idle' | 'registered' | 'expo_go' | 'missing_project' | 'denied' | 'error';
 
 export interface GarageNotification {
   id: string;
@@ -28,6 +30,8 @@ export interface NotificationPreferences {
   receivable_reminders: boolean;
   platform_reminders: boolean;
   customer_link_updates: boolean;
+  notification_sound: NotificationSoundKey;
+  push_notifications_enabled: boolean;
   updated_at?: string | null;
 }
 
