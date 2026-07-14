@@ -7,9 +7,43 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  sync-v102:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feature/v1.0.2-partner-workshop-access'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v1.0.2-partner-workshop-access
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Synchronize lockfile and visible version metadata
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          python scripts/sync_v102_release.py
+
+      - name: Commit synchronized files
+        run: |
+          if git diff --quiet; then
+            echo "Release metadata is already synchronized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json README.md docs/TERMUX_INSTALL.md src/notifications/NotificationCenterScreen.tsx src/screens/SettingsScreen.tsx src/screens/TeamScreenV102.tsx
+          git commit -m "chore(v1.0.2): synchronize release metadata"
+          git push origin HEAD:feature/v1.0.2-partner-workshop-access
+
   android-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 20
