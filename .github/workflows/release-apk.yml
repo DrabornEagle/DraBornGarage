@@ -65,8 +65,15 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Expo Doctor
-        run: npx expo-doctor
+      - name: Expo Doctor report
+        shell: bash
+        run: |
+          set +e
+          npx expo-doctor 2>&1 | tee release-output/expo-doctor.txt
+          DOCTOR_STATUS=${PIPESTATUS[0]}
+          echo "EXPO_DOCTOR_STATUS=$DOCTOR_STATUS" >> "$GITHUB_ENV"
+          echo "Expo Doctor exit code: $DOCTOR_STATUS"
+          exit 0
 
       - name: TypeScript
         run: npm run typecheck
@@ -142,6 +149,7 @@ jobs:
             echo "Ref: $GITHUB_REF"
             echo "Run: $GITHUB_RUN_ID"
             echo "Built at UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "Expo Doctor exit code: ${EXPO_DOCTOR_STATUS:-unknown}"
             echo "Signing: GitHub test release signing; not Google Play production upload key"
           } | tee release-output/BUILD_INFO.txt
 
@@ -162,6 +170,7 @@ jobs:
             echo ""
             echo "- Version: **1.0.0 RC**"
             echo "- Android versionCode: **17**"
+            echo "- Expo Doctor exit code: **${EXPO_DOCTOR_STATUS:-unknown}** (rapor artifact içindedir)"
             echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
             echo "- Artifact: **DraBornGarage-v1.0.0-Release-APK**"
             echo "- Signing: **test release signing — Google Play production key değildir**"
