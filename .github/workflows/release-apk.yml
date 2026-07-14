@@ -8,7 +8,7 @@ on:
     branches: ["feature/v1.0-release-apk"]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: draborngarage-release-apk-${{ github.ref }}
@@ -28,8 +28,11 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout
+      - name: Checkout v1.0 feature branch
         uses: actions/checkout@v4
+        with:
+          ref: feature/v1.0-release-apk
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -49,6 +52,17 @@ jobs:
       - name: Synchronize lock metadata for v1.0 workspace
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
+      - name: Commit synchronized lockfile when needed
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(v1.0): synchronize package lock"
+            git push origin HEAD:feature/v1.0-release-apk
+          fi
+
       - name: Validate release version metadata
         shell: bash
         run: |
@@ -67,8 +81,7 @@ jobs:
 
       - name: Expo Doctor
         shell: bash
-        run: |
-          npx expo-doctor 2>&1 | tee release-output/expo-doctor.txt
+        run: npx expo-doctor 2>&1 | tee release-output/expo-doctor.txt
 
       - name: TypeScript
         run: npm run typecheck
@@ -84,23 +97,18 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
-
           path = Path('android/app/src/main/AndroidManifest.xml')
-          text = path.read_text()
-          text = text.replace(' data-generated="true"', '')
-
+          text = path.read_text().replace(' data-generated="true"', '')
           lines = []
           for line in text.splitlines():
               if '<uses-permission' in line and 'tools:node="remove"' in line and 'tools:ignore=' not in line:
                   line = line.replace('/>', ' tools:ignore="PermissionImpliesUnsupportedChromeOsHardware"/>')
               lines.append(line)
           text = '\n'.join(lines) + '\n'
-
           feature = '  <uses-feature android:name="android.hardware.camera" android:required="false"/>'
           if 'android.hardware.camera' not in text:
               root_end = text.find('>')
               text = text[:root_end + 1] + '\n' + feature + text[root_end + 1:]
-
           path.write_text(text)
           PY
 
@@ -138,41 +146,17 @@ jobs:
           from pathlib import Path
           import shutil
           import xml.etree.ElementTree as ET
-
           candidates = list(Path('android/app/build/intermediates').rglob('AndroidManifest.xml'))
-          release_candidates = [
-              path for path in candidates
-              if 'release' in path.parts and ('merged_manifest' in path.parts or 'merged_manifests' in path.parts)
-          ]
+          release_candidates = [path for path in candidates if 'release' in path.parts and ('merged_manifest' in path.parts or 'merged_manifests' in path.parts)]
           if not release_candidates:
               raise SystemExit('Merged release AndroidManifest.xml bulunamadı.')
-
-          # The final app manifest is the largest release merged manifest.
           manifest = max(release_candidates, key=lambda path: path.stat().st_size)
           shutil.copyfile(manifest, 'release-output/AndroidManifest-release.xml')
-
           android = '{http://schemas.android.com/apk/res/android}'
           root = ET.parse(manifest).getroot()
-          permissions = {
-              node.attrib.get(android + 'name')
-              for node in root.findall('uses-permission')
-          }
-          features = {
-              node.attrib.get(android + 'name'): node.attrib.get(android + 'required')
-              for node in root.findall('uses-feature')
-          }
-
-          blocked = {
-              'android.permission.RECORD_AUDIO',
-              'android.permission.ACCESS_FINE_LOCATION',
-              'android.permission.ACCESS_COARSE_LOCATION',
-              'android.permission.READ_CONTACTS',
-              'android.permission.WRITE_CONTACTS',
-              'android.permission.CALL_PHONE',
-              'android.permission.READ_PHONE_STATE',
-              'android.permission.READ_SMS',
-              'android.permission.SEND_SMS',
-          }
+          permissions = {node.attrib.get(android + 'name') for node in root.findall('uses-permission')}
+          features = {node.attrib.get(android + 'name'): node.attrib.get(android + 'required') for node in root.findall('uses-feature')}
+          blocked = {'android.permission.RECORD_AUDIO','android.permission.ACCESS_FINE_LOCATION','android.permission.ACCESS_COARSE_LOCATION','android.permission.READ_CONTACTS','android.permission.WRITE_CONTACTS','android.permission.CALL_PHONE','android.permission.READ_PHONE_STATE','android.permission.READ_SMS','android.permission.SEND_SMS'}
           unexpected = sorted(blocked.intersection(permissions))
           if unexpected:
               raise SystemExit(f'Engellenen izinler birleşmiş manifestte bulundu: {unexpected}')
@@ -180,7 +164,6 @@ jobs:
               raise SystemExit('QR tarama için gerekli CAMERA izni birleşmiş manifestte bulunamadı.')
           if features.get('android.hardware.camera') != 'false':
               raise SystemExit('Kamera özelliği opsiyonel required=false olarak tanımlanmadı.')
-
           print('Verified merged manifest:', manifest)
           print('Camera permission and optional hardware feature are valid.')
           print('Blocked permissions are absent.')
@@ -195,23 +178,19 @@ jobs:
             echo "Release APK bulunamadı."
             exit 1
           fi
-
           VERSION="$(node -p "require('./package.json').version")"
           SHORT_SHA="${GITHUB_SHA::12}"
           APK_NAME="DraBornGarage-v${VERSION}-release-test-${SHORT_SHA}.apk"
           APK_PATH="release-output/${APK_NAME}"
           cp "$SOURCE_APK" "$APK_PATH"
-
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           if [ -z "$APKSIGNER" ]; then
             echo "apksigner bulunamadı."
             exit 1
           fi
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee release-output/apk-signature.txt
-
           sha256sum "$APK_PATH" | tee release-output/SHA256SUMS.txt
           stat -c '%n %s bytes' "$APK_PATH" | tee release-output/apk-size.txt
-
           echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
           echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
