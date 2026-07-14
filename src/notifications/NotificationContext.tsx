@@ -405,7 +405,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       });
       setOpen(false);
     };
-    Notifications.getLastNotificationResponseAsync().then(handleResponse).catch(() => undefined);
+    const notificationApi = Notifications as typeof Notifications & {
+      getLastNotificationResponse?: () => Notifications.NotificationResponse | null;
+      getLastNotificationResponseAsync?: () => Promise<Notifications.NotificationResponse | null>;
+    };
+    if (typeof notificationApi.getLastNotificationResponseAsync === 'function') {
+      notificationApi.getLastNotificationResponseAsync().then(handleResponse).catch(() => undefined);
+    } else if (typeof notificationApi.getLastNotificationResponse === 'function') {
+      handleResponse(notificationApi.getLastNotificationResponse());
+    }
     const response = Notifications.addNotificationResponseReceivedListener(handleResponse);
     return () => response.remove();
   }, [refresh]);
