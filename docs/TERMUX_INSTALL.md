@@ -128,13 +128,13 @@ cd "$HOME/DraBornGarage"
 npx eas-cli build --platform android --profile production
 ```
 
-## v0.9.3'e kod geri dönüşü
+## v0.9.4'e kod geri dönüşü
 
 ```bash
 set -e
 
 APP_DIR="$HOME/DraBornGarage"
-TARGET_SHA="e4f1018ad5edac6a9dd00847fb785ae287f1cd8a"
+TARGET_SHA="fc0ce7eb9a9ccb19841330e1ab7913c738e14aad"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
 
 pkg update -y
@@ -164,8 +164,8 @@ npx expo start -c --go
 
 ## Supabase geri dönüşü
 
-Kod geri dönüşü canlı veritabanını otomatik değiştirmez. Motor Hazır IBAN sütunlarını ve RPC'lerini de kaldırmak için:
+Kod geri dönüşü canlı veritabanını otomatik değiştirmez. v0.9.5 Usta rapor tutarlılığı fonksiyonlarını ve otomatik işlem tamamlama tetikleyicisini kaldırmak için:
 
 ```text
-supabase/rollbacks/rollback_v0_9_3_to_v0_9_2.sql
+supabase/rollbacks/rollback_v0_9_5_to_v0_9_4.sql
 ```
