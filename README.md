@@ -4,9 +4,9 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v1.0.1 RC — Bildirim, Müşteri Hafızası ve Navigasyon Düzeltmeleri**
+**v1.0.2 RC — Bildirim, Müşteri Hafızası ve Navigasyon Düzeltmeleri**
 
-v1.0.1 RC; gerçek bildirimlerin cihaz alanına taşınmasını, güçlü sesleri, kilometreli müşteri/motor servis hafızasını, basit kayıt şifresini ve Android navigasyonuyla çakışmayan alt menüyü Expo üzerinde test eder.
+v1.0.2 RC; gerçek bildirimlerin cihaz alanına taşınmasını, güçlü sesleri, kilometreli müşteri/motor servis hafızasını, basit kayıt şifresini ve Android navigasyonuyla çakışmayan alt menüyü Expo üzerinde test eder.
 
 ## v1.0 Release APK hazırlığı
 

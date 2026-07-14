@@ -67,8 +67,8 @@ export function TeamScreenV102() {
   }, [workshop?.id, isOwner]);
 
   useEffect(() => {
-    if (visible) loadRequests();
-  }, [visible, loadRequests]);
+    loadRequests();
+  }, [loadRequests]);
 
   useEffect(() => {
     if (!workshop?.id || !isOwner) return;
@@ -155,7 +155,7 @@ export function TeamScreenV102() {
 
   return (
     <View style={styles.root}>
-      <TeamScreen />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><TeamScreen /></KeyboardAvoidingView>
       {isOwner && <AnimatedPressable
         onPress={() => setVisible(true)}
         style={[styles.accessButton, { backgroundColor: colors.cardStrong, borderColor: `${colors.green}70`, shadowColor: colors.green }]}
@@ -228,6 +228,7 @@ function PanelButton({ icon, label, accent, onPress }: { icon: keyof typeof Ioni
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  flex: { flex: 1 },
   accessButton: { position: 'absolute', left: 18, right: 18, bottom: 8, zIndex: 30, minHeight: 72, borderWidth: 1, borderRadius: 21, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, shadowOpacity: 0.3, shadowRadius: 16, elevation: 14 },
   copy: { flex: 1, minWidth: 0 },
   accessTitle: { fontSize: 14, fontWeight: '900' },
