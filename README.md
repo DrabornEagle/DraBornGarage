@@ -4,15 +4,32 @@ Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis,
 
 ## Güncel sürüm
 
-**v0.8.16 — Tahsilat Yerleşim Düzeni**
+**v0.9.0 — Google Play Uyum, Test ve Pilot**
 
-v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat kartını düz ve gölgesiz hale getirir ve Servis Hareket Geçmişini servis detayının en altına taşır.
+v0.9.0; uygulama içi gizlilik ve hesap silme merkezini, hesap silme talep altyapısını, güçlü parola kontrolünü, rol erişim denetimini, gereksiz Android izin engellerini, pilot test paketini ve Google Play kapalı test belgelerini tamamlar.
 
-## Tamamlanan ana modüller
+## v0.9.0 ile tamamlananlar
 
-### v0.1 — Çok İşletmeli Çekirdek
+- Uygulamadaki bütün oturum açmış roller için Gizlilik ve Hesap merkezi
+- Hesap silme talebi oluşturma, durum görüntüleme ve iptal etme
+- Admin silme talepleri listeleme ve durum güncelleme RPC'leri
+- RLS korumalı `account_deletion_requests` tablosu
+- Güçlü parola: en az 10 karakter, karmaşıklık ve yaygın/sızdırılmış parola engeli
+- Anonim erişime açık hassas `SECURITY DEFINER` yardımcılarının kapatılması
+- Oturum bazlı rol erişim denetimi
+- Kamera, fotoğraf ve bildirim izinlerinin amaçla sınırlandırılması
+- Konum, mikrofon, rehber, SMS ve arama izinlerinin Android'de engellenmesi
+- Hızlı servis, randevu, alacak, platform ve bildirim için pilot test merkezi
+- TypeScript ve Android bundle GitHub Actions kalite kapısı
+- Gizlilik politikası, hesap silme sayfası ve Play Veri Güvenliği taslağı
+- Türkçe Google Play mağaza metinleri ve kapalı test planı
+- v0.8.16 kod yedeği ve v0.9 veritabanı rollback dosyası
 
-- Admin, İşletme Sahibi, İşletme Sahibi + Usta, Usta ve Çırak rolleri
+## Ana modüller
+
+### Çok İşletmeli Çekirdek
+
+- Admin, İşletme Sahibi, İşletme Sahibi + Usta, Usta, Çırak ve Müşteri rolleri
 - Çok işletmeli güvenli veri ayrımı
 - Müşteri, motosiklet ve servis kayıtları
 - Hızlı Servis, Bırakılan Motor ve Randevulu Servis
@@ -20,14 +37,14 @@ v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat 
 - Net/tahmini fiyat, Nakit/IBAN tahsilatı
 - Yapılan işlemler ve kullanılan parçalar
 
-### v0.2 — Müşteri Hesabı ve Motor Eşleştirme
+### Müşteri Hesabı ve Motor Eşleştirme
 
 - Ayrı Müşteri Portalı
 - Plaka + telefon, servis takip kodu, QR ve Usta onayı
 - Motorlarım ve Servislerim
 - Çok işletmeli müşteri seçimi
 
-### v0.3 — Randevu, Müsaitlik ve Usta Takvimi
+### Randevu ve Usta Takvimi
 
 - Usta çalışma saatleri, mola ve slot süresi
 - Müsait / Meşgul / Kapalı
@@ -35,13 +52,7 @@ v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat 
 - Müşteri ve personel randevu akışları
 - Randevuyu servis kaydına dönüştürme
 
-### v0.3.1 — Sürüm ve Yedekleme Standardı
-
-- Her değişiklikte sürüm artırma
-- Yeni sürümden önce sabit GitHub yedeği
-- Migration ve rollback zorunluluğu
-
-### v0.4.0 — Ek İşlem, Onay ve Servis Detayları
+### Ek İşlem ve Servis Detayları
 
 - Ek işlem, işçilik ve parça bedeli
 - Uygulamadan, müşteri yanında, telefonla ve WhatsApp ile onay
@@ -49,12 +60,7 @@ v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat 
 - İşlem Planlandı / Başladı / Tamamlandı
 - Test ve motor hazır zamanları
 
-### v0.4.1 — Müşteri Paneli Düzeltmesi
-
-- Android güvenli alan ve alt menü düzeltmeleri
-- Bağlantısız sekmelere kompakt kilitli durum kartları
-
-### v0.5.0 — Veresiye / Alacak Takibi
+### Veresiye / Alacak
 
 - Borç, kısmi ödeme ve tam ödeme
 - Ödeme sözü tarihi
@@ -63,7 +69,7 @@ v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat 
 - Müşteri panelinde kalan borç
 - Çırak için finansal verilerin gizlenmesi
 
-### v0.6.0 — Usta Gelir Kayıtları ve İşletme Raporları
+### Raporlar
 
 - Ustanın kişisel iş geçmişi
 - Günlük, haftalık, aylık ve tüm zamanlar kayıtlı işlem tutarı
@@ -71,7 +77,7 @@ v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat 
 - Ustanın işlemleri, parçaları ve tahsil ettiği ödemeler
 - İşletme toplamları ve Usta bazlı döküm
 
-### v0.7.0 — Platform Hizmet Bedeli Takibi
+### Platform Hizmet Bedeli
 
 - İşletme bazlı işlem başı platform bedeli
 - Haftalık veya aylık ödeme periyodu
@@ -80,40 +86,17 @@ v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat 
 - Admin onayı veya reddi
 - Banka/IBAN bilgileri
 - Opsiyonel private dekont yükleme
-- Admin bütün işletmeler platform özeti
 
-### v0.8.0 — Bildirimler ve Hatırlatmalar
+### Bildirimler
 
-- Personel ve müşteri panelinde bildirim zili
-- Tümü, Okunmamış, Yaklaşan ve Ayarlar sekmeleri
-- Supabase Realtime ile canlı uygulama içi bildirim
+- Personel ve müşteri panelinde bildirim merkezi
 - Okunmamış sayı rozeti ve telefon uygulama rozeti
 - Bildirimden ilgili ekrana yönlendirme
-- Servis teslim alma, fiyat, onay, tamir, parça, test, hazır ve teslim bildirimleri
-- Ek işlem onaylandı/reddedildi bildirimleri
-- Yeni randevu, onay, değişiklik ve iptal bildirimleri
-- Randevudan 24 saat ve 2 saat önce hatırlatma
-- Borç ödeme günü ve gecikme
-- Platform ödeme günü ve gecikme
-- Admin platform ödeme bildirimi ve onay sonucu
-- Müşteri eşleştirme talebi ve sonucu
+- Servis, ek işlem, randevu, alacak ve platform bildirimleri
+- 24 saat ve 2 saat randevu hatırlatmaları
 - Kullanıcıya özel bildirim tercihleri
 - Expo yerel telefon bildirimleri
-- Android yüksek öncelikli bildirim kanalı
-- Bildirim okuma, toplu okuma ve arşivleme
-- RLS ile kullanıcı ve işletme bazlı güvenlik
-
-### v0.8.4 — İşletme Onayı ve Modern Kullanım
-
-- Admin onaylı işletme başvurusu
-- Vergi Dairesi ve Vergi Numarası
-- Bekleyen başvuru müşteri paneli
-- Yeni randevu dikkat animasyonu ve geçmiş arşivi
-- Açılır/kapanır servis detay kategorileri
-- Modern animasyonlu motosiklet ikonu
-- Ana Admin hesabı: draborneagle@gmail.com
-
-> Expo Go Android üzerinde yerel bildirimler kullanılmaktadır. Uzaktan push bildirimi EAS development build / yayın yapısı gerektirdiği için v1.0 kapsamındadır.
+- Okuma, toplu okuma ve arşivleme
 
 > Sistem Usta maaşı, prim, komisyon, net kâr, ortaklık payı veya kazanç bölüşümü hesaplamaz.
 
@@ -121,7 +104,7 @@ v0.8.16; Tahsilat Kaydet alanındaki kalan tutarı ortalar, tamamlanan tahsilat 
 
 ```bash
 cp .env.example .env
-npm install --no-audit --no-fund
+npm ci --no-audit --no-fund
 npx expo start -c --go
 ```
 
@@ -130,34 +113,30 @@ npx expo start -c --go
 ```bash
 npm run typecheck
 npm run test:bundle
+# veya
+npm run test:release
 ```
 
-## Güncel yedek ve geri dönüş
+## Yedek ve geri dönüş
 
-- **Kurulan sürüm:** `v0.8.12`
-- **Yedeklenen sürüm:** `v0.8.3`
-- **Kod yedeği:** `backup/v0.8.10-before-v0.8.12-20260713`
-- **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql`](supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql)
-- **Kurulum ve geri alma:** [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
-- **Zorunlu politika:** [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
+- **Kurulan sürüm:** `v0.9.0`
+- **Yedeklenen sürüm:** `v0.8.16`
+- **Kod yedeği:** `backup/v0.8.16-before-v0.9-20260714`
+- **Veritabanı migration:** [`supabase/migrations/20260714002755_v0_9_privacy_account_deletion_security.sql`](supabase/migrations/20260714002755_v0_9_privacy_account_deletion_security.sql)
+- **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_9_0_to_v0_8_16.sql`](supabase/rollbacks/rollback_v0_9_0_to_v0_8_16.sql)
+- **Termux kurulumu:** [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
 
-## Proje belgeleri
+## v0.9 belgeleri
 
-- [`docs/V0.1_CHECKLIST.md`](docs/V0.1_CHECKLIST.md)
-- [`docs/V0.2_CHECKLIST.md`](docs/V0.2_CHECKLIST.md)
-- [`docs/V0.3_CHECKLIST.md`](docs/V0.3_CHECKLIST.md)
-- [`docs/V0.4_CHECKLIST.md`](docs/V0.4_CHECKLIST.md)
-- [`docs/V0.5_CHECKLIST.md`](docs/V0.5_CHECKLIST.md)
-- [`docs/V0.6_CHECKLIST.md`](docs/V0.6_CHECKLIST.md)
-- [`docs/V0.7_CHECKLIST.md`](docs/V0.7_CHECKLIST.md)
-- [`docs/V0.8_CHECKLIST.md`](docs/V0.8_CHECKLIST.md)
-- [`docs/V0.7.0_CHANGELOG.md`](docs/V0.7.0_CHANGELOG.md)
-- [`docs/V0.7.0_VALIDATION_REPORT.md`](docs/V0.7.0_VALIDATION_REPORT.md)
-- [`docs/V0.8.0_CHANGELOG.md`](docs/V0.8.0_CHANGELOG.md)
-- [`docs/V0.8.0_VALIDATION_REPORT.md`](docs/V0.8.0_VALIDATION_REPORT.md)
+- [`docs/V0.9_CHECKLIST.md`](docs/V0.9_CHECKLIST.md)
+- [`docs/V0.9_PILOT_TEST_CHECKLIST.md`](docs/V0.9_PILOT_TEST_CHECKLIST.md)
+- [`docs/V0.9_ROLE_ACCESS_AUDIT.md`](docs/V0.9_ROLE_ACCESS_AUDIT.md)
+- [`docs/PRIVACY_POLICY.md`](docs/PRIVACY_POLICY.md)
+- [`docs/ACCOUNT_DELETION.md`](docs/ACCOUNT_DELETION.md)
+- [`docs/GOOGLE_PLAY_DATA_SAFETY.md`](docs/GOOGLE_PLAY_DATA_SAFETY.md)
+- [`docs/GOOGLE_PLAY_LISTING_TR.md`](docs/GOOGLE_PLAY_LISTING_TR.md)
+- [`docs/GOOGLE_PLAY_CLOSED_TEST.md`](docs/GOOGLE_PLAY_CLOSED_TEST.md)
+- [`docs/CHANGELOG_V0.9.0.md`](docs/CHANGELOG_V0.9.0.md)
 - [`docs/ROADMAP.md`](docs/ROADMAP.md)
-- [`docs/VERSION_BACKUP_POLICY.md`](docs/VERSION_BACKUP_POLICY.md)
-- [`supabase/migrations`](supabase/migrations)
-- [`supabase/rollbacks`](supabase/rollbacks)
 
-APK/AAB ve uzaktan push bildirimi v1.0 aşamasındadır. Tam web sürümü v1.0 sonrasında yalnızca opsiyonel olarak değerlendirilecektir.
+v0.9 kapalı test ve pilot sürümüdür. AAB üretimi ve Play Console'a fiili yükleme v1.0 yayın adımıdır.
