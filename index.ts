@@ -1,4 +1,3 @@
-import './src/notifications/expoNotificationsCompatibility';
 import { registerRootComponent } from 'expo';
 
 import App from './App';
