@@ -108,13 +108,13 @@ export function PrivacyCenter() {
         onPress={() => setVisible(true)}
         style={[styles.floatingButton, { backgroundColor: colors.cardStrong, borderColor: `${colors.green}55`, shadowColor: colors.green }]}
       >
-        <Ionicons name="shield-checkmark" size={21} color={colors.green} />
+        <Ionicons name="shield-checkmark" size={29} color={colors.green} />
       </AnimatedPressable>
 
       <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setVisible(false)}>
         <View style={[styles.modal, { backgroundColor: colors.background }]}> 
           <View style={[styles.header, { borderBottomColor: colors.border }]}> 
-            <View style={[styles.headerIcon, { backgroundColor: `${colors.green}16` }]}><Ionicons name="shield-checkmark" size={25} color={colors.green} /></View>
+            <View style={[styles.headerIcon, { backgroundColor: `${colors.green}16` }]}><Ionicons name="shield-checkmark" size={30} color={colors.green} /></View>
             <View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>Gizlilik ve Hesap</Text><Text style={[styles.subtitle, { color: colors.textMuted }]}>Verilerini, izinlerini ve silme talebini yönet.</Text></View>
             <AnimatedPressable accessibilityLabel="Kapat" onPress={() => setVisible(false)} style={[styles.close, { borderColor: colors.border }]}><Ionicons name="close" size={22} color={colors.text} /></AnimatedPressable>
           </View>
@@ -177,10 +177,10 @@ function PrivacySection({ icon, title, accent, items }: { icon: keyof typeof Ion
 }
 
 const styles = StyleSheet.create({
-  floatingButton: { position: 'absolute', zIndex: 80, top: 50, right: 14, width: 43, height: 43, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.28, shadowRadius: 10, elevation: 10 },
+  floatingButton: { position: 'absolute', zIndex: 80, top: 46, right: 13, width: 58, height: 58, borderRadius: 20, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 16 },
   modal: { flex: 1 },
   header: { minHeight: 86, paddingHorizontal: 18, paddingTop: 22, paddingBottom: 12, borderBottomWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  headerIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  headerIcon: { width: 56, height: 56, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0 },
   title: { fontSize: 22, fontWeight: '900' },
   subtitle: { fontSize: 12.5, marginTop: 3 },

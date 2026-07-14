@@ -141,7 +141,7 @@ export function NotificationCenterScreen() {
 
         <View style={styles.header}>
           <View style={styles.copy}>
-            <Text style={[styles.eyebrow, { color: colors.primary }]}>v0.9.1 • SESLİ BİLDİRİM MERKEZİ</Text>
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>v0.9.3 • SESLİ BİLDİRİM MERKEZİ</Text>
             <Text style={[styles.title, { color: colors.text }]}>Bildirimler</Text>
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>Servis, randevu, ödeme, alacak ve platform hareketleri tek akışta.</Text>
           </View>
