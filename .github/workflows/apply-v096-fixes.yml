@@ -1,18 +1,17 @@
 name: Apply v0.9.6 Fixes
 
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
     branches:
-      - feature/v0.9.6-workflow-notifications-pricing
-    paths:
-      - scripts/apply-v096-fixes.mjs
-      - .github/workflows/apply-v096-fixes.yml
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.head_ref == 'feature/v0.9.6-workflow-notifications-pricing'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
