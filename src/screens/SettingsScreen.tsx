@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { GlassCard } from '../components/GlassCard';
@@ -15,9 +15,11 @@ import { ThemeMode } from '../types';
 
 interface DemoStatus { active: boolean; customer_count: number; work_order_count: number; workshop_count?: number; }
 type ThemeOption = { value: ThemeMode; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; preview: [string, string] };
-type SettingsSection = 'themes' | 'demo' | 'business' | 'app';
+type SettingsSection = 'themes' | 'demo' | 'business' | 'security' | 'app';
 
 const EMPTY_DEMO: DemoStatus = { active: false, customer_count: 0, work_order_count: 0, workshop_count: 0 };
+const PRIVACY_POLICY_URL = 'https://github.com/DrabornEagle/DraBornGarage/blob/main/docs/PRIVACY_POLICY.md';
+const TEST_CHECKLIST_URL = 'https://github.com/DrabornEagle/DraBornGarage/blob/main/docs/V0.9_PILOT_TEST_CHECKLIST.md';
 const THEMES: ThemeOption[] = [
   { value: 'system', title: 'Otomatik', subtitle: 'Telefon görünümünü takip eder.', icon: 'contrast', preview: ['#F4F7FC', '#070A12'] },
   { value: 'light', title: 'Aydınlık Atölye', subtitle: 'Temiz gündüz görünümü.', icon: 'sunny', preview: ['#FFFFFF', '#3D7BFF'] },
@@ -36,6 +38,7 @@ export function SettingsScreen() {
   const { unreadCount, upcomingCount, permissionStatus, openCenter, refresh: refreshNotifications } = useNotifications();
   const [demo, setDemo] = useState<DemoStatus>(EMPTY_DEMO);
   const [loading, setLoading] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
   const [openSection, setOpenSection] = useState<SettingsSection | null>(null);
   const toggleSection = (section: SettingsSection) => setOpenSection((current) => current === section ? null : section);
   const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
@@ -47,32 +50,45 @@ export function SettingsScreen() {
   }, [workshop, isOwner]);
   useEffect(() => { loadDemo(); }, [loadDemo]);
 
-  const createDemo = () => workshop && Alert.alert('v0.8 test verileri yüklensin mi?', 'Müşteri, servis, alacak, rapor, platform bedeli ve bildirim merkezi için örnek kayıtlar eklenir.', [{ text: 'Vazgeç' }, { text: 'Yükle', onPress: async () => {
+  const createDemo = () => workshop && Alert.alert('v0.9 pilot verileri yüklensin mi?', 'Hızlı servis, randevu, alacak, platform bedeli, rapor ve bildirim senaryoları için geçici kayıtlar eklenir.', [{ text: 'Vazgeç' }, { text: 'Yükle', onPress: async () => {
     setLoading(true);
-    const baseResult = await supabase.rpc('create_demo_data', { p_workshop_id: workshop.id });
-    if (baseResult.error) { setLoading(false); return Alert.alert('Temel demo yüklenemedi', baseResult.error.message); }
-    const v04Result = await supabase.rpc('create_v04_demo_data', { p_workshop_id: workshop.id });
-    if (v04Result.error) { setLoading(false); return Alert.alert('v0.4 demo yüklenemedi', v04Result.error.message); }
-    const v05Result = await supabase.rpc('create_v05_demo_data', { p_workshop_id: workshop.id });
-    if (v05Result.error) { setLoading(false); return Alert.alert('v0.5 demo yüklenemedi', v05Result.error.message); }
-    const v06Result = await supabase.rpc('create_v06_demo_data', { p_workshop_id: workshop.id });
-    if (v06Result.error) { setLoading(false); return Alert.alert('v0.6 demo yüklenemedi', v06Result.error.message); }
-    const v07Result = await supabase.rpc('create_v07_demo_data', { p_workshop_id: workshop.id });
-    if (v07Result.error) { setLoading(false); return Alert.alert('v0.7 demo yüklenemedi', v07Result.error.message); }
-    const v08Result = await supabase.rpc('create_v08_demo_data', { p_workshop_id: workshop.id });
+    const runners = [
+      ['Temel demo', 'create_demo_data'],
+      ['Servis detayı', 'create_v04_demo_data'],
+      ['Alacak', 'create_v05_demo_data'],
+      ['Rapor', 'create_v06_demo_data'],
+      ['Platform', 'create_v07_demo_data'],
+      ['Bildirim', 'create_v08_demo_data'],
+    ] as const;
+    for (const [label, rpc] of runners) {
+      const result = await supabase.rpc(rpc, { p_workshop_id: workshop.id });
+      if (result.error) { setLoading(false); return Alert.alert(`${label} yüklenemedi`, result.error.message); }
+    }
     setLoading(false);
-    if (v08Result.error) return Alert.alert('v0.8 demo yüklenemedi', v08Result.error.message);
     await refreshWorkspace(workshop.id);
     await loadDemo();
     await refreshNotifications();
-    Alert.alert('v0.8 demo hazır', 'Servis, fiyat, onay, parça, motor hazır, müşteri eşleştirme, platform ödeme, randevu ve borç hatırlatma örnekleri Bildirim Merkezi’ne eklendi.');
+    Alert.alert('v0.9 pilot ortamı hazır', 'Ana servis ve bildirim senaryoları geçici test verileriyle hazırlandı.');
   } }]);
 
-  const clearDemo = () => workshop && Alert.alert('Demo temizlensin mi?', 'Gerçek kayıtlar etkilenmez. Demo bildirimleri de temizlenir.', [{ text: 'Vazgeç' }, { text: 'Temizle', style: 'destructive', onPress: async () => { setLoading(true); const { data, error } = await supabase.rpc('clear_demo_data', { p_workshop_id: workshop.id }); setLoading(false); if (error) return Alert.alert('Temizlenemedi', error.message); await refreshWorkspace((data as any)?.root_workshop_id ?? null); setDemo(EMPTY_DEMO); await refreshNotifications(); } }]);
+  const clearDemo = () => workshop && Alert.alert('Pilot verileri temizlensin mi?', 'Gerçek kayıtlar etkilenmez. Demo bildirimleri de temizlenir.', [{ text: 'Vazgeç' }, { text: 'Temizle', style: 'destructive', onPress: async () => { setLoading(true); const { data, error } = await supabase.rpc('clear_demo_data', { p_workshop_id: workshop.id }); setLoading(false); if (error) return Alert.alert('Temizlenemedi', error.message); await refreshWorkspace((data as any)?.root_workshop_id ?? null); setDemo(EMPTY_DEMO); await refreshNotifications(); } }]);
+
+  const runRoleAudit = async () => {
+    setAuditLoading(true);
+    const { data, error } = await supabase.rpc('account_role_access_snapshot');
+    setAuditLoading(false);
+    if (error) return Alert.alert('Rol denetimi çalışmadı', error.message);
+    const snapshot = data as any;
+    const memberships = Array.isArray(snapshot?.memberships) ? snapshot.memberships : [];
+    Alert.alert(
+      'Rol erişim denetimi tamamlandı',
+      `Admin: ${snapshot?.is_admin ? 'Evet' : 'Hayır'}\nAktif üyelik: ${memberships.filter((item: any) => item.is_active).length}\nİşletmeler arası erişim: ${snapshot?.capabilities?.cross_workshop_access ? 'Admin ile sınırlı' : 'Kapalı'}\nÇırak finans erişimi: Kapalı`,
+    );
+  };
 
   return <ScrollView contentContainerStyle={styles.content}>
-    <ScreenHeader eyebrow="KİŞİSELLEŞTİR" title="Ayarlar" subtitle="Tema, bildirim tercihleri, müşteri görünümü, test verileri ve uygulama bilgileri." />
-    <GlassCard style={styles.profile}><LinearGradient colors={[colors.primary, colors.primary2]} style={styles.avatar}><Text style={styles.avatarText}>{profile?.full_name?.charAt(0) || 'D'}</Text></LinearGradient><View style={styles.copy}><Text style={[styles.name, { color: colors.text }]}>{profile?.full_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{roleLabel(membership?.role, isAdmin)} • {workshop?.name}</Text></View><Ionicons name="shield-checkmark" size={23} color={colors.green} /></GlassCard>
+    <ScreenHeader eyebrow="PİLOT VE YAYIN" title="Ayarlar" subtitle="Tema, bildirim, rol güvenliği, pilot test ve Google Play hazırlığı." />
+    <GlassCard style={styles.profile}><LinearGradient colors={[colors.primary, colors.primary2]} style={styles.avatar}><Text style={styles.avatarText}>{profile?.full_name?.charAt(0) || 'D'}</Text></LinearGradient><View style={styles.copy}><Text style={[styles.name, { color: colors.text }]}>{profile?.full_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{roleLabel(membership?.role, isAdmin)} • {workshop?.name || 'Müşteri hesabı'}</Text></View><Ionicons name="shield-checkmark" size={23} color={colors.green} /></GlassCard>
 
     <AnimatedPressable onPress={openCenter} style={[styles.modeCard, { backgroundColor: `${colors.orange}11`, borderColor: `${colors.orange}40` }]}><View style={[styles.modeIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="notifications" size={24} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.modeTitle, { color: colors.text }]}>Bildirim Merkezi ve tercihleri</Text><Text style={[styles.modeText, { color: colors.textMuted }]}>{unreadCount} okunmamış • {upcomingCount} yaklaşan • Telefon izni: {permissionStatus === 'granted' ? 'Açık' : 'Kapalı'}</Text></View><Ionicons name="chevron-forward" size={20} color={colors.orange} /></AnimatedPressable>
 
@@ -82,16 +98,22 @@ export function SettingsScreen() {
       <View style={styles.themeList}>{THEMES.map((item) => { const active = mode === item.value; return <AnimatedPressable key={item.value} onPress={() => setMode(item.value)} style={[styles.theme, { backgroundColor: active ? `${colors.primary}14` : colors.card, borderColor: active ? colors.primary : colors.border }]}><LinearGradient colors={item.preview} style={styles.preview}><Ionicons name={item.icon} size={22} color="#fff" /></LinearGradient><View style={styles.copy}><Text style={[styles.themeTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.themeSub, { color: colors.textMuted }]}>{item.subtitle}</Text></View><Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={active ? colors.primary : colors.textMuted} /></AnimatedPressable>; })}</View>
     </SettingsAccordion>
 
-    {isOwner && <SettingsAccordion title="Test Atölyesi" subtitle={demo.active ? `${demo.customer_count} müşteri • ${demo.work_order_count} servis` : 'Geçici test verileri kapalı'} icon="flask" accent={demo.active ? colors.green : colors.orange} open={openSection === 'demo'} onToggle={() => toggleSection('demo')}>
-      <GlassCard style={styles.demoCard}><View style={styles.demoHeader}><Ionicons name="flask" size={28} color={demo.active ? colors.green : colors.orange} /><View style={styles.copy}><Text style={[styles.demoTitle, { color: colors.text }]}>Geçici v0.8 Test Verileri</Text><Text style={[styles.demoText, { color: colors.textMuted }]}>{demo.customer_count} müşteri • {demo.work_order_count} servis • {(demo.workshop_count ?? 0) + (demo.active ? 1 : 0)} işletme • Bildirim örnekleri</Text></View></View>{demo.active ? <PrimaryButton title="Demo Verilerini Temizle" onPress={clearDemo} loading={loading} secondary /> : <PrimaryButton title="v0.8 Test Verilerini Yükle" onPress={createDemo} loading={loading} />}</GlassCard>
+    {isOwner && <SettingsAccordion title="Pilot Test Atölyesi" subtitle={demo.active ? `${demo.customer_count} müşteri • ${demo.work_order_count} servis` : 'Geçici pilot verileri kapalı'} icon="flask" accent={demo.active ? colors.green : colors.orange} open={openSection === 'demo'} onToggle={() => toggleSection('demo')}>
+      <GlassCard style={styles.demoCard}><View style={styles.demoHeader}><Ionicons name="flask" size={28} color={demo.active ? colors.green : colors.orange} /><View style={styles.copy}><Text style={[styles.demoTitle, { color: colors.text }]}>v0.9 Ana Akış Testleri</Text><Text style={[styles.demoText, { color: colors.textMuted }]}>{demo.customer_count} müşteri • {demo.work_order_count} servis • Hızlı servis, randevu, alacak, platform ve bildirim</Text></View></View>{demo.active ? <PrimaryButton title="Pilot Verilerini Temizle" onPress={clearDemo} loading={loading} secondary /> : <PrimaryButton title="Pilot Verilerini Yükle" onPress={createDemo} loading={loading} />}<PrimaryButton title="Pilot Kontrol Listesini Aç" onPress={() => Linking.openURL(TEST_CHECKLIST_URL)} secondary /></GlassCard>
     </SettingsAccordion>}
 
     <SettingsAccordion title="İşletme ve Randevu" subtitle={workshop?.name || 'Aktif işletme seçilmedi'} icon="business" accent={colors.cyan} open={openSection === 'business'} onToggle={() => toggleSection('business')}>
       <GlassCard style={styles.info}><Info icon="business" label="İşletme" value={workshop?.name || '-'} /><Info icon="calendar" label="Randevu sistemi" value={workshop?.appointments_enabled === false ? 'Kapalı' : 'Açık'} /><Info icon="checkmark-done" label="Müşteri talebi" value={workshop?.appointment_auto_confirm ? 'Otomatik onay' : 'Usta onayı'} /><Info icon="today" label="Rezervasyon ufku" value={`${workshop?.appointment_booking_days ?? 30} gün`} /><Info icon="time" label="Minimum bildirim" value={`${workshop?.appointment_min_notice_minutes ?? 60} dakika`} /></GlassCard>
     </SettingsAccordion>
 
-    <SettingsAccordion title="Uygulama" subtitle="v0.8.16 • sürüm ve sistem bilgileri" icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
-      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v0.8.16 • Tahsilat Yerleşim Düzeni" /><Info icon="notifications" label="Bildirim motoru" value="Canlı uygulama içi + yerel telefon hatırlatması" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v0.8.15-before-v0.8.16-20260713" /><Info icon="refresh" label="Geri alma" value="Kod yedeğiyle v0.8.15" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go • SDK 54 • Yerel bildirim" /><Info icon="cube" label="APK/AAB ve uzaktan push" value="v1.0 geliştirme yapısı" /></GlassCard>
+    <SettingsAccordion title="Gizlilik ve Yayın Güvenliği" subtitle="Rol denetimi • izinler • hesap silme" icon="shield-checkmark" accent={colors.green} open={openSection === 'security'} onToggle={() => toggleSection('security')}>
+      <GlassCard style={styles.info}><Info icon="camera" label="Kamera" value="Yalnız QR tarama" /><Info icon="images" label="Fotoğraflar" value="Yalnız isteğe bağlı dekont" /><Info icon="notifications" label="Bildirim" value="Servis ve randevu hatırlatmaları" /><Info icon="location" label="Konum / Mikrofon / Rehber" value="Kullanılmıyor ve engelli" /><Info icon="person-remove" label="Hesap silme" value="Sol üstteki kalkan ile talep oluşturma" /></GlassCard>
+      <PrimaryButton title="Rol Erişim Denetimini Çalıştır" onPress={runRoleAudit} loading={auditLoading} />
+      <PrimaryButton title="Gizlilik Politikasını Aç" onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} secondary />
+    </SettingsAccordion>
+
+    <SettingsAccordion title="Uygulama" subtitle="v0.9.0 • Google Play uyum ve pilot" icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
+      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v0.9.0 • Google Play Uyum, Test ve Pilot" /><Info icon="shield-checkmark" label="Gizlilik" value="Uygulama içi politika + hesap silme talebi" /><Info icon="key" label="Şifre güvenliği" value="10 karakter + karmaşıklık + yaygın şifre engeli" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v0.8.16-before-v0.9-20260714" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v0.8.16" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + Android bundle + pilot checklist" /><Info icon="storefront" label="Mağaza durumu" value="Kapalı test metinleri ve veri güvenliği hazır" /></GlassCard>
     </SettingsAccordion>
 
     <AnimatedPressable onPress={() => Alert.alert('Çıkış yapılsın mı?', '', [{ text: 'Vazgeç' }, { text: 'Çıkış', style: 'destructive', onPress: signOut }])} style={[styles.logout, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}35` }]}><Ionicons name="log-out-outline" size={21} color={colors.red} /><Text style={[styles.logoutText, { color: colors.red }]}>Hesaptan Çıkış Yap</Text></AnimatedPressable>
