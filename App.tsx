@@ -6,7 +6,6 @@ import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { NotificationCenterScreen } from './src/notifications/NotificationCenterScreen';
 import { NotificationProvider } from './src/notifications/NotificationContext';
-import { PrivacyCenter } from './src/privacy/PrivacyCenter';
 
 function StatusBarBridge() {
   const { resolvedMode } = useTheme();
@@ -22,7 +21,6 @@ export default function App() {
             <StatusBarBridge />
             <AppRoot />
             <NotificationCenterScreen />
-            <PrivacyCenter />
           </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
