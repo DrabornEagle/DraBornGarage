@@ -1,12 +1,13 @@
 {
   "name": "draborngarage",
-  "version": "0.8.16",
+  "version": "0.9.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "start:clear": "expo start -c --go",
     "typecheck": "tsc --noEmit",
-    "test:bundle": "expo export --platform android --output-dir dist"
+    "test:bundle": "expo export --platform android --output-dir dist",
+    "test:release": "npm run typecheck && npm run test:bundle"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
