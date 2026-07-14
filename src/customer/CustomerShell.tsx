@@ -38,6 +38,7 @@ export function CustomerShell() {
   const insets = useSafeAreaInsets();
   const { navigationTarget, consumeNavigationTarget } = useNotifications();
   const [tab, setTab] = useState<Tab>('home');
+  const [serviceDetailOpen, setServiceDetailOpen] = useState(false);
   const openLinking = () => setTab('home');
 
   useEffect(() => {
@@ -47,6 +48,10 @@ export function CustomerShell() {
     consumeNavigationTarget();
   }, [navigationTarget, consumeNavigationTarget]);
 
+  useEffect(() => {
+    if (tab !== 'services') setServiceDetailOpen(false);
+  }, [tab]);
+
   const screen = tab === 'home'
     ? <CustomerHomeScreen onOpenServices={() => setTab('services')} onOpenAppointments={() => setTab('appointments')} />
     : tab === 'motorcycles'
@@ -54,7 +59,7 @@ export function CustomerShell() {
       : tab === 'appointments'
         ? <CustomerAppointmentsScreen onStartLink={openLinking} />
         : tab === 'services'
-          ? <CustomerServicesScreen onStartLink={openLinking} />
+          ? <CustomerServicesScreen onStartLink={openLinking} onDetailStateChange={setServiceDetailOpen} />
           : <CustomerAccountScreen />;
 
   const tabs = useMemo(() => [
@@ -71,7 +76,7 @@ export function CustomerShell() {
   return <PremiumBackground>
     <View style={[styles.flex, { paddingBottom: reservedBottom }]}>{screen}</View>
     {['home', 'motorcycles'].includes(tab) && <NotificationBell />}
-    {['services', 'account'].includes(tab) && <PrivacyCenter />}
+    {((tab === 'services' && !serviceDetailOpen) || tab === 'account') && <PrivacyCenter />}
     <View style={[styles.navWrap, { bottom: navBottom, borderColor: `${colors.primary}32`, shadowColor: colors.primary }]}>
       <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
         <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}>

@@ -99,6 +99,18 @@ export function HomeScreen({
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!workshop?.id || isApprentice) return;
+    const refreshLiveStats = () => { load().catch(() => undefined); };
+    const channel = supabase
+      .channel(`home-live-stats-${workshop.id}-${membership?.user_id ?? 'staff'}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `workshop_id=eq.${workshop.id}` }, refreshLiveStats)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_order_services', filter: `workshop_id=eq.${workshop.id}` }, refreshLiveStats)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `workshop_id=eq.${workshop.id}` }, refreshLiveStats)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, membership?.user_id, isApprentice, load]);
+
   const refresh = async () => {
     setRefreshing(true);
     await load();

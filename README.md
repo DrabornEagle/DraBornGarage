@@ -4,11 +4,20 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v0.9.5 — Usta Rapor ve İş Sayısı Tutarlılığı**
+**v0.9.6 — Servis Akışı, Fiyat ve Bildirim Düzeltmeleri**
 
-v0.9.5; Usta Paneli, Usta Raporu ve İşletme Raporundaki işçilik tutarlarını aynı kurala bağlar; tamamlanan iş sayısını düzeltir ve müşteri kalkanını Servislerim ekranına taşır.
+v0.9.6; canlı panel sayaçlarını yeniler, fiyat girmeden tamire başlamayı destekler, tahmini fiyatı doğru gösterir, bildirimleri yeniden sıralar ve müşteri servis detayındaki kalkanı kaldırır.
 
-## v0.9.5 ile tamamlananlar
+## v0.9.6 ile tamamlananlar
+
+- Usta Paneli Hazır/Tamam sayısının servis hareketlerinde canlı yenilenmesi
+- Hemen Başla seçeneğinde fiyat zorunluluğunun kaldırılması
+- Tahmini fiyatın müşteriye aralık olarak gösterilmesi ve sıfır tutarın ödenmiş sayılmaması
+- Motor tesliminden önce son net fiyat koruması
+- İşletme aramasında modern sonuç bulunamadı kartı
+- Bildirimlerin en yeni kayıt üstte olacak şekilde sıralanması
+- Arşiv ikonunun yanına kalıcı silme ikonu
+- Kalkanın servis detayından kaldırılıp Servislerim listesinde korunması
 
 - Kalkan simgesinin Randevularım ekranından kaldırılıp Servislerim ekranına taşınması
 - Usta Paneli günlük iş tutarının tamamlanan iş emri işçiliğiyle hesaplanması

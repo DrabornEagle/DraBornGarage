@@ -105,9 +105,6 @@ export function NewWorkOrderScreen({
     const min = Number(estimatedMin.replace(',', '.'));
     const max = Number(estimatedMax.replace(',', '.'));
     const priceComplete = priceType === 'fixed' ? fixed > 0 : min > 0 && max >= min;
-    if (startImmediately && !priceComplete) {
-      return Alert.alert('Ücret gerekli', 'Tamire başlamadan önce ücret veya tahmini ücret girmeniz gerekiyor.');
-    }
     if (paymentMethod !== 'none' && (!priceComplete || Number(paymentAmount.replace(',', '.')) <= 0)) {
       return Alert.alert('Ödeme bilgisi eksik', 'Nakit veya IBAN tahsilatı için geçerli bir ödeme tutarı gir.');
     }
@@ -204,7 +201,7 @@ export function NewWorkOrderScreen({
           <View style={styles.headerCopy}>
             <Text style={[styles.eyebrow, { color: serviceType === 'quick' ? colors.orange : colors.primary }]}>{serviceType === 'quick' ? 'RANDEVUSUZ HIZLI KABUL' : 'SERVİS KABUL'}</Text>
             <Text style={[styles.title, { color: colors.text }]}>{serviceType === 'quick' ? '+ Hızlı Servis' : 'Yeni Servis Kaydı'}</Text>
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Plakayı ara, ücreti belirle ve motoru sıraya al veya hemen başlat.</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Plakayı ara; ücreti şimdi belirle veya tamire başlayıp daha sonra netleştir.</Text>
           </View>
         </View>
 
@@ -291,7 +288,7 @@ export function NewWorkOrderScreen({
           />
           <Toggle value={startImmediately} onChange={setStartImmediately} first="Hemen Başla" second="Sıraya Al" />
           {startImmediately && (
-            <View style={[styles.warning, { backgroundColor: `${colors.orange}12`, borderColor: `${colors.orange}38` }]}><Ionicons name="warning" size={19} color={colors.orange} /><Text style={[styles.warningText, { color: colors.textMuted }]}>Hemen başlatmak için net veya tahmini ücret zorunludur.</Text></View>
+            <View style={[styles.warning, { backgroundColor: `${colors.cyan}12`, borderColor: `${colors.cyan}38` }]}><Ionicons name="information-circle" size={19} color={colors.cyan} /><Text style={[styles.warningText, { color: colors.textMuted }]}>Ücret şimdi girilmeden tamire başlanabilir. Tahmini fiyat müşteriye aralık olarak gösterilir; motor teslim edilmeden önce son net fiyat kaydedilir.</Text></View>
           )}
         </GlassCard>
 

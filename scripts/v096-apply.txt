@@ -1,14 +1,1 @@
-file:///home/runner/work/DraBornGarage/DraBornGarage/scripts/apply-v096-fixes.mjs:13
-    throw new Error(`Kalıp bulunamadı: ${label}`);
-          ^
-
-Error: Kalıp bulunamadı: Bildirim kartı silme aksiyonu
-    at replaceOnce (file:///home/runner/work/DraBornGarage/DraBornGarage/scripts/apply-v096-fixes.mjs:13:11)
-    at file:///home/runner/work/DraBornGarage/DraBornGarage/scripts/apply-v096-fixes.mjs:256:12
-    at patch (file:///home/runner/work/DraBornGarage/DraBornGarage/scripts/apply-v096-fixes.mjs:20:17)
-    at file:///home/runner/work/DraBornGarage/DraBornGarage/scripts/apply-v096-fixes.mjs:235:1
-    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
-    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
-    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
-
-Node.js v20.20.2
+v0.9.6 uygulama düzeltmeleri başarıyla uygulandı.
