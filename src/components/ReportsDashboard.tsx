@@ -212,7 +212,7 @@ function PersonalView({ report }: { report: PersonalReport }) {
   const s = report.summary;
   return <View style={styles.stack}>
     <LinearGradient colors={[colors.green, colors.cyan, colors.primary]} style={styles.hero}>
-      <View><Text style={styles.heroLabel}>KAYDETTİĞİN TAMAMLANMIŞ İŞLEM TUTARI</Text><Text style={styles.heroValue}>{money(n(s.recorded_amount))}</Text><Text style={styles.heroMeta}>{n(s.completed_service_count)} tamamlanan işlem • {n(s.order_count)} motor</Text></View>
+      <View><Text style={styles.heroLabel}>KAYDETTİĞİN TAMAMLANMIŞ İŞLEM TUTARI</Text><Text style={styles.heroValue}>{money(n(s.recorded_amount))}</Text><Text style={styles.heroMeta}>{n(s.completed_order_count)} tamamlanan iş • {n(s.order_count)} motor</Text></View>
       <View style={styles.heroSide}><Ionicons name="person-circle" size={31} color="#fff" /><Text style={styles.heroSideText}>Aktif iş{`\n`}{n(s.active_order_count)}</Text></View>
     </LinearGradient>
 
@@ -280,7 +280,7 @@ function PersonalJobCard({ item }: { item: JobRow }) {
   return <GlassCard style={styles.jobCard}>
     <View style={styles.row}><View style={[styles.jobIcon, { backgroundColor: `${colors.primary}18` }]}><AnimatedMotorcycleIcon size={29} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{item.brand} {item.model} • {item.plate || 'Plaka yok'}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{item.customer_name} • Geliş {dateTime(item.arrived_at)}</Text></View><Text style={[styles.rowAmount, { color: colors.green }]}>{money(n(item.recorded_amount))}</Text></View>
     <Text style={[styles.complaint, { color: colors.textSoft }]}>{item.complaint}</Text>
-    <SubList icon="construct" title="Yaptığın İşlemler" empty="İşlem satırı yok" items={item.services.map((s) => `${s.title} • ${money(n(s.price))}${s.completed ? '' : ' • Devam ediyor'}`)} />
+    <SubList icon="construct" title="Yaptığın İşlemler" empty="İşlem kaydı yok" items={item.services.length > 0 ? item.services.map((s) => `${s.title} • ${money(n(s.price))}${s.completed ? '' : ' • Devam ediyor'}`) : n(item.recorded_amount) > 0 ? [`Genel servis işçiliği • ${money(n(item.recorded_amount))}`] : []} />
     <SubList icon="cog" title="Kullandığın Parçalar" empty="Parça kaydı yok" items={item.parts.map((p) => `${p.part_name} • ${p.quantity} adet • ${money(n(p.total_price))}`)} />
   </GlassCard>;
 }

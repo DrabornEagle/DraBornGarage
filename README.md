@@ -4,11 +4,19 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v0.9.4 — IBAN Ödeme Bildirimi ve Usta Onayı**
+**v0.9.5 — Usta Rapor ve İş Sayısı Tutarlılığı**
 
-v0.9.4; Usta IBAN görünürlüğünü varsayılan aktif yapar, IBAN bilgisini Motor Hazır servislerine ek olarak açık veresiye borçlarında da gösterir ve müşterinin yaptığı transferi atanmış Ustanın onayına göndermesini sağlar. Borç yalnız Usta ödemeyi onayladıktan sonra güncellenir.
+v0.9.5; Usta Paneli, Usta Raporu ve İşletme Raporundaki işçilik tutarlarını aynı kurala bağlar; tamamlanan iş sayısını düzeltir ve müşteri kalkanını Servislerim ekranına taşır.
 
-## v0.9.4 ile tamamlananlar
+## v0.9.5 ile tamamlananlar
+
+- Kalkan simgesinin Randevularım ekranından kaldırılıp Servislerim ekranına taşınması
+- Usta Paneli günlük iş tutarının tamamlanan iş emri işçiliğiyle hesaplanması
+- Usta Raporu ve İşletme Raporu Usta kırılımının aynı kayıt kuralını kullanması
+- İşlem satırı olmayan tamamlanmış motorların atanmış Usta işçiliğine dahil edilmesi
+- Motor Hazır, Tamamlandı ve Teslim Edildi durumlarının tamamlanmış iş olarak sayılması
+- İş emri tamamlandığında unutulan işlem satırlarının otomatik tamamlanması
+- Geçmiş teslim edilmiş kayıtlardaki eksik tamamlanma işaretlerinin onarılması
 
 - “Motor Hazır IBAN” başlığının “IBAN Ayarları” olarak değiştirilmesi
 - Usta ve İşletme Sahibi + Usta hesaplarında müşteri görünürlüğünün varsayılan aktif olması

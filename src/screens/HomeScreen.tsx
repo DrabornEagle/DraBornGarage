@@ -65,32 +65,24 @@ export function HomeScreen({
 
     let todayOrdersQuery = supabase
       .from('work_orders')
-      .select('id,status,assigned_mechanic_id')
+      .select('id,status,assigned_mechanic_id,labor_amount')
       .eq('workshop_id', workshop.id)
       .gte('arrived_at', today);
     if (mechanicView) todayOrdersQuery = todayOrdersQuery.eq('assigned_mechanic_id', membership.user_id);
 
-    let servicesQuery = supabase
-      .from('work_order_services')
-      .select('mechanic_id,price,completed')
-      .eq('workshop_id', workshop.id)
-      .eq('completed', true)
-      .gte('created_at', today);
-    if (mechanicView) servicesQuery = servicesQuery.eq('mechanic_id', membership.user_id);
-
-    const [ordersResult, todayOrdersResult, paymentsResult, servicesResult] = await Promise.all([
+    const [ordersResult, todayOrdersResult, paymentsResult] = await Promise.all([
       orderQuery,
       todayOrdersQuery,
       supabase.from('payments').select('amount,payment_method,received_by').eq('workshop_id', workshop.id).gte('paid_at', today),
-      servicesQuery,
     ]);
 
     const todayOrders = todayOrdersResult.data ?? [];
-    const services = servicesResult.data ?? [];
     const activeStatuses = ['opened', 'received', 'queued', 'precheck', 'price_entered', 'approval_waiting', 'repair_started', 'extra_approval_waiting', 'parts_waiting', 'testing', 'waiting', 'in_progress'];
     const waitingStatuses = ['opened', 'received', 'queued', 'waiting'];
     const completedStatuses = ['ready', 'completed', 'delivered'];
-    const recorded = services.reduce((sum, item) => sum + Number(item.price), 0);
+    const recorded = todayOrders
+      .filter((order) => completedStatuses.includes(order.status))
+      .reduce((sum, order) => sum + Number(order.labor_amount || 0), 0);
     const received = (paymentsResult.data ?? [])
       .filter((item) => !mechanicView || item.received_by === membership.user_id)
       .reduce((sum, item) => sum + Number(item.amount), 0);

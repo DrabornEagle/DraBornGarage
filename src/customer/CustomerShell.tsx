@@ -71,7 +71,7 @@ export function CustomerShell() {
   return <PremiumBackground>
     <View style={[styles.flex, { paddingBottom: reservedBottom }]}>{screen}</View>
     {['home', 'motorcycles'].includes(tab) && <NotificationBell />}
-    {['appointments', 'account'].includes(tab) && <PrivacyCenter />}
+    {['services', 'account'].includes(tab) && <PrivacyCenter />}
     <View style={[styles.navWrap, { bottom: navBottom, borderColor: `${colors.primary}32`, shadowColor: colors.primary }]}>
       <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>
         <View style={[styles.navBackdrop, { backgroundColor: Platform.OS === 'android' ? colors.cardStrong : 'transparent' }]}>
