@@ -1,0 +1,27 @@
+name: Rename v0.9.4 Migration
+
+on:
+  push:
+    branches:
+      - feature/v0.9.4-customer-payment-confirmation
+    paths:
+      - .github/workflows/rename-v094-migration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v0.9.4-customer-payment-confirmation
+          fetch-depth: 0
+      - name: Rename migration
+        run: |
+          git mv supabase/migrations/20260714130000_v0_9_4_customer_payment_confirmation.sql supabase/migrations/20260714104039_v0_9_4_customer_payment_confirmation.sql
+          git config user.name "DrabornEagle CI"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "chore: v0.9.4 migration geçmişini canlı Supabase ile eşitle"
+          git push origin HEAD:feature/v0.9.4-customer-payment-confirmation
