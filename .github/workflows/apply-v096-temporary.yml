@@ -39,3 +39,5 @@ jobs:
           git add README.md app.json package.json package-lock.json docs/TERMUX_INSTALL.md src
           git commit -m "DraBornGarage v0.9.6: servis akışı, fiyat ve bildirim düzeltmeleri"
           git push origin HEAD:feature/v0.9.6-workflow-notifications-pricing
+
+# Bu satır yalnız geçici yamayı tetiklemek içindir.
