@@ -10,6 +10,7 @@ import { PremiumBackground } from '../components/PremiumBackground';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { PASSWORD_POLICY_SUMMARY, validateRegistrationPassword } from '../lib/passwordPolicy';
 import { AccountMode } from '../types';
 
 export function AuthScreen() {
@@ -39,7 +40,8 @@ export function AuthScreen() {
       Animated.timing(pulse, { toValue: 0, duration: 1500, useNativeDriver: true }),
     ]));
     const spinLoop = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 16000, useNativeDriver: true }));
-    pulseLoop.start(); spinLoop.start();
+    pulseLoop.start();
+    spinLoop.start();
     return () => { pulseLoop.stop(); spinLoop.stop(); };
   }, [pulse, spin]);
 
@@ -52,17 +54,23 @@ export function AuthScreen() {
     const normalizedTaxNumber = taxNumber.replace(/\D/g, '');
     const businessMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'staff'
       && (!businessName.trim() || !taxOffice.trim() || ![10, 11].includes(normalizedTaxNumber.length));
-    if (!email.trim() || password.length < 6 || (mode === 'register' && !fullName.trim()) || customerMotorMissing || businessMissing) {
+    const passwordPolicy = validateRegistrationPassword(password, email);
+    const passwordInvalid = mode === 'register' ? !passwordPolicy.valid : password.length < 6;
+
+    if (!email.trim() || passwordInvalid || (mode === 'register' && !fullName.trim()) || customerMotorMissing || businessMissing) {
       Alert.alert(
-        'Eksik bilgi',
+        'Eksik veya güvensiz bilgi',
         customerMotorMissing
           ? 'Kullanıcı hesabı için plaka, motosiklet markası ve modeli zorunludur.'
           : businessMissing
             ? 'İşletme başvurusu için işletme adı, Vergi Dairesi ve 10 veya 11 haneli Vergi Numarası zorunludur.'
-            : 'E-posta, en az 6 karakter şifre ve kayıt sırasında ad soyad gereklidir.',
+            : mode === 'register' && passwordPolicy.message
+              ? passwordPolicy.message
+              : 'E-posta, şifre ve kayıt sırasında ad soyad gereklidir.',
       );
       return;
     }
+
     setLoading(true);
     const message = mode === 'login'
       ? await signIn(email, password)
@@ -90,7 +98,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.8.16 AKILLI SERVİS SİSTEMİ</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v0.9.0 PİLOT VE PLAY UYUMU</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -100,14 +108,14 @@ export function AuthScreen() {
                   <Ionicons name="construct" size={39} color="#fff" />
                 </LinearGradient>
               </Animated.View>
-              <Animated.View style={[styles.miniGear, { backgroundColor: colors.cardStrong, borderColor: colors.border, transform: [{ rotate: ringRotate }] }]}><Ionicons name="notifications" size={21} color={colors.orange} /></Animated.View>
+              <Animated.View style={[styles.miniGear, { backgroundColor: colors.cardStrong, borderColor: colors.border, transform: [{ rotate: ringRotate }] }]}><Ionicons name="shield-checkmark" size={21} color={colors.green} /></Animated.View>
             </View>
             <Text style={[styles.brandTitle, { color: colors.text }]}>DraBornGarage</Text>
-            <Text style={[styles.brandText, { color: colors.textMuted }]}>Servis, randevu, alacak ve platform hareketlerini canlı bildirimler ve zamanlı hatırlatmalarla tek premium garaj merkezinde buluşturur.</Text>
+            <Text style={[styles.brandText, { color: colors.textMuted }]}>Servis, randevu, alacak ve platform hareketlerini rol güvenliği, canlı bildirimler ve gizlilik kontrolleriyle tek garaj merkezinde buluşturur.</Text>
             <View style={styles.featureRow}>
-              <Feature icon="notifications" label="Akıllı Bildirim" color={colors.orange} />
-              <Feature icon="construct" label="Canlı Servis" color={colors.green} />
-              <Feature icon="calendar" label="Zamanlı Hatırlatma" color={colors.cyan} contentOffset={10} />
+              <Feature icon="shield-checkmark" label="Rol Güvenliği" color={colors.green} />
+              <Feature icon="construct" label="Canlı Servis" color={colors.orange} />
+              <Feature icon="calendar" label="Pilot Test" color={colors.cyan} contentOffset={10} />
             </View>
           </View>
 
@@ -158,7 +166,8 @@ export function AuthScreen() {
               </>
             )}
             <FormField label="E-posta" value={email} onChangeText={setEmail} placeholder="hesap@email.com" keyboardType="email-address" autoCapitalize="none" />
-            <FormField label="Şifre" value={password} onChangeText={setPassword} placeholder="En az 6 karakter" secureTextEntry />
+            <FormField label="Şifre" value={password} onChangeText={setPassword} placeholder={mode === 'register' ? 'Güçlü şifre oluştur' : 'Şifren'} secureTextEntry />
+            {mode === 'register' && <View style={[styles.secureStrip, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}30` }]}><Ionicons name="key" size={17} color={colors.primary} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>{PASSWORD_POLICY_SUMMARY} Yaygın ve sızdırılmış şifreler reddedilir.</Text></View>}
             {mode === 'register' && isPrimaryAdminEmail && <View style={[styles.secureStrip, { backgroundColor: `${colors.primary}0D`, borderColor: `${colors.primary}30` }]}><Ionicons name="shield-checkmark" size={17} color={colors.primary} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Ana Admin e-postası algılandı. Motor veya işletme başvuru bilgileri zorunlu değildir; hesap doğrudan Admin olarak açılır.</Text></View>}
             <PrimaryButton title={mode === 'login' ? 'Giriş Yap' : isPrimaryAdminEmail ? 'Ana Admin Hesabımı Oluştur' : registerMode === 'customer' ? 'Kullanıcı Hesabımı Oluştur' : 'İşletme Başvurumu Gönder'} onPress={submit} loading={loading} />
             <View style={[styles.secureStrip, { backgroundColor: `${colors.green}0D`, borderColor: `${colors.green}28` }]}><Ionicons name="lock-closed" size={16} color={colors.green} /><Text style={[styles.secureStripText, { color: colors.textMuted }]}>Müşteri motoru yalnız Usta onayı veya güvenli servis doğrulamasıyla işletmeye bağlanır.</Text></View>
