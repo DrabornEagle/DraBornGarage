@@ -1,0 +1,91 @@
+name: DraBornGarage v1.0.1 Source Sync
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event.pull_request.head.ref == 'feature/v1.0.1-expo-fixes' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v1.0.1-expo-fixes
+          fetch-depth: 0
+
+      - name: Synchronize visible v1.0.1 metadata
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import json
+
+          replacements = {
+            'src/screens/AuthScreen.tsx': [
+              ('Eksik veya güvensiz bilgi', 'Eksik bilgi'),
+              ('GARAGE OS • v0.9.0 PİLOT VE PLAY UYUMU', 'GARAGE OS • v1.0.1 EXPO TEST'),
+              ('Güçlü şifre oluştur', 'En az 6 karakter'),
+              ('{PASSWORD_POLICY_SUMMARY} Yaygın ve sızdırılmış şifreler reddedilir.', '{PASSWORD_POLICY_SUMMARY}'),
+            ],
+            'src/notifications/NotificationCenterScreen.tsx': [
+              ('v1.0.0 RC • SESLİ BİLDİRİM MERKEZİ', 'v1.0.1 RC • GÜÇLÜ BİLDİRİM MERKEZİ'),
+            ],
+            'src/screens/SettingsScreen.tsx': [
+              ('v1.0.0 RC • İlk Release APK test süreci', 'v1.0.1 RC • Expo düzeltme testleri'),
+              ('v1.0.0 RC • Release APK Adayı', 'v1.0.1 RC • Expo Test Adayı'),
+              ('10 karakter + karmaşıklık + yaygın şifre engeli', 'En az 6 karakter • basit kayıt şifresi'),
+              ('GitHub Release APK + fiziksel cihaz testleri', 'Expo Go + GitHub kalite testleri'),
+              ('APK testinde • AAB henüz yayınlanmadı', 'Expo testinde • sonraki adım Test APK'),
+              ('backup/v0.9.7-before-v1.0-20260714', 'backup/v1.0.0-rc-before-v1.0.1-20260715'),
+              ('Kod yedeğiyle v0.9.7', 'Kod yedeğiyle v1.0.0 RC'),
+            ],
+            'docs/TERMUX_INSTALL.md': [
+              ('DraBornGarage v1.0.0 RC', 'DraBornGarage v1.0.1 RC'),
+              ('EXPECTED_VERSION="1.0.0"', 'EXPECTED_VERSION="1.0.1"'),
+            ],
+          }
+
+          for filename, pairs in replacements.items():
+            path = Path(filename)
+            text = path.read_text()
+            for old, new in pairs:
+              if old in text:
+                text = text.replace(old, new)
+              elif new not in text:
+                raise SystemExit(f'Beklenen metin bulunamadı: {filename}: {old}')
+            path.write_text(text)
+
+          lock_path = Path('package-lock.json')
+          lock = json.loads(lock_path.read_text())
+          lock['version'] = '1.0.1'
+          lock['packages']['']['version'] = '1.0.1'
+          lock_path.write_text(json.dumps(lock, ensure_ascii=False, indent=2) + '\n')
+
+          readme = Path('README.md')
+          text = readme.read_text()
+          text = text.replace('**v1.0.0 RC — İlk GitHub Release APK Adayı**', '**v1.0.1 RC — Bildirim, Müşteri Hafızası ve Navigasyon Düzeltmeleri**')
+          text = text.replace(
+            'v1.0.0 RC; v0.1–v0.9.7 arasındaki mobil özellikleri ilk kurulabilir GitHub Release APK çıktısında birleştirir. APK fiziksel cihaz testlerinden geçtikten sonra kalıcı Android upload key ve Google Play AAB aşamasına alınacaktır.',
+            'v1.0.1 RC; gerçek bildirimlerin cihaz alanına taşınmasını, güçlü sesleri, kilometreli müşteri/motor servis hafızasını, basit kayıt şifresini ve Android navigasyonuyla çakışmayan alt menüyü Expo üzerinde test eder.'
+          )
+          readme.write_text(text)
+          PY
+
+      - name: Commit synchronized files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json README.md docs/TERMUX_INSTALL.md src/screens/AuthScreen.tsx src/screens/SettingsScreen.tsx src/notifications/NotificationCenterScreen.tsx
+          if git diff --cached --quiet; then
+            echo "Metadata already synchronized."
+            exit 0
+          fi
+          git commit -m "chore(v1.0.1): synchronize visible Expo test metadata"
+          git push origin HEAD:feature/v1.0.1-expo-fixes
