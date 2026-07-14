@@ -84,24 +84,43 @@ jobs:
       - name: Generate clean Android native project
         run: npx expo prebuild --platform android --clean --no-install
 
-      - name: Verify blocked Android permissions
+      - name: Verify blocked-permission removal directives
         shell: bash
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           test -f "$MANIFEST"
           for permission in RECORD_AUDIO ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_CONTACTS WRITE_CONTACTS CALL_PHONE READ_PHONE_STATE READ_SMS SEND_SMS; do
-            if grep -q "android.permission.$permission" "$MANIFEST"; then
-              echo "Blocked permission unexpectedly present: $permission"
+            MATCHES="$(grep "android.permission.$permission" "$MANIFEST" || true)"
+            if [ -n "$MATCHES" ] && echo "$MATCHES" | grep -vq 'tools:node="remove"'; then
+              echo "Blocked permission lacks tools:node=remove directive: $permission"
+              echo "$MATCHES"
               exit 1
             fi
           done
-          echo "Blocked permissions are absent."
+          echo "Blocked permission removal directives are valid."
 
       - name: Android lint and release APK build
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew :app:lintRelease :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Verify merged release manifest permissions
+        shell: bash
+        run: |
+          MERGED_MANIFEST="$(find android/app/build/intermediates -type f -name AndroidManifest.xml | grep -E '/release/' | head -n 1)"
+          if [ -z "$MERGED_MANIFEST" ] || [ ! -f "$MERGED_MANIFEST" ]; then
+            echo "Merged release AndroidManifest.xml bulunamadı."
+            exit 1
+          fi
+          cp "$MERGED_MANIFEST" release-output/AndroidManifest-release.xml
+          for permission in RECORD_AUDIO ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION READ_CONTACTS WRITE_CONTACTS CALL_PHONE READ_PHONE_STATE READ_SMS SEND_SMS; do
+            if grep -q "android.permission.$permission" "$MERGED_MANIFEST"; then
+              echo "Blocked permission is present in merged release manifest: $permission"
+              exit 1
+            fi
+          done
+          echo "Merged release manifest contains no blocked permissions."
 
       - name: Collect and verify APK
         id: apk
