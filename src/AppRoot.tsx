@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { AppShell } from './AppShell';
+import { AppShellV101 } from './AppShellV101';
 import { PremiumBackground } from './components/PremiumBackground';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
@@ -17,8 +17,8 @@ export function AppRoot() {
   }
 
   if (!session) return <AuthScreen />;
-  if (isAdmin) return <AppShell />;
-  if (workshop && membership) return <AppShell />;
+  if (isAdmin) return <AppShellV101 />;
+  if (workshop && membership) return <AppShellV101 />;
   return <CustomerShell />;
 }
 
