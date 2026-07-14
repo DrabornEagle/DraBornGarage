@@ -4,11 +4,19 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v0.9.6 — Servis Akışı, Fiyat ve Bildirim Düzeltmeleri**
+**v0.9.7 — Bugünkü Sıra ve Motor Hazır Ücret Koruması**
 
-v0.9.6; canlı panel sayaçlarını yeniler, fiyat girmeden tamire başlamayı destekler, tahmini fiyatı doğru gösterir, bildirimleri yeniden sıralar ve müşteri servis detayındaki kalkanı kaldırır.
+v0.9.7; Usta Panelindeki Bugünkü Atölye Sırasını yalnız bugünün kayıtlarıyla sınırlar ve tahsil edilecek son net ücret girilmeden Motor Hazır aşamasına geçilmesini engeller.
 
-## v0.9.6 ile tamamlananlar
+## v0.9.7 ile tamamlananlar
+
+- Bugünkü Atölye Sırasında önceki günlerin tamamlanmış işlerinin gösterilmemesi
+- Tamire fiyat girmeden başlanabilmesi
+- Motor Hazır, Tamamlandı ve Teslim Edildi aşamalarından önce final ücret zorunluluğu
+- Ücret eksikse modern uyarı verilmesi ve ücret bölümünün otomatik açılması
+- Uygulama ve Supabase tarafında çift katmanlı ücret koruması
+
+## Önceki v0.9.6 düzeltmeleri
 
 - Usta Paneli Hazır/Tamam sayısının servis hareketlerinde canlı yenilenmesi
 - Hemen Başla seçeneğinde fiyat zorunluluğunun kaldırılması
