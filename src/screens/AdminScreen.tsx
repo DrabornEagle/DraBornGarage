@@ -23,7 +23,7 @@ const roleLabels: Record<MemberRole, string> = {
   apprentice: 'Çırak',
 };
 
-export function AdminScreen() {
+export function AdminScreen({ initialSection = 'management', focusPaymentReportId }: { initialSection?: Section; focusPaymentReportId?: string }) {
   const { colors } = useTheme();
   const {
     workshop,
@@ -33,7 +33,7 @@ export function AdminScreen() {
     createWorkshop,
     refreshWorkspace,
   } = useAuth();
-  const [section, setSection] = useState<Section>('management');
+  const [section, setSection] = useState<Section>(initialSection);
   const [members, setMembers] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [applications, setApplications] = useState<BusinessApplication[]>([]);
@@ -51,6 +51,8 @@ export function AdminScreen() {
   const [editAddress, setEditAddress] = useState(workshop?.address ?? '');
   const [editTaxOffice, setEditTaxOffice] = useState(workshop?.tax_office ?? '');
   const [editTaxNumber, setEditTaxNumber] = useState(workshop?.tax_number ?? '');
+
+  useEffect(() => { setSection(initialSection); }, [initialSection, focusPaymentReportId]);
 
   useEffect(() => {
     setEditName(workshop?.name ?? '');
@@ -208,7 +210,7 @@ export function AdminScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ScreenHeader eyebrow="ADMIN PLATFORM YÖNETİMİ" title="Platform Ödeme Merkezi" subtitle="İşletme bazlı hizmet bedeli, dönem borcu, ödeme bildirimi, dekont ve Admin onayı." />
         <AdminSwitch value={section} onChange={setSection} />
-        <PlatformFeesDashboard />
+        <PlatformFeesDashboard focusPaymentReportId={focusPaymentReportId} />
       </ScrollView>
     );
   }
