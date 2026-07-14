@@ -32,6 +32,7 @@ Müşteri yalnız kendi hesabına onaylı biçimde bağlı servis kaydının IBA
 - Usta kendi Alacak ekranının üst kısmında yalnız kendisine atanmış bekleyen bildirimleri görür.
 - Usta banka hesabını kontrol ederek bildirimi onaylar veya reddeder.
 - Onayda IBAN tahsilatı `payments` tablosuna kaydedilir.
+- Motor Hazır ödemesi `service`, açık veresiye ödemesi `receivable` tahsilat kaynağıyla kaydedilir.
 - Kısmi ödeme kalan borcu azaltır ve alacağı açık bırakır.
 - Tam ödeme kalan borcu sıfırlar ve mevcut finans tetikleyicisi borcu otomatik kapatır.
 - Rette finansal kayıt değişmez.
@@ -56,5 +57,6 @@ DraBornGarage banka hesabına bağlanmaz, kart işlemez, para tutmaz veya kullan
 - Android versionCode: `13`
 - iOS buildNumber: `13`
 - Yedek: `backup/v0.9.3-before-v0.9.4-20260714`
-- Migration: `20260714104039_v0_9_4_customer_payment_confirmation.sql`
+- Ana migration: `20260714104039_v0_9_4_customer_payment_confirmation.sql`
+- Tahsilat kaynağı düzeltmesi: `20260714105549_v0_9_4_payment_report_collection_source_fix.sql`
 - Rollback: `supabase/rollbacks/rollback_v0_9_4_to_v0_9_3.sql`
