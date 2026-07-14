@@ -1,4 +1,4 @@
-# Termux — DraBornGarage v0.9.1 Kurulum
+# Termux — DraBornGarage v0.9.3 Kurulum
 
 ## Temiz güncelleme
 
@@ -10,7 +10,7 @@ set -e
 REPO_URL="https://github.com/DrabornEagle/DraBornGarage.git"
 APP_DIR="$HOME/DraBornGarage"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
-EXPECTED_VERSION="0.9.1"
+EXPECTED_VERSION="0.9.3"
 
 pkg update -y
 pkg install -y git nodejs-lts
@@ -20,10 +20,12 @@ if [ -f "$APP_DIR/.env" ]; then
   cp "$APP_DIR/.env" "$ENV_BACKUP"
 fi
 
-rm -rf "$APP_DIR"
-git clone --branch main --single-branch "$REPO_URL" "$APP_DIR"
-cd "$APP_DIR"
+if [ ! -d "$APP_DIR/.git" ]; then
+  rm -rf "$APP_DIR"
+  git clone --branch main --single-branch "$REPO_URL" "$APP_DIR"
+fi
 
+cd "$APP_DIR"
 git fetch origin --prune --tags
 git checkout -f main
 git reset --hard origin/main
@@ -67,6 +69,17 @@ npm run test:bundle
 
 Bu komut Expo'nun Hermes masaüstü derleyicisini kullanır. Termux Android host platformu desteklenmediği için hata verir. Android bundle kontrolü GitHub Actions üzerinde otomatik çalıştırılır.
 
+## Motor Hazır IBAN testi
+
+1. Usta veya İşletme Sahibi + Usta hesabıyla giriş yap.
+2. Ayarlar → **Motor Hazır IBAN** bölümünü aç.
+3. Banka adı, hesap sahibi ve TR IBAN bilgisini gir.
+4. **Müşteriye göster** seçeneğini aç ve kaydet.
+5. Ustaya atanmış bir servisi **Motor Hazır** durumuna al.
+6. Bağlı müşteri hesabında Servisler → ilgili motor detayını aç.
+7. Motor Hazır IBAN kartında Usta, banka, hesap sahibi ve IBAN görünmelidir.
+8. Servis başka duruma alındığında kart görünmemelidir.
+
 ## Bildirim sesi testi
 
 Expo Go içinde:
@@ -86,7 +99,7 @@ Expo Go'da yerel bildirim testi çalışır. Uygulama tamamen kapalıyken uzakta
 EXPO_PUBLIC_EAS_PROJECT_ID=EAS_PROJE_KIMLIGI
 ```
 
-Ardından EAS hesabıyla:
+Ardından:
 
 ```bash
 cd "$HOME/DraBornGarage"
@@ -95,8 +108,6 @@ npx eas-cli build:configure
 npx eas-cli build --platform android --profile preview
 ```
 
-Bu işlem özel WAV seslerini içeren test APK'sı üretir. APK fiziksel telefona kurulduktan sonra uygulama kapalıyken push testi yapılır.
-
 ## Production AAB
 
 ```bash
@@ -104,15 +115,13 @@ cd "$HOME/DraBornGarage"
 npx eas-cli build --platform android --profile production
 ```
 
-Production çıktısı Google Play'e yüklenecek AAB dosyasıdır.
-
-## v0.9.0'a kod geri dönüşü
+## v0.9.2'ye kod geri dönüşü
 
 ```bash
 set -e
 
 APP_DIR="$HOME/DraBornGarage"
-TARGET_SHA="3d592a00aaab01a726bbd5333273c1b07f2b4005"
+TARGET_SHA="8f2a5155bc5374f35dcbd098f3b46544bbcad852"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
 
 pkg update -y
@@ -142,10 +151,8 @@ npx expo start -c --go
 
 ## Supabase geri dönüşü
 
-v0.9.1 ses ve push altyapısını kaldırmak için:
+Kod geri dönüşü canlı veritabanını otomatik değiştirmez. Motor Hazır IBAN sütunlarını ve RPC'lerini de kaldırmak için:
 
 ```text
-supabase/rollbacks/rollback_v0_9_1_to_v0_9_0.sql
+supabase/rollbacks/rollback_v0_9_3_to_v0_9_2.sql
 ```
-
-Bu rollback v0.9 gizlilik ve hesap silme altyapısını korur; yalnız v0.9.1 push tokenı, ses tercihi ve dağıtım nesnelerini kaldırır.
