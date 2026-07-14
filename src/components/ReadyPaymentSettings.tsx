@@ -28,7 +28,7 @@ export function ReadyPaymentSettings() {
   const { colors } = useTheme();
   const { workshop, membership, profile } = useAuth();
   const canConfigure = membership?.role === 'mechanic' || membership?.role === 'owner_mechanic';
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(true);
   const [bankName, setBankName] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
   const [iban, setIban] = useState('');
@@ -45,7 +45,7 @@ export function ReadyPaymentSettings() {
       return;
     }
     const payload = (data as ReadyPaymentSettingsPayload | null) ?? {};
-    setEnabled(Boolean(payload.enabled));
+    setEnabled(payload.enabled !== false);
     setBankName(payload.bank_name ?? '');
     setAccountHolder(payload.account_holder ?? profile?.full_name ?? '');
     setIban(payload.iban ?? '');
@@ -76,12 +76,12 @@ export function ReadyPaymentSettings() {
       return;
     }
     const payload = (data as ReadyPaymentSettingsPayload | null) ?? {};
-    setEnabled(Boolean(payload.enabled));
+    setEnabled(payload.enabled !== false);
     setBankName(payload.bank_name ?? '');
     setAccountHolder(payload.account_holder ?? '');
     setIban(payload.iban ?? '');
     Alert.alert('Kaydedildi', enabled
-      ? 'Motor Hazır durumundaki müşteriler bu IBAN bilgisini servis detayında görebilecek.'
+      ? 'IBAN bilgisi Motor Hazır servislerinde ve açık veresiye borçlarında müşteriye gösterilecek.'
       : 'IBAN bilgisi müşterilere gösterilmeyecek.');
   };
 
@@ -92,8 +92,8 @@ export function ReadyPaymentSettings() {
           <Ionicons name="card" size={27} color={colors.green} />
         </View>
         <View style={styles.copy}>
-          <Text style={[styles.title, { color: colors.text }]}>Motor Hazır IBAN Bilgisi</Text>
-          <Text style={[styles.body, { color: colors.textMuted }]}>Yalnız sana atanmış servis Motor Hazır olduğunda müşteriye gösterilir. DraBornGarage para transferi yapmaz ve banka hesabına bağlanmaz.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>IBAN Ayarları</Text>
+          <Text style={[styles.body, { color: colors.textMuted }]}>Sana atanmış servis Motor Hazır olduğunda veya müşterinin açık veresiye borcu bulunduğunda gösterilir. Müşteri ödeme yaptıktan sonra Usta onayı için bildirim gönderebilir.</Text>
         </View>
       </GlassCard>
 
@@ -108,9 +108,10 @@ export function ReadyPaymentSettings() {
         </View>
         <View style={styles.copy}>
           <Text style={[styles.toggleTitle, { color: colors.text }]}>Müşteriye göster</Text>
-          <Text style={[styles.toggleText, { color: colors.textMuted }]}>{enabled ? 'Motor Hazır servislerinde aktif' : 'IBAN müşterilerden gizli'}</Text>
+          <Text style={[styles.toggleText, { color: colors.textMuted }]}>{enabled ? 'Motor Hazır ve açık veresiye servislerinde aktif' : 'IBAN müşterilerden gizli'}</Text>
         </View>
-        <View style={[styles.switchTrack, { backgroundColor: enabled ? colors.green : colors.surfaceSoft, borderColor: enabled ? colors.green : colors.border }]}>
+        <View style={[styles.switchTrack, { backgroundColor: enabled ? colors.green : colors.surfaceSoft, borderColor: enabled ? colors.green : colors.border }]}
+        >
           <View style={[styles.switchThumb, { backgroundColor: '#fff', transform: [{ translateX: enabled ? 18 : 0 }] }]} />
         </View>
       </AnimatedPressable>
@@ -121,7 +122,7 @@ export function ReadyPaymentSettings() {
         <FormField label="IBAN" value={displayIban(iban)} onChangeText={(value) => setIban(normalizeIban(value))} placeholder="TR00 0000 0000 0000 0000 0000 00" autoCapitalize="characters" maxLength={32} />
         <View style={[styles.notice, { backgroundColor: `${colors.cyan}0D`, borderColor: `${colors.cyan}32` }]}>
           <Ionicons name="information-circle" size={20} color={colors.cyan} />
-          <Text style={[styles.noticeText, { color: colors.textMuted }]}>Müşteri transferi kendi banka uygulamasından yapar. DraBornGarage kart işlemez, para tutmaz ve otomatik ödeme göndermez.</Text>
+          <Text style={[styles.noticeText, { color: colors.textMuted }]}>Müşteri transferi kendi banka uygulamasından yapar. “Ödemeyi Yaptım” bildirimi yalnız Ustaya kontrol talebi gönderir; tahsilat Usta onayından sonra kaydedilir.</Text>
         </View>
         <PrimaryButton title="IBAN Ayarlarını Kaydet" onPress={save} loading={saving || loading} />
       </GlassCard>

@@ -4,24 +4,23 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v0.9.3 — Motor Hazır IBAN ve Görsel Düzeltmeler**
+**v0.9.4 — IBAN Ödeme Bildirimi ve Usta Onayı**
 
-v0.9.3; güncel sürüm etiketlerini eşitler, Gizlilik ve Hesap kalkanını büyütür ve Motor Hazır durumunda müşteriye yalnız görüntüleme amaçlı Usta IBAN bilgisini gösterir. Uygulama ödeme işlemez, para tutmaz veya banka hesabına bağlanmaz.
+v0.9.4; Usta IBAN görünürlüğünü varsayılan aktif yapar, IBAN bilgisini Motor Hazır servislerine ek olarak açık veresiye borçlarında da gösterir ve müşterinin yaptığı transferi atanmış Ustanın onayına göndermesini sağlar. Borç yalnız Usta ödemeyi onayladıktan sonra güncellenir.
 
-## v0.9.3 ile tamamlananlar
+## v0.9.4 ile tamamlananlar
 
-- Ayarlar ekranındaki sağ üst bildirim zilinin kaldırılması
-- Gizlilik ve Hesap kalkanının yalnız Takvim ile Ayarlar/Hesabım ekranında gösterilmesi
-- Kalkan simgesinin sağ üst köşeye taşınması
-- Takvim, Randevu Ekle ve Çalışma Saatleri için modern açıklamalı kartlar
-- Garage Chime, Garage Pulse, Garage Alert ve Sessiz bildirim seçenekleri
-- Bildirim Merkezi ayarlarından ses seçimi ve test bildirimi
-- Android bildirim kanalları ve native WAV ses paketleri
-- Expo push token kaydı ve Supabase push dağıtım altyapısı
-- İşletmeden ödeme geldi bildiriminin güçlü biçimde vurgulanması
-- Bildirimden doğru işletmeye ve ilgili Admin ödeme onay kartına yönlendirme
-- Google Play Auto & Vehicles konumlandırması
-- Uygulamanın finansal hizmet veya ödeme kuruluşu olmadığının açık biçimde belgelenmesi
+- “Motor Hazır IBAN” başlığının “IBAN Ayarları” olarak değiştirilmesi
+- Usta ve İşletme Sahibi + Usta hesaplarında müşteri görünürlüğünün varsayılan aktif olması
+- Motor Hazır veya açık veresiye kaydında atanmış Usta IBAN bilgisinin gösterilmesi
+- Müşterinin tutar ve notla “Ödemeyi Yaptım” bildirimi göndermesi
+- Bekleyen ödeme bildiriminin Ustanın Alacak ekranında gösterilmesi
+- Yalnız atanmış Ustanın onay veya ret verebilmesi
+- Usta onayı olmadan tahsilat ve borç değişikliği yapılmaması
+- Tam onaylı ödemede borcun otomatik kapanması, kısmi ödemede kalan tutarın güncellenmesi
+- Müşteriye onay veya ret sonucu bildirimi gönderilmesi
+- Çift onay, fazla tutar ve aynı anda birden fazla bekleyen bildirim koruması
+- Google Play finansal hizmet sınırının korunması: uygulama para tutmaz veya transfer başlatmaz
 
 ## Ana modüller
 

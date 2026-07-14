@@ -86,6 +86,12 @@ export function AppShell() {
     if (!navigationTarget) return;
     const target = navigationTarget.targetTab ? STAFF_NOTIFICATION_TAB_MAP[navigationTarget.targetTab] : undefined;
     if (target) {
+      if (target === 'receivables' && navigationTarget.targetSection === 'payment_reports' && isOwnerMechanic) {
+        setStaffPanelMode('mechanic');
+        setTab('receivables');
+        consumeNavigationTarget();
+        return;
+      }
       const allowedForApprentice = !isApprentice || target === 'home' || target === 'orders' || target === 'settings';
       const allowedForBusiness = !businessRestricted || target === 'home' || target === 'team' || target === 'settings';
 
@@ -114,7 +120,7 @@ export function AppShell() {
       setTab(allowedForApprentice && allowedForBusiness ? target : isAdmin ? 'team' : 'home');
     }
     consumeNavigationTarget();
-  }, [navigationTarget, consumeNavigationTarget, isApprentice, businessRestricted, isAdmin, workshop?.id, selectWorkshop]);
+  }, [navigationTarget, consumeNavigationTarget, isApprentice, businessRestricted, isAdmin, isOwnerMechanic, workshop?.id, selectWorkshop]);
 
   const screen = tab === 'home'
     ? <HomeScreen onNewOrder={openNew} onOpenOrders={openOrders} panelMode={staffPanelMode} onPanelModeChange={setStaffPanelMode} />

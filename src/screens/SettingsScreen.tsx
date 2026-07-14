@@ -108,7 +108,7 @@ export function SettingsScreen() {
       <GlassCard style={styles.info}><Info icon="business" label="İşletme" value={workshop?.name || '-'} /><Info icon="calendar" label="Randevu sistemi" value={workshop?.appointments_enabled === false ? 'Kapalı' : 'Açık'} /><Info icon="checkmark-done" label="Müşteri talebi" value={workshop?.appointment_auto_confirm ? 'Otomatik onay' : 'Usta onayı'} /><Info icon="today" label="Rezervasyon ufku" value={`${workshop?.appointment_booking_days ?? 30} gün`} /><Info icon="time" label="Minimum bildirim" value={`${workshop?.appointment_min_notice_minutes ?? 60} dakika`} /></GlassCard>
     </SettingsAccordion>
 
-    {canConfigureReadyPayment && <SettingsAccordion title="Motor Hazır IBAN" subtitle="Müşteriye gösterilecek Usta ödeme bilgisi" icon="card" accent={colors.green} open={openSection === 'payment'} onToggle={() => toggleSection('payment')}>
+    {canConfigureReadyPayment && <SettingsAccordion title="IBAN Ayarları" subtitle="Motor Hazır ve açık veresiye ödemeleri" icon="card" accent={colors.green} open={openSection === 'payment'} onToggle={() => toggleSection('payment')}>
       <ReadyPaymentSettings />
     </SettingsAccordion>}
 
@@ -118,8 +118,8 @@ export function SettingsScreen() {
       <PrimaryButton title="Gizlilik Politikasını Aç" onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} secondary />
     </SettingsAccordion>
 
-    <SettingsAccordion title="Uygulama" subtitle="v0.9.3 • Motor Hazır IBAN ve görsel düzeltmeler" icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
-      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v0.9.3 • Motor Hazır IBAN ve Görsel Düzeltmeler" /><Info icon="shield-checkmark" label="Gizlilik" value="Uygulama içi politika + hesap silme talebi" /><Info icon="key" label="Şifre güvenliği" value="10 karakter + karmaşıklık + yaygın şifre engeli" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v0.9.2-before-v0.9.3-20260714" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v0.9.2" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + Android bundle + pilot checklist" /><Info icon="storefront" label="Mağaza durumu" value="Auto & Vehicles • finansal hizmet değildir" /></GlassCard>
+    <SettingsAccordion title="Uygulama" subtitle="v0.9.4 • IBAN ödeme bildirimi ve Usta onayı" icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
+      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v0.9.4 • IBAN Ödeme Bildirimi ve Usta Onayı" /><Info icon="shield-checkmark" label="Gizlilik" value="Uygulama içi politika + hesap silme talebi" /><Info icon="key" label="Şifre güvenliği" value="10 karakter + karmaşıklık + yaygın şifre engeli" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v0.9.3-before-v0.9.4-20260714" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v0.9.3" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + Android bundle + pilot checklist" /><Info icon="storefront" label="Mağaza durumu" value="Auto & Vehicles • finansal hizmet değildir" /></GlassCard>
     </SettingsAccordion>
 
     <AnimatedPressable onPress={() => Alert.alert('Çıkış yapılsın mı?', '', [{ text: 'Vazgeç' }, { text: 'Çıkış', style: 'destructive', onPress: signOut }])} style={[styles.logout, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}35` }]}><Ionicons name="log-out-outline" size={21} color={colors.red} /><Text style={[styles.logoutText, { color: colors.red }]}>Hesaptan Çıkış Yap</Text></AnimatedPressable>

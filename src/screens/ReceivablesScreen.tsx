@@ -7,6 +7,7 @@ import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { CustomerPaymentReportInbox } from './CustomerPaymentReportInbox';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
@@ -117,6 +118,9 @@ const EVENT_LABELS: Record<string, string> = {
   customer_note_added: 'Müşteri notu eklendi',
   staff_note_added: 'Personel notu eklendi',
   reminder_created: 'Müşteri hatırlatması oluşturuldu',
+  customer_payment_reported: 'Müşteri ödeme yaptığını bildirdi',
+  customer_payment_report_approved: 'Müşteri ödeme bildirimi onaylandı',
+  customer_payment_report_rejected: 'Müşteri ödeme bildirimi reddedildi',
   demo_receivable_ready: 'Demo alacak kaydı hazırlandı',
 };
 
@@ -181,6 +185,8 @@ export function ReceivablesScreen() {
       <View><Text style={styles.heroLabel}>AÇIK ALACAK</Text><Text style={styles.heroValue}>{money(summary.open_amount)}</Text><Text style={styles.heroMeta}>{summary.open_count} açık kayıt</Text></View>
       <View style={styles.heroRight}><View style={styles.heroIcon}><Ionicons name="wallet" size={27} color="#fff" /></View><Text style={styles.heroSmall}>Geciken {money(summary.overdue_amount)}</Text></View>
     </LinearGradient>
+
+    <CustomerPaymentReportInbox />
 
     <View style={styles.summaryRow}>
       <SummaryCard label="Bugün" value={String(summary.today_count)} icon="today" accent={colors.orange} />

@@ -3,7 +3,7 @@
     "name": "DraBornGarage",
     "slug": "draborngarage",
     "scheme": "draborngarage",
-    "version": "0.9.3",
+    "version": "0.9.4",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -39,11 +39,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.draborneagle.draborngarage",
-      "buildNumber": "12"
+      "buildNumber": "13"
     },
     "android": {
       "package": "com.draborneagle.draborngarage",
-      "versionCode": 12,
+      "versionCode": 13,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": [
