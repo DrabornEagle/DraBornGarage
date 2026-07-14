@@ -1,0 +1,32 @@
+name: Apply v0.9.4 Notification Routing
+
+on:
+  push:
+    branches:
+      - feature/v0.9.4-customer-payment-confirmation
+    paths:
+      - scripts/apply-v094-notification-routing.mjs
+      - .github/workflows/apply-v094-notification-routing.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v0.9.4-customer-payment-confirmation
+          fetch-depth: 0
+      - run: node scripts/apply-v094-notification-routing.mjs
+      - run: |
+          git config user.name "DrabornEagle CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/AppShell.tsx
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "fix: ödeme bildiriminden Usta Alacak ekranına yönlendir"
+            git push origin HEAD:feature/v0.9.4-customer-payment-confirmation
+          fi
