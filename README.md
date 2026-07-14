@@ -1,29 +1,27 @@
 # DraBornGarage
 
-Motosiklet ve oto tamir işletmeleri için çok işletmeli, rol tabanlı servis, müşteri, randevu, ek işlem onayı, alacak, raporlama, platform hizmet bedeli ve bildirim sistemi.
+Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis, müşteri, randevu, araç, ek işlem onayı, alacak, raporlama, platform hizmet bedeli ve bildirim sistemi.
 
 ## Güncel sürüm
 
-**v0.9.0 — Google Play Uyum, Test ve Pilot**
+**v0.9.1 — Takvim, Bildirim Sesi, Push ve Ödeme Odağı**
 
-v0.9.0; uygulama içi gizlilik ve hesap silme merkezini, hesap silme talep altyapısını, güçlü parola kontrolünü, rol erişim denetimini, gereksiz Android izin engellerini, pilot test paketini ve Google Play kapalı test belgelerini tamamlar.
+v0.9.1; v0.9.0 gizlilik ve pilot altyapısına modern Takvim/Müsaitlik kartları, seçilebilir özel bildirim sesleri, native kapalı uygulama push hazırlığı ve işletme ödemesinden doğrudan Admin onay kartına yönlendirme ekler.
 
-## v0.9.0 ile tamamlananlar
+## v0.9.1 ile tamamlananlar
 
-- Uygulamadaki bütün oturum açmış roller için Gizlilik ve Hesap merkezi
-- Hesap silme talebi oluşturma, durum görüntüleme ve iptal etme
-- Admin silme talepleri listeleme ve durum güncelleme RPC'leri
-- RLS korumalı `account_deletion_requests` tablosu
-- Güçlü parola: en az 10 karakter, karmaşıklık ve yaygın/sızdırılmış parola engeli
-- Anonim erişime açık hassas `SECURITY DEFINER` yardımcılarının kapatılması
-- Oturum bazlı rol erişim denetimi
-- Kamera, fotoğraf ve bildirim izinlerinin amaçla sınırlandırılması
-- Konum, mikrofon, rehber, SMS ve arama izinlerinin Android'de engellenmesi
-- Hızlı servis, randevu, alacak, platform ve bildirim için pilot test merkezi
-- TypeScript ve Android bundle GitHub Actions kalite kapısı
-- Gizlilik politikası, hesap silme sayfası ve Play Veri Güvenliği taslağı
-- Türkçe Google Play mağaza metinleri ve kapalı test planı
-- v0.8.16 kod yedeği ve v0.9 veritabanı rollback dosyası
+- Ayarlar ekranındaki sağ üst bildirim zilinin kaldırılması
+- Gizlilik ve Hesap kalkanının yalnız Takvim ile Ayarlar/Hesabım ekranında gösterilmesi
+- Kalkan simgesinin sağ üst köşeye taşınması
+- Takvim, Randevu Ekle ve Çalışma Saatleri için modern açıklamalı kartlar
+- Garage Chime, Garage Pulse, Garage Alert ve Sessiz bildirim seçenekleri
+- Bildirim Merkezi ayarlarından ses seçimi ve test bildirimi
+- Android bildirim kanalları ve native WAV ses paketleri
+- Expo push token kaydı ve Supabase push dağıtım altyapısı
+- İşletmeden ödeme geldi bildiriminin güçlü biçimde vurgulanması
+- Bildirimden doğru işletmeye ve ilgili Admin ödeme onay kartına yönlendirme
+- Google Play Auto & Vehicles konumlandırması
+- Uygulamanın finansal hizmet veya ödeme kuruluşu olmadığının açık biçimde belgelenmesi
 
 ## Ana modüller
 
@@ -33,8 +31,8 @@ v0.9.0; uygulama içi gizlilik ve hesap silme merkezini, hesap silme talep altya
 - Çok işletmeli güvenli veri ayrımı
 - Müşteri, motosiklet ve servis kayıtları
 - Hızlı Servis, Bırakılan Motor ve Randevulu Servis
-- Günlük atölye sırası
-- Net/tahmini fiyat, Nakit/IBAN tahsilatı
+- Günlük atölye sırası ve servis durumları
+- Net/tahmini fiyat, Nakit/IBAN tahsilat kaydı
 - Yapılan işlemler ve kullanılan parçalar
 
 ### Müşteri Hesabı ve Motor Eşleştirme
@@ -46,6 +44,7 @@ v0.9.0; uygulama içi gizlilik ve hesap silme merkezini, hesap silme talep altya
 
 ### Randevu ve Usta Takvimi
 
+- Modern Takvim / Randevu Ekle / Çalışma Saatleri merkezi
 - Usta çalışma saatleri, mola ve slot süresi
 - Müsait / Meşgul / Kapalı
 - Çakışmasız müsait saat motoru
@@ -84,8 +83,8 @@ v0.9.0; uygulama içi gizlilik ve hesap silme merkezini, hesap silme talep altya
 - Dönemlik ve devreden borç
 - İşletme Sahibi ödeme bildirimi
 - Admin onayı veya reddi
-- Banka/IBAN bilgileri
-- Opsiyonel private dekont yükleme
+- Ödeme bildirimi üzerinden doğrudan ilgili onay kartına geçiş
+- Banka/IBAN bilgileri ve opsiyonel private dekont
 
 ### Bildirimler
 
@@ -95,7 +94,8 @@ v0.9.0; uygulama içi gizlilik ve hesap silme merkezini, hesap silme talep altya
 - Servis, ek işlem, randevu, alacak ve platform bildirimleri
 - 24 saat ve 2 saat randevu hatırlatmaları
 - Kullanıcıya özel bildirim tercihleri
-- Expo yerel telefon bildirimleri
+- Seçilebilir özel bildirim sesleri
+- Yerel bildirimler ve native build üzerinde uzaktan push
 - Okuma, toplu okuma ve arşivleme
 
 > Sistem Usta maaşı, prim, komisyon, net kâr, ortaklık payı veya kazanç bölüşümü hesaplamaz.
@@ -117,26 +117,41 @@ npm run test:bundle
 npm run test:release
 ```
 
+`npm run test:bundle` masaüstü/GitHub Actions ortamında çalıştırılır. Termux Android üzerinde Hermes host derleyicisi desteklenmediği için Expo Go açılışında yalnız `npm run typecheck` kullanılır.
+
+## Native push ve özel ses
+
+Expo Go, Android uzaktan push bildirimi ve paketlenmiş özel ses için yeterli değildir. Native test:
+
+```bash
+npx eas-cli build --platform android --profile preview
+```
+
+Production AAB:
+
+```bash
+npx eas-cli build --platform android --profile production
+```
+
+EAS proje kimliği `.env` içinde `EXPO_PUBLIC_EAS_PROJECT_ID` olarak tanımlanır.
+
 ## Yedek ve geri dönüş
 
-- **Kurulan sürüm:** `v0.9.0`
-- **Yedeklenen sürüm:** `v0.8.16`
-- **Kod yedeği:** `backup/v0.8.16-before-v0.9-20260714`
-- **Veritabanı migration:** [`supabase/migrations/20260714002755_v0_9_privacy_account_deletion_security.sql`](supabase/migrations/20260714002755_v0_9_privacy_account_deletion_security.sql)
-- **Veritabanı rollback:** [`supabase/rollbacks/rollback_v0_9_0_to_v0_8_16.sql`](supabase/rollbacks/rollback_v0_9_0_to_v0_8_16.sql)
-- **Termux kurulumu:** [`docs/TERMUX_INSTALL.md`](docs/TERMUX_INSTALL.md)
+- **Kurulan sürüm:** `v0.9.1`
+- **Yedeklenen sürüm:** `v0.9.0`
+- **Kod yedeği:** `backup/v0.9.0-before-v0.9.1-20260714`
+- **v0.9 gizlilik migration:** `supabase/migrations/20260714002755_v0_9_privacy_account_deletion_security.sql`
+- **v0.9.1 ses/push migration:** `supabase/migrations/20260714090000_v0_9_1_push_sounds_payment_focus.sql`
+- **Termux kurulumu:** `docs/TERMUX_INSTALL.md`
 
-## v0.9 belgeleri
+## v0.9.1 belgeleri
 
-- [`docs/V0.9_CHECKLIST.md`](docs/V0.9_CHECKLIST.md)
-- [`docs/V0.9_PILOT_TEST_CHECKLIST.md`](docs/V0.9_PILOT_TEST_CHECKLIST.md)
-- [`docs/V0.9_ROLE_ACCESS_AUDIT.md`](docs/V0.9_ROLE_ACCESS_AUDIT.md)
-- [`docs/PRIVACY_POLICY.md`](docs/PRIVACY_POLICY.md)
-- [`docs/ACCOUNT_DELETION.md`](docs/ACCOUNT_DELETION.md)
-- [`docs/GOOGLE_PLAY_DATA_SAFETY.md`](docs/GOOGLE_PLAY_DATA_SAFETY.md)
-- [`docs/GOOGLE_PLAY_LISTING_TR.md`](docs/GOOGLE_PLAY_LISTING_TR.md)
-- [`docs/GOOGLE_PLAY_CLOSED_TEST.md`](docs/GOOGLE_PLAY_CLOSED_TEST.md)
-- [`docs/CHANGELOG_V0.9.0.md`](docs/CHANGELOG_V0.9.0.md)
-- [`docs/ROADMAP.md`](docs/ROADMAP.md)
+- `docs/CHANGELOG_V0.9.1.md`
+- `docs/V0.9.1_IMPLEMENTATION.md`
+- `docs/GOOGLE_PLAY_LISTING_TR.md`
+- `docs/GOOGLE_PLAY_ACCOUNT_POSITIONING.md`
+- `docs/GOOGLE_PLAY_DATA_SAFETY.md`
+- `docs/PRIVACY_POLICY.md`
+- `docs/ACCOUNT_DELETION.md`
 
-v0.9 kapalı test ve pilot sürümüdür. AAB üretimi ve Play Console'a fiili yükleme v1.0 yayın adımıdır.
+v0.9.1 kapalı test ve pilot yamasıdır. Google Play Console yüklemesi ve gerçek cihaz kapalı test kabulü v1.0 yayın kapısında yürütülür.
