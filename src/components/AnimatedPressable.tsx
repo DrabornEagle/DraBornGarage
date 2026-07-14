@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import React, { useRef } from 'react';
-import { AccessibilityRole, Animated, Pressable, StyleProp, ViewStyle } from 'react-native';
+import { AccessibilityRole, AccessibilityState, Animated, Pressable, StyleProp, ViewStyle } from 'react-native';
 
 const NativeAnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -11,6 +11,7 @@ export function AnimatedPressable({
   disabled,
   accessibilityRole,
   accessibilityLabel,
+  accessibilityState,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
@@ -18,6 +19,7 @@ export function AnimatedPressable({
   disabled?: boolean;
   accessibilityRole?: AccessibilityRole;
   accessibilityLabel?: string;
+  accessibilityState?: AccessibilityState;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const animate = (value: number) =>
@@ -28,7 +30,7 @@ export function AnimatedPressable({
       disabled={disabled}
       accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled: Boolean(disabled) }}
+      accessibilityState={{ ...accessibilityState, disabled: Boolean(disabled) }}
       onPressIn={() => animate(0.97)}
       onPressOut={() => animate(1)}
       onPress={() => {
