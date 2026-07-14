@@ -1,0 +1,42 @@
+name: Fix v0.9.1 Settings Copy
+
+on:
+  push:
+    branches: ["feature/v0.9.1-navigation-sounds-payment-push"]
+    paths: [".github/workflows/fix-v091-settings-copy.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-copy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v0.9.1-navigation-sounds-payment-push
+          fetch-depth: 0
+      - run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/screens/SettingsScreen.tsx')
+          content = path.read_text()
+          replacements = {
+            'Sol üstteki kalkan ile talep oluşturma': 'Sağ üstteki kalkan ile talep oluşturma',
+            'subtitle="v0.9.0 • Google Play uyum ve pilot"': 'subtitle="v0.9.1 • Ses, push ve ödeme odağı"',
+            'value="v0.9.0 • Google Play Uyum, Test ve Pilot"': 'value="v0.9.1 • Takvim, Sesli Bildirim ve Ödeme Odağı"',
+            'value="backup/v0.8.16-before-v0.9-20260714"': 'value="backup/v0.9.0-before-v0.9.1-20260714"',
+            'value="Kod ve veritabanıyla v0.8.16"': 'value="Kod ve veritabanıyla v0.9.0"',
+          }
+          for old, new in replacements.items():
+            if old not in content:
+              raise SystemExit(f'Missing Settings text: {old}')
+            content = content.replace(old, new, 1)
+          path.write_text(content)
+          PY
+          rm -f .github/workflows/fix-v091-settings-copy.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/screens/SettingsScreen.tsx .github/workflows/fix-v091-settings-copy.yml
+          git commit -m "chore(v0.9.1): update Settings release information"
+          git push origin HEAD:feature/v0.9.1-navigation-sounds-payment-push
