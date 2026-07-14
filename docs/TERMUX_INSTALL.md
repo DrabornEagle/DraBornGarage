@@ -1,4 +1,4 @@
-# Termux — DraBornGarage v0.9.4 Kurulum
+# Termux — DraBornGarage v0.9.5 Kurulum
 
 ## Temiz güncelleme
 
@@ -10,7 +10,7 @@ set -e
 REPO_URL="https://github.com/DrabornEagle/DraBornGarage.git"
 APP_DIR="$HOME/DraBornGarage"
 ENV_BACKUP="$HOME/.draborngarage-env-backup"
-EXPECTED_VERSION="0.9.4"
+EXPECTED_VERSION="0.9.5"
 
 pkg update -y
 pkg install -y git nodejs-lts
@@ -83,6 +83,15 @@ Bu komut Expo'nun Hermes masaüstü derleyicisini kullanır. Termux Android host
 10. Usta hesabında Alacak ekranını aç ve bekleyen bildirimi onayla.
 11. Kısmi ödemede kalan tutarın azaldığını; tam ödemede borcun kapandığını doğrula.
 12. Ret senaryosunda müşterinin borcunun değişmediğini doğrula.
+
+## Usta rapor tutarlılığı testi
+
+1. Aynı Ustaya atanmış iki motoru Motor Hazır veya Teslim Edildi durumuna getir.
+2. İşlerden birinde ayrıntılı işlem satırı olmasın; diğerinde işlem satırı tamamlanmadan motoru hazır yap.
+3. **Usta Panelim** günlük kayıtlı tutarını kontrol et.
+4. **Merkez → Usta Raporu** ekranında tamamlanan iş sayısı ve kayıtlı tutarı kontrol et.
+5. **Merkez → İşletme Raporu → Usta Bazlı İş ve Tutar** değerleriyle karşılaştır.
+6. Üç ekranın aynı işçilik tutarını göstermesi; işlem satırı olmayan tamamlanmış işin de bir iş olarak sayılması gerekir.
 
 ## Bildirim sesi testi
 
