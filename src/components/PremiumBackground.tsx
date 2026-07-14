@@ -5,8 +5,6 @@ import { Animated, Dimensions, StyleSheet, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeMode } from '../types';
 
-const HORIZONTAL_GRID = Array.from({ length: 10 });
-const VERTICAL_GRID = Array.from({ length: 7 });
 const WARNING_BLOCKS = Array.from({ length: 18 });
 
 function themeGradient(mode: ThemeMode, resolvedMode: 'light' | 'dark'): [string, string, string, string] {
@@ -79,15 +77,6 @@ export function PremiumBackground({ children }: { children: React.ReactNode }) {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}> 
       <LinearGradient colors={gradient} locations={[0, 0.38, 0.72, 1]} style={StyleSheet.absoluteFill} />
-
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: resolvedMode === 'dark' ? 0.18 : 0.1 }]}> 
-        {HORIZONTAL_GRID.map((_, index) => (
-          <View key={`h-${index}`} style={[styles.gridHorizontal, { top: index * (height / 9), backgroundColor: colors.textMuted }]} />
-        ))}
-        {VERTICAL_GRID.map((_, index) => (
-          <View key={`v-${index}`} style={[styles.gridVertical, { left: index * (width / 6), backgroundColor: colors.textMuted }]} />
-        ))}
-      </View>
 
       <View pointerEvents="none" style={styles.warningRail}>
         {WARNING_BLOCKS.map((_, index) => (
@@ -170,8 +159,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden' },
   orb: { position: 'absolute', borderRadius: 999, top: -220, right: -195 },
   orbTwo: { position: 'absolute', borderRadius: 999, bottom: -190, left: -155 },
-  gridHorizontal: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth },
-  gridVertical: { position: 'absolute', top: 0, bottom: 0, width: StyleSheet.hairlineWidth },
   warningRail: { position: 'absolute', top: 0, left: 0, right: 0, height: 7, flexDirection: 'row', overflow: 'hidden', opacity: 0.72 },
   warningBlock: { flex: 1, height: 16, transform: [{ skewX: '-28deg' }], marginHorizontal: 1 },
   gearLarge: { position: 'absolute', right: -78, top: 92 },

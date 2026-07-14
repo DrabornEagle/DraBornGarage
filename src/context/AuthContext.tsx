@@ -7,6 +7,12 @@ import { AccountMode, BusinessApplication, BusinessRegistrationData, CustomerReg
 const ACTIVE_WORKSHOP_KEY = '@draborngarage/active-workshop';
 const ACTIVE_CUSTOMER_WORKSHOP_KEY = '@draborngarage/customer-active-workshop';
 
+type ExtendedBusinessRegistrationData = BusinessRegistrationData & {
+  join_existing_workshop?: boolean;
+  existing_workshop_id?: string | null;
+  request_mechanic_panel?: boolean;
+};
+
 interface AuthContextValue {
   session: Session | null;
   profile: Profile | null;
@@ -22,7 +28,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (fullName: string, phone: string, email: string, password: string, accountMode?: AccountMode, customerMotor?: CustomerRegistrationMotor, businessRegistration?: BusinessRegistrationData) => Promise<string | null>;
+  signUp: (fullName: string, phone: string, email: string, password: string, accountMode?: AccountMode, customerMotor?: CustomerRegistrationMotor, businessRegistration?: ExtendedBusinessRegistrationData) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshWorkspace: (preferredWorkshopId?: string | null, preferredCustomerWorkshopId?: string | null) => Promise<void>;
   selectWorkshop: (workshopId: string) => Promise<void>;
@@ -164,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const channel = supabase.channel(`workspace-access-${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'business_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'mechanic_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_access_requests', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, () => refreshWorkspace())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_members', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
       .subscribe();
@@ -196,22 +203,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         customer_motorcycle_brand: customerMotor.brand.trim(),
         customer_motorcycle_model: customerMotor.model.trim(),
       } : {};
-      const businessData = accountMode === 'staff' && businessRegistration ? {
-        business_name: businessRegistration.business_name.trim(),
-        business_phone: businessRegistration.business_phone?.trim() || phone.trim() || null,
-        business_address: businessRegistration.business_address?.trim() || null,
-        business_tax_office: businessRegistration.tax_office.trim(),
-        business_tax_number: businessRegistration.tax_number.replace(/\D/g, ''),
-      } : {};
+      const joiningExisting = accountMode === 'staff' && Boolean(businessRegistration?.join_existing_workshop);
+      const businessData = accountMode === 'staff' && businessRegistration
+        ? joiningExisting
+          ? {
+              join_existing_workshop: true,
+              existing_workshop_id: businessRegistration.existing_workshop_id,
+              request_mechanic_panel: Boolean(businessRegistration.request_mechanic_panel),
+            }
+          : {
+              join_existing_workshop: false,
+              business_name: businessRegistration.business_name.trim(),
+              business_phone: businessRegistration.business_phone?.trim() || phone.trim() || null,
+              business_address: businessRegistration.business_address?.trim() || null,
+              business_tax_office: businessRegistration.tax_office.trim(),
+              business_tax_number: businessRegistration.tax_number.replace(/\D/g, ''),
+            }
+        : {};
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: { data: { full_name: fullName.trim(), phone: phone.trim(), requested_account_mode: accountMode, account_mode: 'customer', ...customerData, ...businessData } },
       });
       if (error) return error.message;
-      if (!data.session) return 'Hesabın oluşturuldu. E-posta doğrulamasını tamamladıktan sonra giriş yap.';
+      if (!data.session) return joiningExisting
+        ? 'Hesabın oluşturuldu. E-posta doğrulamasından sonra işletme sahibinin onayını bekleyeceksin.'
+        : 'Hesabın oluşturuldu. E-posta doğrulamasını tamamladıktan sonra giriş yap.';
       await refreshWorkspace();
-      return null;
+      return joiningExisting ? 'Ortaklık başvurun işletme sahibine gönderildi.' : null;
     },
     signOut: async () => {
       await supabase.auth.signOut();
@@ -256,15 +275,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     searchWorkshops: async (query) => {
       const { data, error } = await supabase.rpc('search_active_workshops', { p_query: query.trim() });
-      return error
-        ? { data: [], error: error.message }
-        : { data: (data as WorkshopSearchResult[] | null) ?? [] };
+      return error ? { data: [], error: error.message } : { data: (data as WorkshopSearchResult[] | null) ?? [] };
     },
     applyAsMechanic: async (workshopId, note = '') => {
-      const { error } = await supabase.rpc('submit_mechanic_application', {
-        p_workshop_id: workshopId,
-        p_note: note.trim() || null,
-      });
+      const { error } = await supabase.rpc('submit_mechanic_application', { p_workshop_id: workshopId, p_note: note.trim() || null });
       if (error) return error.message;
       await refreshWorkspace(workshop?.id ?? null, customerWorkshop?.workshop_id ?? null);
       return null;
