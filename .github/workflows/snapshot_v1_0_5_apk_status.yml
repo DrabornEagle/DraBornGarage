@@ -1,0 +1,33 @@
+name: Snapshot DraBornGarage v1.0.5 APK Status
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/v1.0.5-apk-status-request.txt
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Read latest Release APK run
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release-apk.yml/runs?per_page=1" --jq '.workflow_runs[0] | {status,conclusion,html_url,databaseId:.id,head_sha,run_number}' > status.json
+          base64 -w0 status.json > status.b64
+          SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/.github/v1.0.5-apk-live.json?ref=main" --jq .sha 2>/dev/null || true)"
+          if [ -n "$SHA" ]; then
+            jq -n --arg message 'ci: update v1.0.5 APK live status' --arg branch main --arg sha "$SHA" --rawfile content status.b64 '{message:$message,branch:$branch,sha:$sha,content:$content}' > payload.json
+          else
+            jq -n --arg message 'ci: record v1.0.5 APK live status' --arg branch main --rawfile content status.b64 '{message:$message,branch:$branch,content:$content}' > payload.json
+          fi
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/.github/v1.0.5-apk-live.json" --input payload.json >/dev/null
