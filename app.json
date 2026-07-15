@@ -3,7 +3,7 @@
     "name": "DraBornGarage",
     "slug": "draborngarage",
     "scheme": "draborngarage",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "icon": "./assets/draborngarage-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -43,11 +43,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.draborneagle.draborngarage",
-      "buildNumber": "24"
+      "buildNumber": "25"
     },
     "android": {
       "package": "com.draborneagle.draborngarage",
-      "versionCode": 24,
+      "versionCode": 25,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
