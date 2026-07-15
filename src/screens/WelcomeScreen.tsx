@@ -9,7 +9,7 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
       <Image
         source={require('../../assets/draborngarage-welcome.png')}
         style={styles.image}
-        resizeMode="contain"
+        resizeMode="cover"
         fadeDuration={0}
       />
       <Pressable
@@ -26,13 +26,12 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
     overflow: 'hidden',
   },
   image: {
-    width: '100%',
-    height: '100%',
+    ...StyleSheet.absoluteFillObject,
+    width: undefined,
+    height: undefined,
   },
   startHitArea: {
     position: 'absolute',
