@@ -139,6 +139,111 @@ jobs:
             --exclude='release-output' \
             -czf release-output/DraBornGarage-v1.0.4-tested-source.tar.gz .
 
+      - name: Persist tested source through GitHub Contents API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from __future__ import annotations
+          import base64
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import time
+          from urllib.error import HTTPError
+          from urllib.parse import quote
+          from urllib.request import Request, urlopen
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          branch = 'main'
+          api = f'https://api.github.com/repos/{repo}/contents'
+          headers = {
+              'Accept': 'application/vnd.github+json',
+              'Authorization': f'Bearer {token}',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'DraBornGarage-v1.0.4-hotfix',
+          }
+
+          diff = subprocess.check_output(['git', 'diff', '--name-status', 'HEAD'], text=True)
+          changes: list[tuple[str, str]] = []
+          for raw in diff.splitlines():
+              if not raw.strip():
+                  continue
+              status, path = raw.split('\t', 1)
+              if path.startswith('.github/workflows/'):
+                  continue
+              changes.append((status, path))
+
+          def request(method: str, url: str, payload: dict | None = None):
+              data = None if payload is None else json.dumps(payload).encode()
+              req = Request(url, method=method, headers=headers, data=data)
+              with urlopen(req, timeout=60) as response:
+                  body = response.read()
+                  return json.loads(body) if body else None
+
+          for status, path in changes:
+              encoded = quote(path, safe='/')
+              url = f'{api}/{encoded}?ref={branch}'
+              current = None
+              for attempt in range(5):
+                  try:
+                      current = request('GET', url)
+                      break
+                  except HTTPError as exc:
+                      if exc.code == 404:
+                          current = None
+                          break
+                      if exc.code in (409, 422, 429) and attempt < 4:
+                          time.sleep(2 ** attempt)
+                          continue
+                      raise
+
+              message = f'v1.0.4 hotfix source: {path}'
+              if status.startswith('D'):
+                  if current:
+                      payload = {'message': message, 'sha': current['sha'], 'branch': branch}
+                      request('DELETE', f'{api}/{encoded}', payload)
+                      print('deleted', path)
+                  continue
+
+              content = base64.b64encode(Path(path).read_bytes()).decode()
+              payload = {'message': message, 'content': content, 'branch': branch}
+              if current:
+                  payload['sha'] = current['sha']
+
+              for attempt in range(5):
+                  try:
+                      request('PUT', f'{api}/{encoded}', payload)
+                      print('updated', path)
+                      break
+                  except HTTPError as exc:
+                      if exc.code in (409, 422) and attempt < 4:
+                          time.sleep(2 ** attempt)
+                          current = request('GET', url)
+                          payload['sha'] = current['sha']
+                          continue
+                      raise
+          PY
+
+      - name: Verify persisted main source
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git show origin/main:app.json | grep -q '"versionCode": 22' && \
+            git show origin/main:src/notifications/NotificationContextV101.tsx | grep -q 'NATIVE_PUSH_ENABLED' && \
+            git show origin/main:src/screens/AuthScreen.tsx | grep -q 'GARAGE OS • v${APP_VERSION} TEST APK' && \
+            break
+            sleep 3
+          done
+          git show origin/main:app.json | grep -q '"versionCode": 22'
+          git show origin/main:package-lock.json | grep -q '"version": "1.0.4"'
+
       - name: Export public Expo configuration
         run: npx expo config --type public --json > release-output/expo-public-config.json
 
