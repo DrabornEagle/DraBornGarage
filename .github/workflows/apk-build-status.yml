@@ -1,0 +1,57 @@
+name: DraBornGarage APK Build Status
+
+on:
+  workflow_run:
+    workflows:
+      - DraBornGarage Release APK
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  record-status:
+    if: github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write v1.0.4 APK build status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const path = '.github/apk-build-status-v1.0.4.json';
+            const run = context.payload.workflow_run;
+            const body = {
+              version: '1.0.4',
+              androidVersionCode: 21,
+              workflow: run.name,
+              runId: run.id,
+              runNumber: run.run_number,
+              status: run.status,
+              conclusion: run.conclusion,
+              headSha: run.head_sha,
+              runUrl: run.html_url,
+              releaseTag: 'v1.0.4-test',
+              apkName: 'DraBornGarage-v1.0.4-release-test.apk',
+              recordedAt: new Date().toISOString(),
+            };
+            const content = Buffer.from(`${JSON.stringify(body, null, 2)}\n`).toString('base64');
+            let sha;
+            try {
+              const existing = await github.rest.repos.getContent({ owner, repo, path, ref: 'main' });
+              if (!Array.isArray(existing.data)) sha = existing.data.sha;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            await github.rest.repos.createOrUpdateFileContents({
+              owner,
+              repo,
+              path,
+              message: `ci: record v1.0.4 APK build ${run.conclusion}`,
+              content,
+              branch: 'main',
+              sha,
+            });
