@@ -1,0 +1,36 @@
+name: Temporary Extract EAS Error
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-extract-eas-error.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract failed log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run view 29453673881 --repo "$GITHUB_REPOSITORY" --log-failed | tail -n 160 > eas-error.txt
+      - name: Persist report and remove workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          path=.github/eas-init-error.txt
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
+          content="$(base64 -w0 eas-error.txt)"
+          if [ -n "$sha" ]; then
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message='ci: update EAS init error report' -f content="$content" -f sha="$sha" -f branch=main >/dev/null
+          else
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message='ci: add EAS init error report' -f content="$content" -f branch=main >/dev/null
+          fi
+          self=.github/workflows/_temporary-extract-eas-error.yml
+          self_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${self}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${self}" -f message='ci: remove temporary EAS error extractor' -f sha="$self_sha" -f branch=main >/dev/null
