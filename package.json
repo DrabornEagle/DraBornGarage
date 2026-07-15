@@ -28,7 +28,8 @@
     "react-native-qrcode-svg": "^6.3.15",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-svg": "15.12.1",
-    "react-native-url-polyfill": "^3.0.0"
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-edge-to-edge": "1.8.1"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
