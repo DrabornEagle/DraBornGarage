@@ -1,3 +1,3 @@
-DraBornGarage v1.0.4 Contents API live status request
+DraBornGarage v1.0.4 clean APK live status
 Requested: 2026-07-15
-Build trigger: 3286c714b9d10d4e7ace94dd16e68218c2342c03
+Build trigger: 539de7d9ee78f9b0200d5765b900c34ea7071170
