@@ -32,12 +32,10 @@ jobs:
     timeout-minutes: 80
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      FALLBACK_EAS_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_EAS_PROJECT_ID }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout
@@ -55,13 +53,25 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Validate production signing secrets
+      - name: Validate source and release secrets
         shell: bash
         run: |
           set -euo pipefail
           for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
             [ -n "${!name:-}" ] || { echo "Eksik GitHub secret: $name"; exit 1; }
           done
+          node <<'NODE'
+          const fs=require('fs');
+          const app=require('./app.json').expo;
+          const pkg=require('./package.json');
+          const lock=require('./package-lock.json');
+          const firebase=require('./google-services.json');
+          if(pkg.version!==app.version || lock.version!==app.version || lock.packages?.['']?.version!==app.version) throw new Error('Sürüm bilgileri eşleşmiyor');
+          if(!/^[0-9a-fA-F-]{36}$/.test(app.extra?.eas?.projectId || '')) throw new Error('EAS Project ID eksik veya geçersiz');
+          if(app.android?.googleServicesFile!=='./google-services.json') throw new Error('googleServicesFile eksik');
+          if(firebase.client?.[0]?.client_info?.android_client_info?.package_name!==app.android.package) throw new Error('Firebase paket adı uyuşmuyor');
+          for(const file of ['assets/draborngarage-icon.png','assets/draborngarage-welcome.png']) if(!fs.existsSync(file)||fs.statSync(file).size<100000) throw new Error(`${file} geçersiz`);
+          NODE
 
       - name: Restore and verify permanent keystore
         shell: bash
@@ -75,37 +85,7 @@ jobs:
           echo "DRABORNGARAGE_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
           echo "Kalıcı upload keystore doğrulandı: $ACTUAL_SHA256"
 
-      - name: Resolve or create Expo EAS project ID
-        shell: bash
-        run: |
-          set -euo pipefail
-          PROJECT_ID="$(node -e "const a=require('./app.json').expo; process.stdout.write(a.extra?.eas?.projectId || '')")"
-          if [ -z "$PROJECT_ID" ] && [ -n "${FALLBACK_EAS_PROJECT_ID:-}" ]; then
-            PROJECT_ID="$FALLBACK_EAS_PROJECT_ID"
-            PROJECT_ID="$PROJECT_ID" node <<'NODE'
-          const fs=require('fs');
-          const app=require('./app.json');
-          app.expo.extra={...(app.expo.extra||{}),eas:{...(app.expo.extra?.eas||{}),projectId:process.env.PROJECT_ID}};
-          fs.writeFileSync('app.json',JSON.stringify(app,null,2)+'\n');
-          NODE
-          fi
-          if [ -z "$PROJECT_ID" ]; then
-            [ -n "${EXPO_TOKEN:-}" ] || { echo 'EAS projesi yok. Bir kez EXPO_TOKEN GitHub secretı eklenmeli.'; exit 1; }
-            npx --yes eas-cli@latest project:init --force --non-interactive
-            PROJECT_ID="$(node -e "const a=require('./app.json').expo; process.stdout.write(a.extra?.eas?.projectId || '')")"
-          fi
-          node -e "if(!/^[0-9a-fA-F-]{36}$/.test(process.argv[1])) process.exit(1)" "$PROJECT_ID" || { echo 'Geçersiz EAS Project ID'; exit 1; }
-          echo "EXPO_PUBLIC_EAS_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
-          echo "EAS Project ID hazır: $PROJECT_ID"
-          if ! git diff --quiet -- app.json; then
-            git config user.name github-actions[bot]
-            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-            git add app.json
-            git commit -m 'build: link Expo EAS project ID'
-            git push origin HEAD:main
-          fi
-
-      - name: Install required Android NDK
+      - name: Install Android NDK
         shell: bash
         run: |
           set -euo pipefail
@@ -120,27 +100,12 @@ jobs:
         run: |
           VERSION="$(node -p "require('./app.json').expo.version")"
           VERSION_CODE="$(node -p "require('./app.json').expo.android.versionCode")"
+          PROJECT_ID="$(node -p "require('./app.json').expo.extra.eas.projectId")"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
           echo "apk_name=DraBornGarage-v${VERSION}-production.apk" >> "$GITHUB_OUTPUT"
-
-      - name: Validate source and Firebase metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs=require('fs');
-          const app=require('./app.json').expo;
-          const pkg=require('./package.json');
-          const lock=require('./package-lock.json');
-          const firebase=require('./google-services.json');
-          if(pkg.version!==app.version || lock.version!==app.version || lock.packages?.['']?.version!==app.version) throw new Error('Sürüm bilgileri eşleşmiyor');
-          if(app.android?.googleServicesFile!=='./google-services.json') throw new Error('googleServicesFile eksik');
-          const firebasePackage=firebase.client?.[0]?.client_info?.android_client_info?.package_name;
-          if(firebasePackage!==app.android.package) throw new Error('Firebase Android paket adı uyuşmuyor');
-          if(!app.extra?.eas?.projectId) throw new Error('EAS Project ID app.json içine yazılmadı');
-          for(const file of ['assets/draborngarage-icon.png','assets/draborngarage-welcome.png']) if(!fs.existsSync(file)||fs.statSync(file).size<100000) throw new Error(`${file} geçersiz`);
-          NODE
+          echo "EXPO_PUBLIC_EAS_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
 
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
@@ -160,30 +125,29 @@ jobs:
           set -euo pipefail
           grep -q 'AppErrorBoundary' App.tsx
           grep -q 'const EAS_PROJECT_ID' src/notifications/NotificationContextV101.tsx
-          grep -q 'Boolean(EAS_PROJECT_ID)' src/notifications/NotificationContextV101.tsx
-          grep -q 'unreadCountRef.current' src/notifications/NotificationContextV101.tsx
+          grep -q 'receivedSystemNotificationIdsRef' src/notifications/NotificationContextV101.tsx
           grep -q "select('customer_motorcycle_odometer')" src/context/AuthContext.tsx
           grep -q 'DRABORNGARAGE_PRODUCTION_SIGNING' scripts/configure_android_signing.py
 
-      - name: Export Expo public configuration
+      - name: Export Expo configuration
         run: |
           mkdir -p release-output
           npx expo config --type public --json > release-output/expo-public-config.json
 
-      - name: Generate clean Android native project
+      - name: Generate clean Android project
         run: npx expo prebuild --platform android --clean --no-install
 
-      - name: Apply production signing configuration
+      - name: Apply production signing
         run: python3 scripts/configure_android_signing.py
 
-      - name: Verify generated Firebase configuration
+      - name: Verify Firebase Android configuration
         shell: bash
         run: |
           set -euo pipefail
           test -s android/app/google-services.json
           node -e "const a=require('./app.json').expo;const g=require('./android/app/google-services.json');if(g.client?.[0]?.client_info?.android_client_info?.package_name!==a.android.package)process.exit(1)"
 
-      - name: Normalize generated Android manifest
+      - name: Normalize Android manifest
         shell: bash
         run: |
           python3 <<'PY'
@@ -213,7 +177,6 @@ jobs:
         run: ./gradlew :app:lintRelease --no-daemon --stacktrace
 
       - name: Verify manifest, signature and collect APK
-        id: collect
         shell: bash
         run: |
           set -euo pipefail
@@ -238,7 +201,9 @@ jobs:
           cp "$SOURCE_APK" "$APK_PATH"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee release-output/apk-signature.txt
-          APK_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' release-output/apk-signature.txt | head -n 1 | tr '[:lower:]' '[:upper:]' | sed 's/../&:/g;s/:$//')"
+          RAW_CERT="$(sed -n -E 's/^.*certificate SHA-256 digest: //p' release-output/apk-signature.txt | head -n 1 | tr -d '\r')"
+          [ -n "$RAW_CERT" ] || { echo 'APK sertifika özeti okunamadı'; exit 1; }
+          APK_CERT="$(printf '%s' "$RAW_CERT" | tr '[:lower:]' '[:upper:]' | tr -d ':' | sed 's/../&:/g;s/:$//')"
           [ "$APK_CERT" = "$EXPECTED_UPLOAD_CERT_SHA256" ] || { echo "APK yanlış sertifikayla imzalandı: $APK_CERT"; exit 1; }
           sha256sum "$APK_PATH" | tee release-output/SHA256SUMS.txt
           stat -c '%n %s bytes' "$APK_PATH" | tee release-output/apk-size.txt
@@ -251,20 +216,19 @@ jobs:
           Android versionCode: ${{ steps.meta.outputs.version_code }}
           Commit: $GITHUB_SHA
           Run: $GITHUB_RUN_ID
-          EAS Project ID: $EXPO_PUBLIC_EAS_PROJECT_ID
+          EAS Project ID: ${{ steps.meta.outputs.project_id }}
           Firebase Android client: configured
-          Android upload certificate SHA-256: $EXPECTED_UPLOAD_CERT_SHA256
+          Upload certificate SHA-256: $EXPECTED_UPLOAD_CERT_SHA256
           Signing: permanent DraBornGarage production upload keystore
           EOF
           cat > release-output/RELEASE_NOTES.md <<EOF
-          # DraBornGarage v${{ steps.meta.outputs.version }} Production-signed APK
+          # DraBornGarage v${{ steps.meta.outputs.version }} Production APK
 
-          - Giriş sonrası çökme ve kalıcı açılmama için güvenli oturum kurtarma
-          - EAS Project ID olmadan native push dinleyicisinin başlatılmaması
-          - Uygulama hatasında kapanmak yerine kurtarma ekranı
-          - Firebase Android yapılandırması
-          - Kalıcı DraBornGarage upload keystore ile imzalama
-          - Expo Doctor, TypeScript, bundle, Gradle, lint, manifest ve sertifika doğrulamaları
+          - Giriş sonrası güvenli oturum kurtarma
+          - Firebase Android ve EAS Project ID yapılandırması
+          - Telefon bildirimi için yerel yedek ve çift bildirim önleme
+          - Kalıcı DraBornGarage production upload keystore imzası
+          - Expo Doctor, TypeScript, bundle, Gradle, lint, manifest ve sertifika kontrolleri
           EOF
 
       - name: Upload Release APK artifact
@@ -291,16 +255,13 @@ jobs:
             release-output/${{ steps.meta.outputs.apk_name }}
             release-output/SHA256SUMS.txt
             release-output/apk-signature.txt
+            release-output/apk-size.txt
             release-output/BUILD_INFO.txt
             release-output/AndroidManifest-release.xml
 
       - name: Build summary
         run: |
-          {
-            echo '# Release APK tamamlandı'
-            echo '- Version: **${{ steps.meta.outputs.version }}**'
-            echo '- Android versionCode: **${{ steps.meta.outputs.version_code }}**'
-            echo '- APK: **${{ steps.meta.outputs.apk_name }}**'
-            echo '- Signing: **Permanent production upload keystore**'
-            echo '- EAS Project ID: **configured**'
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo '# Release APK tamamlandı' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Version: **${{ steps.meta.outputs.version }}**' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Android versionCode: **${{ steps.meta.outputs.version_code }}**' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Signing: **Permanent production upload keystore**' >> "$GITHUB_STEP_SUMMARY"
