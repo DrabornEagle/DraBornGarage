@@ -1,0 +1,263 @@
+{
+  "run": {
+    "conclusion": "",
+    "createdAt": "2026-07-15T22:04:21Z",
+    "databaseId": 29454141983,
+    "headSha": "946f351fb2a00a5c02349630b8b0e2ce2e9e512a",
+    "status": "in_progress",
+    "url": "https://github.com/DrabornEagle/DraBornGarage/actions/runs/29454141983"
+  },
+  "jobs": [
+    {
+      "completedAt": "0001-01-01T00:00:00Z",
+      "conclusion": "",
+      "databaseId": 87483387276,
+      "name": "Production-signed Release APK",
+      "startedAt": "2026-07-15T22:04:25Z",
+      "status": "in_progress",
+      "steps": [
+        {
+          "completedAt": "2026-07-15T22:04:26Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-07-15T22:04:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:04:28Z",
+          "conclusion": "success",
+          "name": "Checkout",
+          "number": 2,
+          "startedAt": "2026-07-15T22:04:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:04:33Z",
+          "conclusion": "success",
+          "name": "Setup Node.js",
+          "number": 3,
+          "startedAt": "2026-07-15T22:04:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:04:33Z",
+          "conclusion": "success",
+          "name": "Setup Java 17",
+          "number": 4,
+          "startedAt": "2026-07-15T22:04:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:04:33Z",
+          "conclusion": "success",
+          "name": "Validate production signing secrets",
+          "number": 5,
+          "startedAt": "2026-07-15T22:04:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:04:36Z",
+          "conclusion": "success",
+          "name": "Restore and verify permanent keystore",
+          "number": 6,
+          "startedAt": "2026-07-15T22:04:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:04:36Z",
+          "conclusion": "success",
+          "name": "Resolve or create Expo EAS project ID",
+          "number": 7,
+          "startedAt": "2026-07-15T22:04:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:05:00Z",
+          "conclusion": "success",
+          "name": "Install required Android NDK",
+          "number": 8,
+          "startedAt": "2026-07-15T22:04:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:05:00Z",
+          "conclusion": "success",
+          "name": "Read release metadata",
+          "number": 9,
+          "startedAt": "2026-07-15T22:05:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:05:00Z",
+          "conclusion": "success",
+          "name": "Validate source and Firebase metadata",
+          "number": 10,
+          "startedAt": "2026-07-15T22:05:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:05:08Z",
+          "conclusion": "success",
+          "name": "Install locked dependencies",
+          "number": 11,
+          "startedAt": "2026-07-15T22:05:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-07-15T22:05:12Z",
+          "conclusion": "success",
+          "name": "Expo Doctor",
+          "number": 12,
+          "startedAt": "2026-07-15T22:05:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "TypeScript",
+          "number": 13,
+          "startedAt": "2026-07-15T22:05:12Z",
+          "status": "in_progress"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Android JavaScript bundle",
+          "number": 14,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Verify login recovery and push hardening",
+          "number": 15,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Export Expo public configuration",
+          "number": 16,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Generate clean Android native project",
+          "number": 17,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Apply production signing configuration",
+          "number": 18,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Verify generated Firebase configuration",
+          "number": 19,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Normalize generated Android manifest",
+          "number": 20,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Build production Release APK",
+          "number": 21,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Android lint",
+          "number": 22,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Verify manifest, signature and collect APK",
+          "number": 23,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Build information",
+          "number": 24,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Upload Release APK artifact",
+          "number": 25,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Publish GitHub prerelease",
+          "number": 26,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Build summary",
+          "number": 27,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Post Setup Java 17",
+          "number": 52,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Post Setup Node.js",
+          "number": 53,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        },
+        {
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "name": "Post Checkout",
+          "number": 54,
+          "startedAt": "0001-01-01T00:00:00Z",
+          "status": "pending"
+        }
+      ],
+      "url": "https://github.com/DrabornEagle/DraBornGarage/actions/runs/29454141983/job/87483387276"
+    }
+  ]
+}
