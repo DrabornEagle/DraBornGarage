@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - .github/apk-build-request-v1.0.4.txt
+      - .github/apk-build-request-v1.0.5.txt
 
 permissions:
   contents: write
@@ -25,15 +25,13 @@ env:
 
 jobs:
   release-apk:
-    name: Build and publish signed v1.0.4 hotfix APK
+    name: Build and publish signed v1.0.5 notification APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -63,7 +61,6 @@ jobs:
               Path('assets/draborngarage-icon.png'): (1536, 1536),
               Path('assets/draborngarage-welcome.png'): (864, 1536),
           }
-
           for path, dimensions in expected.items():
               if not path.is_file():
                   raise SystemExit(f'{path}: dosya GitHub deposunda bulunamadı')
@@ -78,23 +75,22 @@ jobs:
               print(f'{path}: {width}x{height}, {len(data)} bytes, sha256={hashlib.sha256(data).hexdigest()}')
           PY
 
-      - name: Validate v1.0.4 source metadata
-        shell: bash
+      - name: Validate v1.0.5 source metadata
         run: |
           node <<'NODE'
           const pkg = require('./package.json');
           const lock = require('./package-lock.json');
           const app = require('./app.json').expo;
-          if (pkg.version !== '1.0.4' || lock.version !== '1.0.4' || lock.packages?.['']?.version !== '1.0.4') {
-            throw new Error('Paket sürümleri 1.0.4 ile eşleşmiyor.');
+          if (pkg.version !== '1.0.5' || lock.version !== '1.0.5' || lock.packages?.['']?.version !== '1.0.5') {
+            throw new Error('Paket sürümleri 1.0.5 ile eşleşmiyor.');
           }
-          if (app.version !== '1.0.4' || app.android?.versionCode !== 22 || app.ios?.buildNumber !== '22') {
-            throw new Error('Native sürüm bilgileri 1.0.4 / 22 ile eşleşmiyor.');
+          if (pkg.dependencies.expo !== '~54.0.36' || lock.packages?.['node_modules/expo']?.version !== '54.0.36') {
+            throw new Error('Expo SDK 54.0.36 kilidi eksik.');
           }
-          if (pkg.dependencies?.['react-native-edge-to-edge'] !== '1.8.1') {
-            throw new Error('Android edge-to-edge bağımlılığı eksik.');
+          if (app.version !== '1.0.5' || app.android?.versionCode !== 23 || app.ios?.buildNumber !== '23') {
+            throw new Error('Native sürüm bilgileri 1.0.5 / 23 ile eşleşmiyor.');
           }
-          console.log('Source metadata OK: 1.0.4 / 22');
+          console.log('Source metadata OK: 1.0.5 / 23 / Expo 54.0.36');
           NODE
 
       - name: Install locked dependencies
@@ -109,15 +105,19 @@ jobs:
       - name: Android JavaScript bundle
         run: npm run test:bundle
 
-      - name: Verify v1.0.4 hotfix source rules
+      - name: Verify v1.0.5 notification source rules
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "NATIVE_PUSH_ENABLED" src/notifications/NotificationContextV101.tsx
+          grep -q "NotificationPermissionScreen" src/AppRoot.tsx
+          grep -q "draborngarage-system-loud-v3" src/notifications/notificationPermissions.ts
+          grep -q "sound: 'default'" src/notifications/notificationPermissions.ts
+          grep -q "AndroidImportance.MAX" src/notifications/notificationPermissions.ts
+          grep -q "notification_sound: 'system_loud'" src/notifications/NotificationContextV101.tsx
+          grep -q "requestDeviceNotificationPermission" src/notifications/NotificationContextV101.tsx
           grep -q 'GARAGE OS • v${APP_VERSION} TEST APK' src/screens/AuthScreen.tsx
           grep -q "Math.max(insets.bottom, 36)" src/AppShellV102.tsx
           grep -q "Math.max(insets.bottom, 36)" src/customer/CustomerShell.tsx
-          ! grep -R "v1.0.3" src --include='*.tsx'
 
       - name: Export public Expo configuration
         run: npx expo config --type public --json > release-output/expo-public-config.json
@@ -191,6 +191,8 @@ jobs:
               raise SystemExit(f'Engellenen izinler bulundu: {unexpected}')
           if 'android.permission.CAMERA' not in permissions:
               raise SystemExit('CAMERA izni bulunamadı.')
+          if 'android.permission.POST_NOTIFICATIONS' not in permissions:
+              raise SystemExit('POST_NOTIFICATIONS izni bulunamadı.')
           if features.get('android.hardware.camera') != 'false':
               raise SystemExit('Kamera required=false değil.')
           print('Merged manifest verified:', manifest)
@@ -202,7 +204,7 @@ jobs:
         run: |
           SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
           test -f "$SOURCE_APK"
-          APK_NAME="DraBornGarage-v1.0.4-release-test.apk"
+          APK_NAME="DraBornGarage-v1.0.5-release-test.apk"
           APK_PATH="release-output/${APK_NAME}"
           cp "$SOURCE_APK" "$APK_PATH"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
@@ -215,34 +217,36 @@ jobs:
         shell: bash
         run: |
           {
-            echo "DraBornGarage v1.0.4 RC Hotfix"
-            echo "Android versionCode: 22"
+            echo "DraBornGarage v1.0.5 RC"
+            echo "Android versionCode: 23"
             echo "Commit: $GITHUB_SHA"
             echo "Run: $GITHUB_RUN_ID"
-            echo "Remote push: disabled in GitHub test APK until FCM credentials are configured"
+            echo "Notification sound: phone default notification sound / MAX importance channel v3"
+            echo "First-run notification permission education: enabled"
+            echo "Remote push: Firebase FCM V1 and EAS project credentials are still required"
             echo "Signing: GitHub test signing; Google Play production upload key değildir"
           } | tee release-output/BUILD_INFO.txt
 
-          cat > release-output/RELEASE_NOTES.md <<EOF
-          # DraBornGarage v1.0.4 Test APK Hotfix
+          cat > release-output/RELEASE_NOTES.md <<'EOF'
+          # DraBornGarage v1.0.5 Test APK
 
-          Google Play final yayını öncesi cihaz test paketi.
+          Google Play final yayını öncesi bildirim ve ilk kurulum test paketi.
 
-          - Uygulama sürümü: **1.0.4 RC**
-          - Android versionCode: **22**
-          - Bildirim izni sonrası native kapanma düzeltmesi
-          - GitHub test APK'sında FCM kurulana kadar uzaktan push token kaydı kapalı
-          - Yerel bildirim merkezi ve cihaz bildirimleri aktif
-          - Android sistem navigasyonu edge-to-edge ve şeffaf
-          - Alt menüler Xiaomi üç tuşlu navigasyon için güvenli mesafede
-          - Giriş ekranı sürümü app.json'dan dinamik okunur
-          - TypeScript, Expo Doctor, Android bundle, lint, manifest ve APK imza kontrolleri tamamlandı
+          - Uygulama sürümü: **1.0.5 RC**
+          - Android versionCode: **23**
+          - İlk açılış akışında modern bildirim izin açıklaması
+          - Telefonun varsayılan bildirim sesini kullanan yeni yüksek öncelikli Android v3 kanalı
+          - Güçlü titreşim, kilit ekranı görünürlüğü ve rozet desteği
+          - Eski düşük seviyeli özel WAV kanalları yerine telefonun Bildirim Sesi seviyesi
+          - Yerel test bildirimi ve zamanlı hatırlatmalar uygulama kapalıyken çalışır
+          - Yeni sunucu hareketlerinin uygulama tamamen kapalıyken gelmesi için Firebase FCM V1/EAS kimlik bilgileri ayrıca bağlanmalıdır
+          - Expo Doctor, TypeScript, Android bundle, lint, manifest ve APK imza kontrolleri tamamlandı
           EOF
 
       - name: Upload DraBornGarage Release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGarage-v1.0.4-Hotfix-Release-APK
+          name: DraBornGarage-v1.0.5-Notification-Release-APK
           path: release-output/
           if-no-files-found: error
           retention-days: 30
@@ -251,15 +255,15 @@ jobs:
       - name: Publish GitHub test release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.4-test
+          tag_name: v1.0.5-test
           target_commitish: main
-          name: DraBornGarage v1.0.4 Test APK Hotfix
+          name: DraBornGarage v1.0.5 Test APK
           body_path: release-output/RELEASE_NOTES.md
           prerelease: true
           make_latest: false
           overwrite_files: true
           files: |
-            release-output/DraBornGarage-v1.0.4-release-test.apk
+            release-output/DraBornGarage-v1.0.5-release-test.apk
             release-output/SHA256SUMS.txt
             release-output/apk-signature.txt
             release-output/apk-size.txt
@@ -270,10 +274,10 @@ jobs:
         shell: bash
         run: |
           {
-            echo "# DraBornGarage Release APK Hotfix"
-            echo "- Version: **1.0.4 RC**"
-            echo "- Android versionCode: **22**"
+            echo "# DraBornGarage Release APK v1.0.5"
+            echo "- Version: **1.0.5 RC**"
+            echo "- Android versionCode: **23**"
             echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
-            echo "- Artifact: **DraBornGarage-v1.0.4-Hotfix-Release-APK**"
-            echo "- Release tag: **v1.0.4-test**"
+            echo "- Artifact: **DraBornGarage-v1.0.5-Notification-Release-APK**"
+            echo "- Release tag: **v1.0.5-test**"
           } >> "$GITHUB_STEP_SUMMARY"
