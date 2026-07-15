@@ -1,5 +1,7 @@
 {
-  "result": "failure",
-  "run_url": "https://github.com/DrabornEagle/DraBornGarage/actions/runs/29434393023",
+  "status": "completed",
+  "conclusion": "failure",
+  "url": "https://github.com/DrabornEagle/DraBornGarage/actions/runs/29434393023",
+  "run_id": 29434393023,
   "head_sha": "6937a5d31ee1f21b25e39d618d1eedf4650bdf61"
 }
