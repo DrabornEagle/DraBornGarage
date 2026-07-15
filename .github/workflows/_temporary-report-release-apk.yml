@@ -1,0 +1,43 @@
+name: Temporary Report Release APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-report-release-apk.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read latest Release APK run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --limit 1 --json databaseId,status,conclusion,url,headSha,createdAt > report.json
+          run_id="$(jq -r '.[0].databaseId // empty' report.json)"
+          if [ -n "$run_id" ]; then
+            gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json jobs > jobs.json
+            jq -s '{run:.[0][0],jobs:.[1].jobs}' report.json jobs.json > release-apk-status.json
+          else
+            jq -n '{run:null,jobs:[]}' > release-apk-status.json
+          fi
+      - name: Persist status and remove reporter
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          path=.github/release-apk-status.json
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
+          content="$(base64 -w0 release-apk-status.json)"
+          if [ -n "$sha" ]; then
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message='ci: update Release APK status' -f content="$content" -f sha="$sha" -f branch=main >/dev/null
+          else
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message='ci: add Release APK status' -f content="$content" -f branch=main >/dev/null
+          fi
+          self=.github/workflows/_temporary-report-release-apk.yml
+          self_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${self}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${self}" -f message='ci: remove temporary APK reporter' -f sha="$self_sha" -f branch=main >/dev/null
