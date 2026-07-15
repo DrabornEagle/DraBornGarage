@@ -32,6 +32,7 @@ export function CustomerAppointmentsScreen({ onStartLink: _onStartLink }: { onSt
   const [slot, setSlot] = useState<AvailableSlot | null>(null);
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
+  const [odometer, setOdometer] = useState('');
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -83,6 +84,9 @@ export function CustomerAppointmentsScreen({ onStartLink: _onStartLink }: { onSt
   }, [selectedWorkshop, mechanicId, selectedDate]);
 
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
+  useEffect(() => {
+    if (!odometer && profile?.customer_motorcycle_odometer != null) setOdometer(String(profile.customer_motorcycle_odometer));
+  }, [profile?.customer_motorcycle_odometer, odometer]);
   useEffect(() => { if (showForm) loadSlots(); }, [showForm, loadSlots]);
 
   const upcoming = appointments.filter((item) => !['cancelled', 'no_show', 'converted'].includes(item.status) && new Date(item.scheduled_end) >= new Date());
@@ -93,6 +97,9 @@ export function CustomerAppointmentsScreen({ onStartLink: _onStartLink }: { onSt
     const model = profile?.customer_motorcycle_model?.trim();
     const plate = profile?.customer_plate?.trim();
     if (!brand || !model || !plate) return Alert.alert('Motor bilgileri eksik', 'Randevu için Hesabım bölümünden plaka, marka ve model bilgilerini tamamla.');
+    const odometerText = odometer.replace(/\D/g, '');
+    const odometerValue = odometerText ? Number(odometerText) : null;
+    if (odometerValue !== null && (!Number.isInteger(odometerValue) || odometerValue < 0)) return Alert.alert('Kilometre bilgisi geçersiz', 'Güncel kilometreyi sıfır veya daha büyük tam sayı olarak yaz.');
     if (!selectedWorkshop || !mechanicId || !slot || title.trim().length < 3) return Alert.alert('Eksik bilgi', 'İşletme, usta, saat ve yapılacak işlemi seç.');
 
     setLoading(true);
@@ -106,6 +113,7 @@ export function CustomerAppointmentsScreen({ onStartLink: _onStartLink }: { onSt
       p_customer_note: note.trim() || null,
       p_scheduled_start: slot.slot_start,
       p_scheduled_end: slot.slot_end,
+      p_odometer: odometerValue,
     });
     setLoading(false);
     if (error) return Alert.alert('Randevu oluşturulamadı', error.message);
@@ -145,7 +153,7 @@ export function CustomerAppointmentsScreen({ onStartLink: _onStartLink }: { onSt
 
         {selectedWorkshop && <>
           <Text style={[styles.label, { color: colors.textMuted }]}>KAYITLI MOTORUN</Text>
-          <View style={[styles.motorSummary, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}><AnimatedMotorcycleIcon size={31} color={colors.cyan} /><View style={styles.copy}><Text style={[styles.choiceTitle, { color: colors.text }]}>{profile?.customer_motorcycle_brand} {profile?.customer_motorcycle_model}</Text><Text style={[styles.choiceSub, { color: colors.textMuted }]}>{profile?.customer_plate || 'Plaka bilgisi yok'}</Text></View></View>
+          <View style={[styles.motorSummary, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}><AnimatedMotorcycleIcon size={31} color={colors.cyan} /><View style={styles.copy}><Text style={[styles.choiceTitle, { color: colors.text }]}>{profile?.customer_motorcycle_brand} {profile?.customer_motorcycle_model}</Text><Text style={[styles.choiceSub, { color: colors.textMuted }]}>{profile?.customer_plate || 'Plaka bilgisi yok'}{profile?.customer_motorcycle_odometer != null ? ` • ${Number(profile.customer_motorcycle_odometer).toLocaleString('tr-TR')} km` : ''}</Text></View></View>
 
           <Text style={[styles.label, { color: colors.textMuted }]}>USTA</Text>
           <View style={styles.chips}>{mechanics.length === 0 ? <Text style={[styles.emptyText, { color: colors.textMuted }]}>Bu işletmede şu anda randevuya açık Usta yok.</Text> : mechanics.map((item) => <Choice key={item.mechanic_id} active={mechanicId === item.mechanic_id} title={item.full_name} sub={item.availability_status === 'busy' ? 'Şu an meşgul' : 'Randevuya açık'} onPress={() => setMechanicId(item.mechanic_id)} />)}</View>
@@ -156,6 +164,7 @@ export function CustomerAppointmentsScreen({ onStartLink: _onStartLink }: { onSt
           <Text style={[styles.label, { color: colors.textMuted }]}>MÜSAİT SAAT</Text>
           <View style={styles.slotGrid}>{slots.length === 0 ? <Text style={[styles.emptyText, { color: colors.textMuted }]}>Seçilen gün için uygun saat bulunamadı.</Text> : slots.map((item) => <AnimatedPressable key={item.slot_start} onPress={() => setSlot(item)} style={[styles.slot, { backgroundColor: slot?.slot_start === item.slot_start ? `${colors.green}20` : colors.surfaceSoft, borderColor: slot?.slot_start === item.slot_start ? colors.green : colors.border }]}><Text style={[styles.slotText, { color: slot?.slot_start === item.slot_start ? colors.green : colors.text }]}>{item.slot_label}</Text></AnimatedPressable>)}</View>
 
+          <FormField label="Güncel Kilometre" value={odometer} onChangeText={(value) => setOdometer(value.replace(/\D/g, ''))} placeholder="Örn. 24500" keyboardType="number-pad" />
           <FormField label="Yapılacak işlem" value={title} onChangeText={setTitle} placeholder="Örn. Yağ değişimi ve genel kontrol" multiline />
           <FormField label="Ustaya not (opsiyonel)" value={note} onChangeText={setNote} multiline />
           <PrimaryButton title="Randevu Talebi Oluştur" onPress={create} loading={loading} />
