@@ -29,7 +29,7 @@ const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
 const PUSH_TOKEN_STORAGE_KEY = '@draborngarage/expo-push-token';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 const NATIVE_PUSH_ENABLED = process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED === 'true';
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.5';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.6';
 
 export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: string; subtitle: string; icon: 'musical-notes' | 'volume-mute' }[] = [
   { key: 'system_loud', label: 'Telefon Bildirim Sesi', subtitle: 'Telefonunun bildirim sesi ve ses seviyesini kullanır', icon: 'musical-notes' },
