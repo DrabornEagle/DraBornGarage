@@ -49,7 +49,29 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Expo Doctor
-        run: npx expo-doctor
+        id: doctor
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx expo-doctor 2>&1 | tee expo-doctor-v1.0.5.txt
+
+      - name: Publish Expo Doctor diagnostics
+        if: steps.doctor.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          content="$(base64 -w0 expo-doctor-v1.0.5.txt)"
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/.github/v1.0.5-expo-doctor.txt?ref=main" --jq .sha 2>/dev/null || true)"
+          if [ -n "$sha" ]; then
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/.github/v1.0.5-expo-doctor.txt" -f message='ci: update v1.0.5 Expo Doctor diagnostics' -f content="$content" -f sha="$sha" -f branch=main >/dev/null
+          else
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/.github/v1.0.5-expo-doctor.txt" -f message='ci: record v1.0.5 Expo Doctor diagnostics' -f content="$content" -f branch=main >/dev/null
+          fi
+
+      - name: Require Expo Doctor success
+        if: steps.doctor.outcome == 'failure'
+        run: exit 1
 
       - name: TypeScript
         run: npm run typecheck
