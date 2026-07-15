@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -15,6 +16,8 @@ import { PASSWORD_POLICY_SUMMARY, validateRegistrationPassword } from '../lib/pa
 import { AccountMode, WorkshopSearchResult } from '../types';
 
 type BusinessEntryMode = 'new' | 'existing';
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.4';
 
 export function AuthScreen() {
   const { colors } = useTheme();
@@ -154,7 +157,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v1.0.3 EXPO TEST</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>{`GARAGE OS • v${APP_VERSION} TEST APK`}</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
