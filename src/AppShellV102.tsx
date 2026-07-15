@@ -127,8 +127,8 @@ export function AppShellV102() {
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
   }, [colors, isAdmin, isOwner, isApprentice, businessRestricted]);
 
-  const navBottom = Math.max(insets.bottom, 8);
-  const reservedBottom = navBottom + 96;
+  const navBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 36) : Math.max(insets.bottom, 8);
+  const reservedBottom = navBottom + 100;
 
   return <PremiumBackground>
     <View style={[styles.flex, { paddingBottom: reservedBottom }]}>{screen}</View>
