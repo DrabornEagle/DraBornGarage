@@ -125,7 +125,6 @@ jobs:
           ! grep -R "v1.0.3" src --include='*.tsx'
 
       - name: Persist tested hotfix source to main
-        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -136,7 +135,19 @@ jobs:
           git diff --cached --check
           if ! git diff --cached --quiet; then
             git commit -m "v1.0.4 hotfix: notification stability, transparent navigation and version sync"
-            git push origin HEAD:main
+            pushed=false
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                pushed=true
+                break
+              fi
+              sleep 3
+            done
+            test "$pushed" = "true"
+            git fetch origin main
+            test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
           fi
 
       - name: Export public Expo configuration
