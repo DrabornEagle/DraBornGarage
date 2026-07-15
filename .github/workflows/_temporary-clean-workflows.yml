@@ -1,0 +1,114 @@
+name: Temporary Clean Workflows
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflow-cleanup-request.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-clean:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate final release workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 <<'PY'
+          from pathlib import Path
+          import yaml
+          expected = {
+              'release-apk.yml': ('Release APK', ':app:assembleRelease'),
+              'release-aab.yml': ('Release AAB', ':app:bundleRelease'),
+          }
+          for name, (workflow_name, gradle_task) in expected.items():
+              path = Path('.github/workflows') / name
+              if not path.is_file():
+                  raise SystemExit(f'{name} bulunamadı')
+              text = path.read_text(encoding='utf-8')
+              yaml.safe_load(text)
+              required = [
+                  f'name: {workflow_name}',
+                  'workflow_dispatch:',
+                  'ANDROID_KEYSTORE_BASE64',
+                  'ANDROID_KEYSTORE_PASSWORD',
+                  'ANDROID_KEY_ALIAS',
+                  'ANDROID_KEY_PASSWORD',
+                  'EXPECTED_UPLOAD_CERT_SHA256',
+                  'Resolve or create Expo EAS project ID',
+                  'configure_android_signing.py',
+                  gradle_task,
+              ]
+              missing = [item for item in required if item not in text]
+              if missing:
+                  raise SystemExit(f'{name} eksik kurallar: {missing}')
+              if '\n  push:' in text:
+                  raise SystemExit(f'{name} otomatik push tetikleyicisi içeriyor')
+          print('Release APK ve Release AAB workflowları doğrulandı')
+          PY
+
+      - name: Delete every obsolete workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          keep_apk='.github/workflows/release-apk.yml'
+          keep_aab='.github/workflows/release-aab.yml'
+          self='.github/workflows/_temporary-clean-workflows.yml'
+          mapfile -t files < <(find .github/workflows -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) | sort)
+          for path in "${files[@]}"; do
+            [ "$path" = "$keep_apk" ] && continue
+            [ "$path" = "$keep_aab" ] && continue
+            [ "$path" = "$self" ] && continue
+            sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha)"
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${path}" \
+              -f message="ci: remove obsolete workflow ${path##*/}" \
+              -f sha="$sha" \
+              -f branch=main >/dev/null
+            echo "Silindi: $path"
+          done
+
+      - name: Publish cleanup report
+        shell: bash
+        run: |
+          set -euo pipefail
+          path='.github/workflow-cleanup-result.json'
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
+          export TARGET_SHA="$sha"
+          python3 <<'PY'
+          import base64, json, os
+          data = {
+              'status': 'success',
+              'remaining_workflows': ['release-apk.yml', 'release-aab.yml'],
+              'release_options': ['Release APK', 'Release AAB'],
+          }
+          payload = {
+              'message': 'ci: record final workflow cleanup',
+              'content': base64.b64encode((json.dumps(data, indent=2) + '\n').encode()).decode(),
+              'branch': 'main',
+          }
+          if os.environ.get('TARGET_SHA'):
+              payload['sha'] = os.environ['TARGET_SHA']
+          open('cleanup-payload.json','w',encoding='utf-8').write(json.dumps(payload))
+          PY
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" --input cleanup-payload.json >/dev/null
+
+      - name: Delete this temporary workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          path='.github/workflows/_temporary-clean-workflows.yml'
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${path}" \
+            -f message='ci: remove temporary workflow cleanup' \
+            -f sha="$sha" \
+            -f branch=main >/dev/null
