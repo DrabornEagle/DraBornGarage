@@ -1,0 +1,2 @@
+Finalize v1.0.6 visible labels
+Requested: 2026-07-15
