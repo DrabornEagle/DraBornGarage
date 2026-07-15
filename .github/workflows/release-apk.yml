@@ -125,6 +125,7 @@ jobs:
           ! grep -R "v1.0.3" src --include='*.tsx'
 
       - name: Persist tested hotfix source to main
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
