@@ -97,6 +97,7 @@ export interface Profile {
   customer_plate?: string | null;
   customer_motorcycle_brand?: string | null;
   customer_motorcycle_model?: string | null;
+  customer_motorcycle_odometer?: number | null;
 }
 
 export interface Workshop {
@@ -332,6 +333,7 @@ export interface CustomerRegistrationMotor {
   plate: string;
   brand: string;
   model: string;
+  odometer?: number | null;
 }
 
 export interface StaffCustomerClaim {
@@ -397,6 +399,7 @@ export interface Appointment {
   brand: string;
   model: string;
   plate?: string | null;
+  odometer?: number | null;
   mechanic_id: string;
   mechanic_name: string;
   service_title: string;
