@@ -1,0 +1,65 @@
+name: Temporary Create EAS and Dispatch APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-create-eas-and-dispatch-apk.yml
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  link-dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Create or link EAS project
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${EXPO_TOKEN:-}" ] || { echo 'EXPO_TOKEN eksik'; exit 1; }
+          PROJECT_ID="$(node -e "const a=require('./app.json').expo;process.stdout.write(a.extra?.eas?.projectId||'')")"
+          if [ -z "$PROJECT_ID" ]; then
+            npx --yes eas-cli@latest project:init --force --non-interactive
+            PROJECT_ID="$(node -e "const a=require('./app.json').expo;process.stdout.write(a.extra?.eas?.projectId||'')")"
+          fi
+          node -e "if(!/^[0-9a-fA-F-]{36}$/.test(process.argv[1]))process.exit(1)" "$PROJECT_ID"
+          echo "EAS Project ID: $PROJECT_ID"
+      - name: Persist app.json project link
+        shell: bash
+        run: |
+          set -euo pipefail
+          path=app.json
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha)"
+          content="$(base64 -w0 "$path")"
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" \
+            -f message='build: link Expo EAS project ID' \
+            -f content="$content" \
+            -f sha="$sha" \
+            -f branch=main >/dev/null
+      - name: Remove temporary workflow
+        shell: bash
+        run: |
+          self=.github/workflows/_temporary-create-eas-and-dispatch-apk.yml
+          self_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${self}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${self}" \
+            -f message='ci: remove temporary EAS linker' \
+            -f sha="$self_sha" \
+            -f branch=main >/dev/null
+          sleep 5
+      - name: Dispatch Release APK
+        run: gh workflow run release-apk.yml --repo "$GITHUB_REPOSITORY" --ref main -f publish_github_release=true
