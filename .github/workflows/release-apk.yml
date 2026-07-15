@@ -1,18 +1,20 @@
-name: DraBornGarage Release APK
+name: Release APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/apk-build-request-v1.0.6.txt
+    inputs:
+      publish_github_release:
+        description: GitHub ön sürümüne APK ekle
+        required: true
+        type: boolean
+        default: true
 
 permissions:
   contents: write
 
 concurrency:
-  group: draborngarage-release-apk-${{ github.ref }}
-  cancel-in-progress: true
+  group: draborngarage-production-apk
+  cancel-in-progress: false
 
 env:
   CI: "true"
@@ -21,13 +23,21 @@ env:
   EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
   EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
-  EXPO_PUBLIC_EAS_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_EAS_PROJECT_ID }}
+  EXPECTED_UPLOAD_CERT_SHA256: "61:69:5A:48:64:07:75:75:3A:0C:68:B1:8E:23:AC:34:56:FE:D5:AD:DE:50:E5:FF:92:BD:06:A4:6D:4D:EA:EE"
 
 jobs:
   release-apk:
-    name: Build and publish signed v1.0.6 Firebase APK
+    name: Production-signed Release APK
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 80
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      FALLBACK_EAS_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_EAS_PROJECT_ID }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout
@@ -45,45 +55,98 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Validate production signing secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            [ -n "${!name:-}" ] || { echo "Eksik GitHub secret: $name"; exit 1; }
+          done
+
+      - name: Restore and verify permanent keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE_PATH="$RUNNER_TEMP/DraBornGarage-upload-keystore-v1.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          ACTUAL_SHA256="$(keytool -list -v -keystore "$KEYSTORE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | awk -F'SHA256: ' '/SHA256:/{print $2; exit}' | tr -d '\r')"
+          [ "$ACTUAL_SHA256" = "$EXPECTED_UPLOAD_CERT_SHA256" ] || { echo "Yanlış upload keystore sertifikası: $ACTUAL_SHA256"; exit 1; }
+          echo "DRABORNGARAGE_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "Kalıcı upload keystore doğrulandı: $ACTUAL_SHA256"
+
+      - name: Resolve or create Expo EAS project ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_ID="$(node -e "const a=require('./app.json').expo; process.stdout.write(a.extra?.eas?.projectId || '')")"
+          if [ -z "$PROJECT_ID" ] && [ -n "${FALLBACK_EAS_PROJECT_ID:-}" ]; then
+            PROJECT_ID="$FALLBACK_EAS_PROJECT_ID"
+            PROJECT_ID="$PROJECT_ID" node <<'NODE'
+          const fs=require('fs');
+          const app=require('./app.json');
+          app.expo.extra={...(app.expo.extra||{}),eas:{...(app.expo.extra?.eas||{}),projectId:process.env.PROJECT_ID}};
+          fs.writeFileSync('app.json',JSON.stringify(app,null,2)+'\n');
+          NODE
+          fi
+          if [ -z "$PROJECT_ID" ]; then
+            [ -n "${EXPO_TOKEN:-}" ] || { echo 'EAS projesi yok. Bir kez EXPO_TOKEN GitHub secretı eklenmeli.'; exit 1; }
+            npx --yes eas-cli@latest project:init --force --non-interactive
+            PROJECT_ID="$(node -e "const a=require('./app.json').expo; process.stdout.write(a.extra?.eas?.projectId || '')")"
+          fi
+          node -e "if(!/^[0-9a-fA-F-]{36}$/.test(process.argv[1])) process.exit(1)" "$PROJECT_ID" || { echo 'Geçersiz EAS Project ID'; exit 1; }
+          echo "EXPO_PUBLIC_EAS_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+          echo "EAS Project ID hazır: $PROJECT_ID"
+          if ! git diff --quiet -- app.json; then
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add app.json
+            git commit -m 'build: link Expo EAS project ID'
+            git push origin HEAD:main
+          fi
+
       - name: Install required Android NDK
         shell: bash
         run: |
           set -euo pipefail
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
-          test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
           "$SDKMANAGER" "ndk;27.1.12297006"
           test -d "$ANDROID_HOME/ndk/27.1.12297006"
-          echo "Android NDK 27.1.12297006 hazır"
 
-      - name: Prepare output directory
-        run: mkdir -p release-output
+      - name: Read release metadata
+        id: meta
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./app.json').expo.version")"
+          VERSION_CODE="$(node -p "require('./app.json').expo.android.versionCode")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "apk_name=DraBornGarage-v${VERSION}-production.apk" >> "$GITHUB_OUTPUT"
 
-      - name: Validate v1.0.6 source, artwork and Firebase
+      - name: Validate source and Firebase metadata
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
-          const fs = require('fs');
-          const pkg = require('./package.json');
-          const lock = require('./package-lock.json');
-          const app = require('./app.json').expo;
-          const firebase = require('./google-services.json');
-          if (pkg.version !== '1.0.6' || lock.version !== '1.0.6' || lock.packages?.['']?.version !== '1.0.6') throw new Error('Paket sürümü uyuşmuyor');
-          if (pkg.dependencies.expo !== '~54.0.36' || lock.packages?.['node_modules/expo']?.version !== '54.0.36') throw new Error('Expo SDK kilidi uyuşmuyor');
-          if (app.version !== '1.0.6' || app.android?.versionCode !== 24 || app.ios?.buildNumber !== '24') throw new Error('Native sürüm uyuşmuyor');
-          if (app.android?.googleServicesFile !== './google-services.json') throw new Error('googleServicesFile eksik');
-          const firebasePackage = firebase.client?.[0]?.client_info?.android_client_info?.package_name;
-          if (firebasePackage !== app.android.package) throw new Error('Firebase paket adı uyuşmuyor');
-          for (const file of ['assets/draborngarage-icon.png','assets/draborngarage-welcome.png']) if (!fs.existsSync(file) || fs.statSync(file).size < 100000) throw new Error(`${file} geçersiz`);
-          console.log('v1.0.6 / Android 24 / Firebase kaynakları doğrulandı');
+          const fs=require('fs');
+          const app=require('./app.json').expo;
+          const pkg=require('./package.json');
+          const lock=require('./package-lock.json');
+          const firebase=require('./google-services.json');
+          if(pkg.version!==app.version || lock.version!==app.version || lock.packages?.['']?.version!==app.version) throw new Error('Sürüm bilgileri eşleşmiyor');
+          if(app.android?.googleServicesFile!=='./google-services.json') throw new Error('googleServicesFile eksik');
+          const firebasePackage=firebase.client?.[0]?.client_info?.android_client_info?.package_name;
+          if(firebasePackage!==app.android.package) throw new Error('Firebase Android paket adı uyuşmuyor');
+          if(!app.extra?.eas?.projectId) throw new Error('EAS Project ID app.json içine yazılmadı');
+          for(const file of ['assets/draborngarage-icon.png','assets/draborngarage-welcome.png']) if(!fs.existsSync(file)||fs.statSync(file).size<100000) throw new Error(`${file} geçersiz`);
           NODE
 
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
       - name: Expo Doctor
-        run: npx expo-doctor 2>&1 | tee release-output/expo-doctor.txt
+        run: npx expo-doctor
 
       - name: TypeScript
         run: npm run typecheck
@@ -91,35 +154,34 @@ jobs:
       - name: Android JavaScript bundle
         run: npm run test:bundle
 
-      - name: Verify v1.0.6 feature rules
+      - name: Verify login recovery and push hardening
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "motorcycleOdometer" src/screens/AuthScreen.tsx
-          grep -q "p_odometer: odometerValue" src/customer/CustomerAppointmentsScreen.tsx
-          grep -q "bikeOdometer" src/screens/CustomersScreen.tsx
-          grep -q "needsInitialCharge" src/components/ReceivableManagerCard.tsx
-          ! grep -q "Tahsil edilecek ücret gerekli" src/screens/WorkOrderDetailV04.tsx
-          grep -q "draborngarage-system-loud-v3" src/notifications/notificationPermissions.ts
-          grep -q "v1.0.6 RC" src/notifications/NotificationCenterScreen.tsx
+          grep -q 'AppErrorBoundary' App.tsx
+          grep -q 'const EAS_PROJECT_ID' src/notifications/NotificationContextV101.tsx
+          grep -q 'Boolean(EAS_PROJECT_ID)' src/notifications/NotificationContextV101.tsx
+          grep -q 'unreadCountRef.current' src/notifications/NotificationContextV101.tsx
+          grep -q "select('customer_motorcycle_odometer')" src/context/AuthContext.tsx
+          grep -q 'DRABORNGARAGE_PRODUCTION_SIGNING' scripts/configure_android_signing.py
 
-      - name: Export public Expo configuration
-        run: npx expo config --type public --json > release-output/expo-public-config.json
+      - name: Export Expo public configuration
+        run: |
+          mkdir -p release-output
+          npx expo config --type public --json > release-output/expo-public-config.json
 
       - name: Generate clean Android native project
         run: npx expo prebuild --platform android --clean --no-install
 
-      - name: Verify generated Firebase Android configuration
+      - name: Apply production signing configuration
+        run: python3 scripts/configure_android_signing.py
+
+      - name: Verify generated Firebase configuration
         shell: bash
         run: |
           set -euo pipefail
           test -s android/app/google-services.json
-          node <<'NODE'
-          const app = require('./app.json').expo;
-          const generated = require('./android/app/google-services.json');
-          const packageName = generated.client?.[0]?.client_info?.android_client_info?.package_name;
-          if (packageName !== app.android.package) throw new Error('Üretilen Firebase paket adı uyuşmuyor');
-          NODE
+          node -e "const a=require('./app.json').expo;const g=require('./android/app/google-services.json');if(g.client?.[0]?.client_info?.android_client_info?.package_name!==a.android.package)process.exit(1)"
 
       - name: Normalize generated Android manifest
         shell: bash
@@ -136,12 +198,11 @@ jobs:
           text='\n'.join(lines)+'\n'
           feature='  <uses-feature android:name="android.hardware.camera" android:required="false"/>'
           if 'android.hardware.camera' not in text:
-              pos=text.find('>')
-              text=text[:pos+1]+'\n'+feature+text[pos+1:]
+              pos=text.find('>'); text=text[:pos+1]+'\n'+feature+text[pos+1:]
           path.write_text(text)
           PY
 
-      - name: Build Android release APK
+      - name: Build production Release APK
         working-directory: android
         run: |
           chmod +x gradlew
@@ -151,8 +212,8 @@ jobs:
         working-directory: android
         run: ./gradlew :app:lintRelease --no-daemon --stacktrace
 
-      - name: Verify manifest and collect APK
-        id: apk
+      - name: Verify manifest, signature and collect APK
+        id: collect
         shell: bash
         run: |
           set -euo pipefail
@@ -173,76 +234,73 @@ jobs:
           PY
           SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
           test -f "$SOURCE_APK"
-          APK_NAME="DraBornGarage-v1.0.6-release-test.apk"
-          APK_PATH="release-output/${APK_NAME}"
+          APK_PATH="release-output/${{ steps.meta.outputs.apk_name }}"
           cp "$SOURCE_APK" "$APK_PATH"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee release-output/apk-signature.txt
+          APK_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' release-output/apk-signature.txt | head -n 1 | tr '[:lower:]' '[:upper:]' | sed 's/../&:/g;s/:$//')"
+          [ "$APK_CERT" = "$EXPECTED_UPLOAD_CERT_SHA256" ] || { echo "APK yanlış sertifikayla imzalandı: $APK_CERT"; exit 1; }
           sha256sum "$APK_PATH" | tee release-output/SHA256SUMS.txt
           stat -c '%n %s bytes' "$APK_PATH" | tee release-output/apk-size.txt
-          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Build information and release notes
+      - name: Build information
         shell: bash
         run: |
-          if [ -n "${EXPO_PUBLIC_EAS_PROJECT_ID:-}" ]; then EAS_STATUS="configured"; else EAS_STATUS="missing"; fi
-          {
-            echo "DraBornGarage v1.0.6 RC"
-            echo "Android versionCode: 24"
-            echo "Commit: $GITHUB_SHA"
-            echo "Run: $GITHUB_RUN_ID"
-            echo "Firebase Android google-services.json: configured"
-            echo "Native push client flag: enabled"
-            echo "Expo EAS project ID secret: ${EAS_STATUS}"
-            echo "Android NDK: 27.1.12297006"
-            echo "Signing: GitHub test signing; Google Play production upload key değildir"
-          } | tee release-output/BUILD_INFO.txt
-          cat > release-output/RELEASE_NOTES.md <<'EOF'
-          # DraBornGarage v1.0.6 Test APK
+          cat > release-output/BUILD_INFO.txt <<EOF
+          DraBornGarage v${{ steps.meta.outputs.version }}
+          Android versionCode: ${{ steps.meta.outputs.version_code }}
+          Commit: $GITHUB_SHA
+          Run: $GITHUB_RUN_ID
+          EAS Project ID: $EXPO_PUBLIC_EAS_PROJECT_ID
+          Firebase Android client: configured
+          Android upload certificate SHA-256: $EXPECTED_UPLOAD_CERT_SHA256
+          Signing: permanent DraBornGarage production upload keystore
+          EOF
+          cat > release-output/RELEASE_NOTES.md <<EOF
+          # DraBornGarage v${{ steps.meta.outputs.version }} Production-signed APK
 
+          - Giriş sonrası çökme ve kalıcı açılmama için güvenli oturum kurtarma
+          - EAS Project ID olmadan native push dinleyicisinin başlatılmaması
+          - Uygulama hatasında kapanmak yerine kurtarma ekranı
           - Firebase Android yapılandırması
-          - Motor Hazır aşamasında ücret zorunluluğu kaldırıldı
-          - İlk Nakit/IBAN/Borç tutarı otomatik Net Fiyat olur
-          - Kullanıcı kaydı, randevu ve müşteri motor ekleme akışlarında kilometre
-          - Randevu kilometresinin servis kaydına aktarılması
-          - Telefonun varsayılan bildirim sesi ve yüksek öncelikli bildirim kanalı
-          - Expo Doctor, TypeScript, bundle, Firebase, NDK, lint, manifest ve APK imza kontrolleri
+          - Kalıcı DraBornGarage upload keystore ile imzalama
+          - Expo Doctor, TypeScript, bundle, Gradle, lint, manifest ve sertifika doğrulamaları
           EOF
 
-      - name: Upload DraBornGarage Release APK artifact
+      - name: Upload Release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGarage-v1.0.6-Firebase-Release-APK
+          name: DraBornGarage-v${{ steps.meta.outputs.version }}-Production-APK
           path: release-output/
           if-no-files-found: error
           retention-days: 30
           compression-level: 6
 
-      - name: Publish GitHub test release
+      - name: Publish GitHub prerelease
+        if: ${{ inputs.publish_github_release }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.6-test
+          tag_name: v${{ steps.meta.outputs.version }}-apk-rc
           target_commitish: main
-          name: DraBornGarage v1.0.6 Test APK
+          name: DraBornGarage v${{ steps.meta.outputs.version }} Production APK
           body_path: release-output/RELEASE_NOTES.md
           prerelease: true
           make_latest: false
           overwrite_files: true
           files: |
-            release-output/DraBornGarage-v1.0.6-release-test.apk
+            release-output/${{ steps.meta.outputs.apk_name }}
             release-output/SHA256SUMS.txt
             release-output/apk-signature.txt
-            release-output/apk-size.txt
             release-output/BUILD_INFO.txt
             release-output/AndroidManifest-release.xml
 
       - name: Build summary
         run: |
           {
-            echo "# DraBornGarage Release APK v1.0.6"
-            echo "- Version: **1.0.6 RC**"
-            echo "- Android versionCode: **24**"
-            echo "- Firebase Android: **configured**"
-            echo "- NDK: **27.1.12297006**"
-            echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
+            echo '# Release APK tamamlandı'
+            echo '- Version: **${{ steps.meta.outputs.version }}**'
+            echo '- Android versionCode: **${{ steps.meta.outputs.version_code }}**'
+            echo '- APK: **${{ steps.meta.outputs.apk_name }}**'
+            echo '- Signing: **Permanent production upload keystore**'
+            echo '- EAS Project ID: **configured**'
           } >> "$GITHUB_STEP_SUMMARY"
