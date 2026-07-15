@@ -5,6 +5,7 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import { AppState, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { ensureDraBornNotificationChannels, LOUD_NOTIFICATION_CHANNEL_ID, requestDeviceNotificationPermission, SILENT_NOTIFICATION_CHANNEL_ID } from './notificationPermissions';
 import {
   GarageNotification,
   NotificationCenterPayload,
@@ -28,26 +29,19 @@ const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
 const PUSH_TOKEN_STORAGE_KEY = '@draborngarage/expo-push-token';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 const NATIVE_PUSH_ENABLED = process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED === 'true';
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.4';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.5';
 
-export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: string; subtitle: string; icon: 'musical-notes' | 'pulse' | 'alert-circle' | 'volume-mute' }[] = [
-  { key: 'garage_chime', label: 'Garage Chime', subtitle: 'Uzun ve net garaj melodisi', icon: 'musical-notes' },
-  { key: 'garage_pulse', label: 'Garage Pulse', subtitle: 'Güçlü ve ritmik uyarı', icon: 'pulse' },
-  { key: 'garage_alert', label: 'Garage Alert', subtitle: 'En uzun ve dikkat çekici', icon: 'alert-circle' },
-  { key: 'silent', label: 'Sessiz', subtitle: 'Yalnız titreşim', icon: 'volume-mute' },
+export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: string; subtitle: string; icon: 'musical-notes' | 'volume-mute' }[] = [
+  { key: 'system_loud', label: 'Telefon Bildirim Sesi', subtitle: 'Telefonunun bildirim sesi ve ses seviyesini kullanır', icon: 'musical-notes' },
+  { key: 'silent', label: 'Sessiz', subtitle: 'Ses olmadan güçlü titreşim', icon: 'volume-mute' },
 ];
 
-function soundFile(sound: NotificationSoundKey): string | false {
-  if (sound === 'silent') return false;
-  if (IS_EXPO_GO) return 'default';
-  return `${sound}.wav`;
+function soundFile(sound: NotificationSoundKey): 'default' | false {
+  return sound === 'silent' ? false : 'default';
 }
 
 function channelId(sound: NotificationSoundKey) {
-  if (sound === 'garage_pulse') return 'draborngarage-pulse-v2';
-  if (sound === 'garage_alert') return 'draborngarage-alert-v2';
-  if (sound === 'silent') return 'draborngarage-silent-v2';
-  return 'draborngarage-chime-v2';
+  return sound === 'silent' ? SILENT_NOTIFICATION_CHANNEL_ID : LOUD_NOTIFICATION_CHANNEL_ID;
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -60,7 +54,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   receivable_reminders: true,
   platform_reminders: true,
   customer_link_updates: true,
-  notification_sound: 'garage_chime',
+  notification_sound: 'system_loud',
   push_notifications_enabled: true,
 };
 
@@ -93,24 +87,7 @@ interface NotificationContextValue {
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
 async function ensureAndroidChannels() {
-  if (Platform.OS !== 'android') return;
-  const channels: { key: NotificationSoundKey; name: string; description: string; vibrationPattern: number[] }[] = [
-    { key: 'garage_chime', name: 'Garage Chime v2', description: 'Uzun ve yüksek DraBornGarage servis bildirimi', vibrationPattern: [0, 260, 110, 260, 110, 420] },
-    { key: 'garage_pulse', name: 'Garage Pulse v2', description: 'Ritmik ve güçlü DraBornGarage bildirimi', vibrationPattern: [0, 180, 80, 180, 80, 260, 100, 420] },
-    { key: 'garage_alert', name: 'Garage Alert v2', description: 'Acil servis, ödeme ve onay uyarısı', vibrationPattern: [0, 420, 120, 420, 120, 620] },
-    { key: 'silent', name: 'DraBornGarage Sessiz v2', description: 'Ses olmadan titreşimli bildirim', vibrationPattern: [0, 220, 120, 220] },
-  ];
-  await Promise.all(channels.map((item) => Notifications.setNotificationChannelAsync(channelId(item.key), {
-    name: item.name,
-    description: item.description,
-    importance: item.key === 'silent' ? Notifications.AndroidImportance.DEFAULT : Notifications.AndroidImportance.MAX,
-    vibrationPattern: item.vibrationPattern,
-    enableVibrate: true,
-    enableLights: true,
-    lightColor: item.key === 'garage_alert' ? '#FF5E78' : '#7C5CFF',
-    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    sound: soundFile(item.key) || null,
-  })));
+  await ensureDraBornNotificationChannels();
 }
 
 function notificationData(item: GarageNotification) {
@@ -327,9 +304,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const requestLocalNotifications = useCallback(async () => {
     try {
-      await ensureAndroidChannels();
-      const current = await Notifications.getPermissionsAsync();
-      const result = current.status === 'granted' ? current : await Notifications.requestPermissionsAsync();
+      const result = await requestDeviceNotificationPermission();
       if (mountedRef.current) setPermissionStatus(result.status);
       if (result.status !== 'granted') return false;
       const merged = { ...preferencesRef.current, local_notifications_enabled: true };
@@ -504,7 +479,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `DraBornGarage v${APP_VERSION} bildirim testi`,
-          body: 'Uzun ve güçlü bildirim sesi etkin. Gerçek servis hareketleri de cihaz bildirim alanına taşınacak.',
+          body: 'Telefonunun varsayılan bildirim sesi ve yüksek öncelikli DraBornGarage kanalı etkin.',
           sound: soundFile(preferences.notification_sound),
           data: { source: 'draborngarage', targetTab: 'home' },
         },
