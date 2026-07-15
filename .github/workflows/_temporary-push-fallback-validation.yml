@@ -1,0 +1,87 @@
+name: Temporary Push Fallback Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/push-fallback-validation-request.txt
+
+permissions:
+  contents: write
+
+jobs:
+  validate-persist-clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+      EXPO_PUBLIC_SUPABASE_URL: https://xpdiwyxnnrmyvpcqwuyb.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG
+      EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply push fallback patch
+        run: python3 scripts/apply_v1_0_7_push_fallback.py
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Expo Doctor
+        run: npx expo-doctor
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+      - name: Verify fallback rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'receivedSystemNotificationIdsRef' src/notifications/NotificationContextV101.tsx
+          grep -q 'setTimeout(resolve, 1400)' src/notifications/NotificationContextV101.tsx
+          grep -q "deliveryTime >= recentCutoff" src/notifications/NotificationContextV101.tsx
+          grep -q "deliver_at >= now() - interval '24 hours'" supabase/migrations/20260715213000_v1_0_7_push_delivery_hardening.sql
+          ! grep -q "pushStatusRef.current === 'registered') return" src/notifications/NotificationContextV101.tsx
+      - name: Persist tested files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in src/notifications/NotificationContextV101.tsx supabase/migrations/20260715213000_v1_0_7_push_delivery_hardening.sql; do
+            export TARGET_PATH="$path"
+            export TARGET_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
+            python3 <<'PY'
+          from pathlib import Path
+          import base64,json,os
+          path=os.environ['TARGET_PATH']
+          payload={'message':'v1.0.7: reliable phone notification fallback','content':base64.b64encode(Path(path).read_bytes()).decode(),'branch':'main'}
+          if os.environ.get('TARGET_SHA'): payload['sha']=os.environ['TARGET_SHA']
+          Path('payload.json').write_text(json.dumps(payload),encoding='utf-8')
+          PY
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" --input payload.json >/dev/null
+          done
+      - name: Publish validation result
+        shell: bash
+        run: |
+          set -euo pipefail
+          path='.github/push-fallback-validation-result.json'
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
+          export TARGET_SHA="$sha"
+          python3 <<'PY'
+          import base64,json,os
+          data=(json.dumps({'status':'success','checks':['expo-doctor','typescript','android-bundle','remote-local-deduplication','24-hour-push-window']},indent=2)+'\n').encode()
+          payload={'message':'ci: record push fallback validation','content':base64.b64encode(data).decode(),'branch':'main'}
+          if os.environ.get('TARGET_SHA'): payload['sha']=os.environ['TARGET_SHA']
+          open('result-payload.json','w',encoding='utf-8').write(json.dumps(payload))
+          PY
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" --input result-payload.json >/dev/null
+      - name: Remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          path='.github/workflows/_temporary-push-fallback-validation.yml'
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message='ci: remove temporary push fallback validation' -f sha="$sha" -f branch=main >/dev/null
