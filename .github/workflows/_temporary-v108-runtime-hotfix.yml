@@ -46,31 +46,10 @@ jobs:
 
           notification_path = Path('src/notifications/NotificationContextV101.tsx')
           notification = notification_path.read_text()
-          old_listener = '''  useEffect(() => {
-            mountedRef.current = true;
-            ensureAndroidChannels().catch(() => undefined);
-            Notifications.getPermissionsAsync().then((status) => mountedRef.current && setPermissionStatus(status.status)).catch(() => undefined);
-            const receivedListener = Notifications.addNotificationReceivedListener((notification) => {
-              const data = notification.request.content.data || {};
-              const notificationId = typeof data.notificationId === 'string'
-                ? data.notificationId
-                : typeof data.notification_id === 'string'
-                  ? data.notification_id
-                  : null;
-              if (!notificationId) return;
-              const ids = receivedSystemNotificationIdsRef.current;
-              ids.add(notificationId);
-              while (ids.size > 350) {
-                const oldest = ids.values().next().value;
-                if (typeof oldest !== 'string') break;
-                ids.delete(oldest);
-              }
-            });
-            return () => {
-              mountedRef.current = false;
-              receivedListener.remove();
-            };
-          }, []);'''
+
+          listener_start = notification.index("  useEffect(() => {\n    mountedRef.current = true;")
+          listener_end_marker = "\n  }, []);"
+          listener_end = notification.index(listener_end_marker, listener_start) + len(listener_end_marker)
           new_listener = '''  useEffect(() => {
             mountedRef.current = true;
             ensureAndroidChannels().catch(() => undefined);
@@ -111,19 +90,30 @@ jobs:
               if (typeof receivedListener?.remove === 'function') receivedListener.remove();
             };
           }, []);'''
-          if old_listener not in notification:
-              raise SystemExit('Primary notification listener block not found')
-          notification = notification.replace(old_listener, new_listener)
+          notification = notification[:listener_start] + new_listener + notification[listener_end:]
 
-          old_response = '''    const api = Notifications as typeof Notifications & {
-              getLastNotificationResponse?: () => Notifications.NotificationResponse | null;
-              getLastNotificationResponseAsync?: () => Promise<Notifications.NotificationResponse | null>;
+          response_start = notification.index("  useEffect(() => {\n    let lastResponseKey = '';")
+          response_end_marker = "\n  }, [refresh]);"
+          response_end = notification.index(response_end_marker, response_start) + len(response_end_marker)
+          new_response = '''  useEffect(() => {
+            let lastResponseKey = '';
+            const handleResponse = (event: Notifications.NotificationResponse | null) => {
+              if (!event) return;
+              const data = event.notification.request.content.data || {};
+              const responseKey = `${event.notification.request.identifier}:${event.actionIdentifier}`;
+              if (lastResponseKey === responseKey) return;
+              lastResponseKey = responseKey;
+              const notificationId = typeof data.notificationId === 'string' ? data.notificationId : typeof data.notification_id === 'string' ? data.notification_id : undefined;
+              if (notificationId) supabase.rpc('notification_mark_read', { p_notification_id: notificationId }).then(() => refresh());
+              setNavigationTarget({
+                targetTab: typeof data.targetTab === 'string' ? data.targetTab : typeof data.target_tab === 'string' ? data.target_tab : undefined,
+                targetSection: typeof data.targetSection === 'string' ? data.targetSection : typeof data.target_section === 'string' ? data.target_section : undefined,
+                notificationId,
+                data: data as Record<string, unknown>,
+              });
+              setOpen(false);
             };
-            if (typeof api.getLastNotificationResponseAsync === 'function') api.getLastNotificationResponseAsync().then(handleResponse).catch(() => undefined);
-            else if (typeof api.getLastNotificationResponse === 'function') handleResponse(api.getLastNotificationResponse());
-            const response = Notifications.addNotificationResponseReceivedListener(handleResponse);
-            return () => response.remove();'''
-          new_response = '''    const api = Notifications as typeof Notifications & {
+            const api = Notifications as typeof Notifications & {
               getLastNotificationResponse?: () => Notifications.NotificationResponse | null;
               getLastNotificationResponseAsync?: () => Promise<Notifications.NotificationResponse | null>;
               addNotificationResponseReceivedListener?: typeof Notifications.addNotificationResponseReceivedListener;
@@ -140,27 +130,30 @@ jobs:
             }
             return () => {
               if (typeof response?.remove === 'function') response.remove();
-            };'''
-          if old_response not in notification:
-              raise SystemExit('Notification response listener block not found')
-          notification = notification.replace(old_response, new_response)
+            };
+          }, [refresh]);'''
+          notification = notification[:response_start] + new_response + notification[response_end:]
           notification_path.write_text(notification)
 
           center_path = Path('src/notifications/NotificationCenterScreen.tsx')
           center = center_path.read_text()
           target = "  }, [tab, notifications, upcoming]);\n\n  const permissionLabel"
           replacement = "  }, [tab, notifications, upcoming]);\n\n  if (!open) return null;\n\n  const permissionLabel"
-          if target not in center:
-              raise SystemExit('Notification center guard target not found')
-          center_path.write_text(center.replace(target, replacement))
+          if 'if (!open) return null;' not in center:
+              if target not in center:
+                  raise SystemExit('Notification center guard target not found')
+              center = center.replace(target, replacement, 1)
+          center_path.write_text(center)
 
           boundary_path = Path('src/components/AppErrorBoundary.tsx')
           boundary = boundary_path.read_text()
           old_error = "<View style={styles.errorBox}><Text selectable style={styles.errorText}>{error.message || 'Bilinmeyen uygulama hatası'}</Text></View>"
           new_error = "<View style={styles.errorBox}><Text selectable style={styles.errorText}>{error.message || 'Bilinmeyen uygulama hatası'}{error.stack ? `\\n\\n${error.stack.split('\\n').slice(0, 10).join('\\n')}` : ''}</Text></View>"
-          if old_error not in boundary:
-              raise SystemExit('Error diagnostics target not found')
-          boundary_path.write_text(boundary.replace(old_error, new_error))
+          if 'error.stack.split' not in boundary:
+              if old_error not in boundary:
+                  raise SystemExit('Error diagnostics target not found')
+              boundary = boundary.replace(old_error, new_error, 1)
+          boundary_path.write_text(boundary)
 
           app_json_path = Path('app.json')
           app_json = json.loads(app_json_path.read_text())
