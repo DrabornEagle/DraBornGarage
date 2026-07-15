@@ -20,6 +20,7 @@ def replace_exact(path: str, old: str, new: str, count: int = 1) -> None:
     write(path, text.replace(old, new, count))
 
 
+# Second push trigger: workflow is already present on main.
 # Android edge-to-edge sistem çubuğu için resmi uyum katmanı.
 package_path = ROOT / 'package.json'
 package = json.loads(package_path.read_text(encoding='utf-8'))
@@ -64,7 +65,6 @@ replace_exact(
     "  return <SystemBars style={resolvedMode === 'dark' ? 'light' : 'dark'} />;",
 )
 
-# Görünür sürüm metni artık app.json'dan okunur.
 replace_exact(
     'src/screens/AuthScreen.tsx',
     "import { LinearGradient } from 'expo-linear-gradient';\n",
@@ -81,7 +81,6 @@ replace_exact(
     '>{`GARAGE OS • v${APP_VERSION} TEST APK`}</Text>',
 )
 
-# Plain Gradle test APK EAS/FCM kimlik bilgisi taşımıyor. Remote token yolu final FCM kurulana kadar kapalıdır.
 replace_exact(
     'src/notifications/NotificationContextV101.tsx',
     "const IS_EXPO_GO = Constants.appOwnership === 'expo';\n",
@@ -118,7 +117,6 @@ replace_exact(
     "          title: `DraBornGarage v${APP_VERSION} bildirim testi`,",
 )
 
-# Xiaomi üç tuşlu navigasyonda safe-area 0 dönebildiği için güvenli alt mesafe.
 replace_exact(
     'src/AppShellV102.tsx',
     "  const navBottom = Math.max(insets.bottom, 8);\n  const reservedBottom = navBottom + 96;",
@@ -130,14 +128,12 @@ replace_exact(
     "  const navBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 36) : Math.max(insets.bottom, 8);\n  const reservedBottom = navBottom + 100;",
 )
 
-# v1.0.3 kalan görünür metinleri v1.0.4 ile eşitle.
 for path in (ROOT / 'src').rglob('*.tsx'):
     text = path.read_text(encoding='utf-8')
     updated = text.replace('v1.0.3', 'v1.0.4')
     if updated != text:
         path.write_text(updated, encoding='utf-8')
 
-# Release workflow aynı v1.0.4 etiketinde hotfix APK'yı yeniler.
 workflow_path = ROOT / '.github/workflows/release-apk.yml'
 workflow = workflow_path.read_text(encoding='utf-8')
 workflow = workflow.replace("EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}", "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}\n  EXPO_PUBLIC_NATIVE_PUSH_ENABLED: \"false\"")
