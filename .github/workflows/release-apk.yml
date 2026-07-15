@@ -124,21 +124,20 @@ jobs:
           grep -q 'GARAGE OS • v${APP_VERSION} TEST APK' src/screens/AuthScreen.tsx
           ! grep -R "v1.0.3" src --include='*.tsx'
 
-      - name: Persist tested hotfix source branch
+      - name: Package tested hotfix source
         shell: bash
         run: |
           set -euo pipefail
           rm -f scripts/apply_v1_0_4_native_hotfix.py .github/workflows/apply_v1_0_4_native_hotfix_once.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          if ! git diff --cached --quiet; then
-            git commit -m "v1.0.4 hotfix: notification stability, transparent navigation and version sync"
-          fi
-          git fetch origin main
-          git rebase origin/main
-          git push --force origin HEAD:refs/heads/hotfix/v1.0.4-tested-source
+          git diff --name-status HEAD > release-output/HOTFIX_SOURCE_FILES.txt
+          git diff --binary HEAD > release-output/DraBornGarage-v1.0.4-hotfix-source.patch
+          tar \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='android' \
+            --exclude='release-output' \
+            -czf release-output/DraBornGarage-v1.0.4-tested-source.tar.gz .
 
       - name: Export public Expo configuration
         run: npx expo config --type public --json > release-output/expo-public-config.json
