@@ -27,6 +27,8 @@ const DELIVERED_STORAGE_PREFIX = '@draborngarage/v101-delivered/';
 const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
 const PUSH_TOKEN_STORAGE_KEY = '@draborngarage/expo-push-token';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const NATIVE_PUSH_ENABLED = process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED === 'true';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.4';
 
 export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: string; subtitle: string; icon: 'musical-notes' | 'pulse' | 'alert-circle' | 'volume-mute' }[] = [
   { key: 'garage_chime', label: 'Garage Chime', subtitle: 'Uzun ve net garaj melodisi', icon: 'musical-notes' },
@@ -277,6 +279,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const registerPushNotifications = useCallback(async () => {
     if (!session?.user || !preferencesRef.current.push_notifications_enabled) return false;
+    if (!NATIVE_PUSH_ENABLED) {
+      setPushStatus('missing_project');
+      return false;
+    }
     if (Platform.OS === 'android' && IS_EXPO_GO) {
       setPushStatus('expo_go');
       return false;
@@ -307,7 +313,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         p_expo_push_token: token,
         p_device_id: deviceId,
         p_platform: Platform.OS,
-        p_app_version: Constants.expoConfig?.version || '1.0.1',
+        p_app_version: APP_VERSION,
       });
       if (error) throw error;
       await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
@@ -343,7 +349,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       setPreferences(merged);
       await syncFutureSchedules(upcoming, merged, unreadCount + 1);
-      if (merged.push_notifications_enabled) await registerPushNotifications();
+      if (merged.push_notifications_enabled && NATIVE_PUSH_ENABLED) await registerPushNotifications();
       return true;
     } catch {
       return false;
@@ -389,7 +395,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         refresh();
       }
     });
-    const tokenListener = IS_EXPO_GO ? null : Notifications.addPushTokenListener(() => { registerPushNotifications(); });
+    const tokenListener = !NATIVE_PUSH_ENABLED || IS_EXPO_GO ? null : Notifications.addPushTokenListener(() => { registerPushNotifications(); });
     return () => {
       appState.remove();
       tokenListener?.remove();
@@ -445,7 +451,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setPreferences(next);
     if (!next.local_notifications_enabled) await cancelGarageSchedules();
     else await syncFutureSchedules(upcoming, next, unreadCount + 1);
-    if (next.push_notifications_enabled) await registerPushNotifications();
+    if (next.push_notifications_enabled && NATIVE_PUSH_ENABLED) await registerPushNotifications();
     await refresh();
     return null;
   }, [upcoming, unreadCount, cancelGarageSchedules, syncFutureSchedules, refresh, registerPushNotifications]);
@@ -497,7 +503,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       await ensureAndroidChannels();
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'DraBornGarage v1.0.1 bildirim testi',
+          title: `DraBornGarage v${APP_VERSION} bildirim testi`,
           body: 'Uzun ve güçlü bildirim sesi etkin. Gerçek servis hareketleri de cihaz bildirim alanına taşınacak.',
           sound: soundFile(preferences.notification_sound),
           data: { source: 'draborngarage', targetTab: 'home' },
