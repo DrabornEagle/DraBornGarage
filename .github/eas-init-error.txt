@@ -1,0 +1,62 @@
+Production-signed Release APK	Resolve or create Expo EAS project ID	﻿2026-07-15T21:56:28.1660320Z ##[group]Run set -euo pipefail
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1660909Z ^[[36;1mset -euo pipefail^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1661852Z ^[[36;1mPROJECT_ID="$(node -e "const a=require('./app.json').expo; process.stdout.write(a.extra?.eas?.projectId || '')")"^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1663003Z ^[[36;1mif [ -z "$PROJECT_ID" ] && [ -n "${FALLBACK_EAS_PROJECT_ID:-}" ]; then^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1663778Z ^[[36;1m  PROJECT_ID="$FALLBACK_EAS_PROJECT_ID"^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1664427Z ^[[36;1m  PROJECT_ID="$PROJECT_ID" node <<'NODE'^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1665000Z ^[[36;1mconst fs=require('fs');^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1665511Z ^[[36;1mconst app=require('./app.json');^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1666445Z ^[[36;1mapp.expo.extra={...(app.expo.extra||{}),eas:{...(app.expo.extra?.eas||{}),projectId:process.env.PROJECT_ID}};^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1667563Z ^[[36;1mfs.writeFileSync('app.json',JSON.stringify(app,null,2)+'\n');^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1668938Z ^[[36;1mNODE^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1669362Z ^[[36;1mfi^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1669797Z ^[[36;1mif [ -z "$PROJECT_ID" ]; then^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1670793Z ^[[36;1m  [ -n "${EXPO_TOKEN:-}" ] || { echo 'EAS projesi yok. Bir kez EXPO_TOKEN GitHub secretı eklenmeli.'; exit 1; }^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1671909Z ^[[36;1m  npx --yes eas-cli@latest project:init --force --non-interactive^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1673094Z ^[[36;1m  PROJECT_ID="$(node -e "const a=require('./app.json').expo; process.stdout.write(a.extra?.eas?.projectId || '')")"^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1674088Z ^[[36;1mfi^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1675034Z ^[[36;1mnode -e "if(!/^[0-9a-fA-F-]{36}$/.test(process.argv[1])) process.exit(1)" "$PROJECT_ID" || { echo 'Geçersiz EAS Project ID'; exit 1; }^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1676328Z ^[[36;1mecho "EXPO_PUBLIC_EAS_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1677129Z ^[[36;1mecho "EAS Project ID hazır: $PROJECT_ID"^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1677806Z ^[[36;1mif ! git diff --quiet -- app.json; then^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1678847Z ^[[36;1m  git config user.name github-actions[bot]^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1679825Z ^[[36;1m  git config user.email 41898282+github-actions[bot]@users.noreply.github.com^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1680670Z ^[[36;1m  git add app.json^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1681261Z ^[[36;1m  git commit -m 'build: link Expo EAS project ID'^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1681884Z ^[[36;1m  git push origin HEAD:main^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1682396Z ^[[36;1mfi^[[0m
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1753323Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1753721Z env:
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1753934Z   CI: true
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1754165Z   EXPO_NO_TELEMETRY: 1
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1754417Z   EXPO_NO_GIT_STATUS: 1
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1754796Z   EXPO_PUBLIC_SUPABASE_URL: https://xpdiwyxnnrmyvpcqwuyb.supabase.co
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1755372Z   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1755859Z   EXPO_PUBLIC_NATIVE_PUSH_ENABLED: true
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1756376Z   EXPECTED_UPLOAD_CERT_SHA256: 61:69:5A:48:64:07:75:75:3A:0C:68:B1:8E:23:AC:34:56:FE:D5:AD:DE:50:E5:FF:92:BD:06:A4:6D:4D:EA:EE
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1757057Z   EXPO_TOKEN: ***
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1757305Z   FALLBACK_EAS_PROJECT_ID: 
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1784612Z   ANDROID_KEYSTORE_BASE64: ***
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1785047Z   ANDROID_KEYSTORE_PASSWORD: ***
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1785561Z   ANDROID_KEY_ALIAS: ***
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1785934Z   ANDROID_KEY_PASSWORD: ***
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1788964Z   GH_TOKEN: ***
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1789327Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1789852Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1790442Z   DRABORNGARAGE_KEYSTORE_PATH: /home/runner/work/_temp/DraBornGarage-upload-keystore-v1.jks
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:28.1790922Z ##[endgroup]
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:37.0919662Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:38.0438676Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:38.4675238Z npm warn deprecated rimraf@2.4.5: Rimraf versions prior to v4 are no longer supported
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:38.4903721Z npm warn deprecated @xmldom/xmldom@0.7.13: this version has critical issues, please update to the latest version
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:38.4939846Z npm warn deprecated glob@6.0.4: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:38.6221740Z npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:39.0763302Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:39.0808007Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:39.1092308Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:39.2071460Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:39.2103361Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:39.2106175Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:43.6870013Z Failed to resolve plugin for module "expo-camera" relative to "/home/runner/work/DraBornGarage/DraBornGarage". Do you have node modules installed?
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:43.9367219Z     Error: project:init command failed.
+Production-signed Release APK	Resolve or create Expo EAS project ID	2026-07-15T21:56:43.9746083Z ##[error]Process completed with exit code 1.
