@@ -150,18 +150,6 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   };
 
   const changeStatus = async (status: WorkOrderStatus) => {
-    const requiresFinalCharge = ['ready', 'completed', 'delivered'].includes(status);
-    if (requiresFinalCharge && Number(order?.total_amount || 0) <= 0) {
-      setPriceType('fixed');
-      setFixedPrice('');
-      setOpenSections((current) => ({ ...current, price: true, status: false }));
-      setTimeout(() => scrollRef.current?.scrollTo({ y: 420, animated: true }), 180);
-      Alert.alert(
-        'Tahsil edilecek ücret gerekli',
-        'Motor Hazır yapılmadan önce müşteriden tahsil edilecek son net ücreti veya yapılan işlem tutarını kaydetmelisin.',
-      );
-      return;
-    }
     const { error } = await supabase.rpc('update_work_order_status', { p_work_order_id: orderId, p_status: status });
     if (error) return Alert.alert('Durum değiştirilemedi', error.message);
     if (isApprentice) setOrder((current: any) => ({ ...current, status }));
@@ -376,7 +364,7 @@ function ReadyPaymentModal({ visible, total, received, onClose, onOpenFinance }:
       <View style={[styles.readyModal, { backgroundColor: colors.cardStrong, borderColor: `${colors.green}55` }]}>
         <View style={[styles.readyIcon, { backgroundColor: `${colors.green}18`, borderColor: `${colors.green}45` }]}><Ionicons name="checkmark-circle" size={36} color={colors.green} /></View>
         <Text style={[styles.readyTitle, { color: colors.text }]}>Motosiklet Hazır</Text>
-        <Text style={[styles.readyText, { color: colors.textMuted }]}>Teslimden önce tahsilatı kaydet veya kalan tutarı Borç / Veresiye olarak aç.</Text>
+        <Text style={[styles.readyText, { color: colors.textMuted }]}>Teslimden önce tahsilatı kaydet veya Borç / Veresiye olarak aç. Önceden ücret girilmediyse yazdığın tahsilat ya da borç tutarı otomatik Net Fiyat olur.</Text>
         <View style={[styles.readyAmountCard, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>
           <View><Text style={[styles.readyAmountLabel, { color: colors.textMuted }]}>SERVİS TOPLAMI</Text><Text style={[styles.readyAmount, { color: colors.text }]}>{money(total)}</Text></View>
           <View style={styles.readyAmountDivider} />
