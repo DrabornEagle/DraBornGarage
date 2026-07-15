@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -20,16 +21,19 @@ jobs:
       HAS_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
       HAS_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS != '' }}
       HAS_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD != '' }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - name: Create safe audit report
         shell: bash
         run: |
           set -euo pipefail
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow _temporary-apply-v1.0.7.yml --limit 1 --json databaseId,status,conclusion,url > v107-run.json || echo '[]' > v107-run.json
           python3 <<'PY'
           from pathlib import Path
           import json, os
           workflows = sorted(p.name for p in Path('.github/workflows').glob('*.yml')) + sorted(p.name for p in Path('.github/workflows').glob('*.yaml'))
+          runs = json.loads(Path('v107-run.json').read_text(encoding='utf-8'))
           report = {
             'has_expo_token': os.environ['HAS_EXPO_TOKEN'] == 'true',
             'has_eas_project_id_secret': os.environ['HAS_EAS_PROJECT_ID'] == 'true',
@@ -37,14 +41,13 @@ jobs:
             'has_android_store_password_secret': os.environ['HAS_ANDROID_STORE_PASSWORD'] == 'true',
             'has_android_key_alias_secret': os.environ['HAS_ANDROID_KEY_ALIAS'] == 'true',
             'has_android_key_password_secret': os.environ['HAS_ANDROID_KEY_PASSWORD'] == 'true',
+            'v1_0_7_run': runs[0] if runs else None,
             'workflows': workflows,
           }
           Path('.github/release-audit-result.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
           PY
       - name: Persist report
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           path=.github/release-audit-result.json
