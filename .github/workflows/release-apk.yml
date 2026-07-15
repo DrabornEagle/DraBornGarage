@@ -21,16 +21,19 @@ env:
   EXPO_NO_GIT_STATUS: "1"
   EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+  EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "false"
 
 jobs:
   release-apk:
-    name: Build and publish signed v1.0.4 test APK
+    name: Build and publish signed v1.0.4 hotfix APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -75,10 +78,15 @@ jobs:
               print(f'{path}: {width}x{height}, {len(data)} bytes, sha256={hashlib.sha256(data).hexdigest()}')
           PY
 
+      - name: Apply v1.0.4 native hotfix
+        env:
+          DGB_APPLY_TRIGGER: "0"
+        run: python3 scripts/apply_v1_0_4_native_hotfix.py
+
       - name: Synchronize package lock metadata
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
-      - name: Validate v1.0.4 metadata
+      - name: Validate v1.0.4 hotfix metadata
         shell: bash
         run: |
           node <<'NODE'
@@ -88,10 +96,10 @@ jobs:
           if (pkg.version !== '1.0.4' || lock.version !== '1.0.4' || lock.packages?.['']?.version !== '1.0.4') {
             throw new Error('Paket sürümleri 1.0.4 ile eşleşmiyor.');
           }
-          if (app.version !== '1.0.4' || app.android?.versionCode !== 21 || app.ios?.buildNumber !== '21') {
-            throw new Error('Native sürüm bilgileri 1.0.4 / 21 ile eşleşmiyor.');
+          if (app.version !== '1.0.4' || app.android?.versionCode !== 22 || app.ios?.buildNumber !== '22') {
+            throw new Error('Native sürüm bilgileri 1.0.4 / 22 ile eşleşmiyor.');
           }
-          console.log('Release metadata OK: 1.0.4 / 21');
+          console.log('Release metadata OK: 1.0.4 / 22');
           NODE
 
       - name: Install locked dependencies
@@ -105,6 +113,30 @@ jobs:
 
       - name: Android JavaScript bundle
         run: npm run test:bundle
+
+      - name: Verify hotfix source rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "react-native-edge-to-edge" package.json
+          grep -q '"versionCode": 22' app.json
+          grep -q "NATIVE_PUSH_ENABLED" src/notifications/NotificationContextV101.tsx
+          grep -q 'GARAGE OS • v${APP_VERSION} TEST APK' src/screens/AuthScreen.tsx
+          ! grep -R "v1.0.3" src --include='*.tsx'
+
+      - name: Persist tested hotfix source to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f scripts/apply_v1_0_4_native_hotfix.py .github/workflows/apply_v1_0_4_native_hotfix_once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m "v1.0.4 hotfix: notification stability, transparent navigation and version sync"
+            git push origin HEAD:main
+          fi
 
       - name: Export public Expo configuration
         run: npx expo config --type public --json > release-output/expo-public-config.json
@@ -202,30 +234,34 @@ jobs:
         shell: bash
         run: |
           {
-            echo "DraBornGarage v1.0.4 RC"
-            echo "Android versionCode: 21"
-            echo "Commit: $GITHUB_SHA"
+            echo "DraBornGarage v1.0.4 RC Hotfix"
+            echo "Android versionCode: 22"
+            echo "Trigger commit: $GITHUB_SHA"
             echo "Run: $GITHUB_RUN_ID"
+            echo "Remote push: disabled in GitHub test APK until FCM credentials are configured"
             echo "Signing: GitHub test signing; Google Play production upload key değildir"
           } | tee release-output/BUILD_INFO.txt
 
           cat > release-output/RELEASE_NOTES.md <<EOF
-          # DraBornGarage v1.0.4 Test APK
+          # DraBornGarage v1.0.4 Test APK Hotfix
 
-          Bu paket Google Play final yayını öncesi cihaz testleri için oluşturulmuştur.
+          Google Play final yayını öncesi cihaz test paketi.
 
           - Uygulama sürümü: **1.0.4 RC**
-          - Android versionCode: **21**
-          - Karşılama ekranı ve özel DraBornGarage ikonu dahil
-          - Supabase bağlantısı dahil
-          - TypeScript, Expo bundle, Android lint, manifest izin ve APK imza kontrolleri tamamlandı
-          - Test imzası kullanır; Google Play production upload key değildir
+          - Android versionCode: **22**
+          - Bildirim izni sonrası native kapanma düzeltildi
+          - GitHub test APK'sında FCM kurulana kadar uzaktan push token kaydı kapalı
+          - Yerel bildirim merkezi ve cihaz bildirimleri aktif
+          - Android sistem navigasyonu edge-to-edge ve şeffaf
+          - Alt menüler Xiaomi üç tuşlu navigasyon için güvenli mesafede
+          - Giriş ekranı sürümü app.json'dan dinamik okunur
+          - TypeScript, Expo Doctor, Android bundle, lint, manifest ve APK imza kontrolleri tamamlandı
           EOF
 
       - name: Upload DraBornGarage Release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGarage-v1.0.4-Release-APK
+          name: DraBornGarage-v1.0.4-Hotfix-Release-APK
           path: release-output/
           if-no-files-found: error
           retention-days: 30
@@ -235,11 +271,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.4-test
-          target_commitish: ${{ github.sha }}
-          name: DraBornGarage v1.0.4 Test APK
+          target_commitish: main
+          name: DraBornGarage v1.0.4 Test APK Hotfix
           body_path: release-output/RELEASE_NOTES.md
           prerelease: true
           make_latest: false
+          overwrite_files: true
           files: |
             release-output/DraBornGarage-v1.0.4-release-test.apk
             release-output/SHA256SUMS.txt
@@ -252,10 +289,10 @@ jobs:
         shell: bash
         run: |
           {
-            echo "# DraBornGarage Release APK"
+            echo "# DraBornGarage Release APK Hotfix"
             echo "- Version: **1.0.4 RC**"
-            echo "- Android versionCode: **21**"
+            echo "- Android versionCode: **22**"
             echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
-            echo "- Artifact: **DraBornGarage-v1.0.4-Release-APK**"
+            echo "- Artifact: **DraBornGarage-v1.0.4-Hotfix-Release-APK**"
             echo "- Release tag: **v1.0.4-test**"
           } >> "$GITHUB_STEP_SUMMARY"
