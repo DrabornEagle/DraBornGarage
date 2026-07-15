@@ -127,7 +127,7 @@ export function ApplicationEntryScreen() {
           <View style={[styles.heroIcon, { backgroundColor: `${colors.orange}18`, borderColor: `${colors.orange}48` }]}>
             <Ionicons name="document-text" size={34} color={colors.orange} />
           </View>
-          <Text style={[styles.eyebrow, { color: colors.orange }]}>DraBornGarage • v1.0.3 RC</Text>
+          <Text style={[styles.eyebrow, { color: colors.orange }]}>DraBornGarage • v1.0.4 RC</Text>
           <Text style={[styles.title, { color: colors.text }]}>Merhaba, {profile?.full_name?.split(' ')[0] || 'Kullanıcı'}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>İşletme veya Usta başvurun sonuçlanana kadar bu ekrandan güncel durumunu takip edebilirsin.</Text>
           <View style={[styles.statusPill, { backgroundColor: `${pendingCount > 0 ? colors.orange : colors.green}14`, borderColor: `${pendingCount > 0 ? colors.orange : colors.green}45` }]}>
