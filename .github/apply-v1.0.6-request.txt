@@ -2,3 +2,4 @@ DraBornGarage v1.0.6 apply request
 Requested: 2026-07-15
 Backup: backup/v1.0.5-before-v1.0.6-20260715
 Firebase: google-services.json configured
+Retry: corrected registration mileage verification
