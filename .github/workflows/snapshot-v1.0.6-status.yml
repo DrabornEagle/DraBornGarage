@@ -1,0 +1,47 @@
+name: Snapshot v1.0.6 Status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/snapshot-v1.0.6-status-request.txt
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Read latest apply run
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow apply-v1.0.6.yml --limit 1 --json databaseId,status,conclusion,headSha,url > run.json
+          cat run.json
+
+      - name: Publish snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          path=.github/v1.0.6-live-status.json
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
+          export TARGET_SHA="$sha"
+          python3 <<'PY'
+          import base64, json, os
+          rows = json.load(open('run.json', encoding='utf-8'))
+          result = rows[0] if rows else {'status':'not_found','conclusion':None}
+          payload = {
+              'message': 'ci: update v1.0.6 live status',
+              'content': base64.b64encode((json.dumps(result, indent=2) + '\n').encode()).decode(),
+              'branch': 'main',
+          }
+          if os.environ.get('TARGET_SHA'):
+              payload['sha'] = os.environ['TARGET_SHA']
+          json.dump(payload, open('payload.json','w',encoding='utf-8'))
+          PY
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" --input payload.json >/dev/null
