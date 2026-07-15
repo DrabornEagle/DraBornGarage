@@ -132,6 +132,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const preferencesRef = useRef(DEFAULT_PREFERENCES);
   const pushStatusRef = useRef<PushRegistrationStatus>('idle');
   const unreadCountRef = useRef(0);
+  const receivedSystemNotificationIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => { preferencesRef.current = preferences; }, [preferences]);
   useEffect(() => { pushStatusRef.current = pushStatus; }, [pushStatus]);
@@ -199,11 +200,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const presentDueNotifications = useCallback(async (items: GarageNotification[], nextPreferences: NotificationPreferences, badge: number) => {
     if (!session?.user || !nextPreferences.local_notifications_enabled) return;
-    if (!IS_EXPO_GO && pushStatusRef.current === 'registered') return;
     try {
+      // Uzaktan push kayıtlıysa önce FCM/Expo bildiriminin gelmesi için kısa süre bekle.
+      // Gelmezse uygulama açıkken yerel Android bildirimi güvenli yedek olarak gösterilir.
+      if (!IS_EXPO_GO && pushStatusRef.current === 'registered') {
+        await new Promise((resolve) => setTimeout(resolve, 1400));
+      }
       const permission = await Notifications.getPermissionsAsync();
       if (permission.status !== 'granted') return;
-      const due = items.filter((item) => isDue(item) && !item.read_at).slice(0, 12);
+      const recentCutoff = Date.now() - 24 * 60 * 60 * 1000;
+      const due = items.filter((item) => {
+        const deliveryTime = new Date(item.deliver_at).getTime();
+        return isDue(item) && !item.read_at && Number.isFinite(deliveryTime) && deliveryTime >= recentCutoff;
+      }).slice(0, 12);
       if (due.length === 0) return;
       const storageKey = `${DELIVERED_STORAGE_PREFIX}${session.user.id}`;
       const raw = await AsyncStorage.getItem(storageKey);
@@ -212,6 +221,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       await ensureAndroidChannels();
       for (const item of due.reverse()) {
         if (nextDelivered.includes(item.id)) continue;
+        if (receivedSystemNotificationIdsRef.current.has(item.id)) {
+          nextDelivered.push(item.id);
+          continue;
+        }
         await Notifications.scheduleNotificationAsync({
           identifier: `draborngarage-due-${item.id}`,
           content: {
@@ -338,7 +351,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     mountedRef.current = true;
     ensureAndroidChannels().catch(() => undefined);
     Notifications.getPermissionsAsync().then((status) => mountedRef.current && setPermissionStatus(status.status)).catch(() => undefined);
-    return () => { mountedRef.current = false; };
+    const receivedListener = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data || {};
+      const notificationId = typeof data.notificationId === 'string'
+        ? data.notificationId
+        : typeof data.notification_id === 'string'
+          ? data.notification_id
+          : null;
+      if (!notificationId) return;
+      const ids = receivedSystemNotificationIdsRef.current;
+      ids.add(notificationId);
+      while (ids.size > 350) {
+        const oldest = ids.values().next().value;
+        if (typeof oldest !== 'string') break;
+        ids.delete(oldest);
+      }
+    });
+    return () => {
+      mountedRef.current = false;
+      receivedListener.remove();
+    };
   }, []);
 
   useEffect(() => {
