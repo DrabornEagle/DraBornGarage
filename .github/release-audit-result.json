@@ -5,7 +5,14 @@
   "has_android_store_password_secret": false,
   "has_android_key_alias_secret": false,
   "has_android_key_password_secret": false,
+  "v1_0_7_run": {
+    "conclusion": "failure",
+    "databaseId": 29450172240,
+    "status": "completed",
+    "url": "https://github.com/DrabornEagle/DraBornGarage/actions/runs/29450172240"
+  },
   "workflows": [
+    "_temporary-apply-v1.0.7.yml",
     "_temporary-release-audit.yml",
     "apk-build-status.yml",
     "apply-v1.0.6.yml",
