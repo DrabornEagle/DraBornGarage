@@ -5,3 +5,8 @@ web-build/
 .env
 *.log
 .DS_Store
+credentials.json
+android/keystores/
+*.jks
+*.keystore
+firebase-service-account*.json
