@@ -71,7 +71,8 @@ jobs:
           const packageName = firebase.client?.[0]?.client_info?.android_client_info?.package_name;
           if (packageName !== app.android.package) throw new Error('Firebase Android package mismatch');
           NODE
-          grep -q "customer_motorcycle_odometer" src/screens/AuthScreen.tsx
+          grep -q "motorcycleOdometer" src/screens/AuthScreen.tsx
+          grep -q "customer_motorcycle_odometer" src/context/AuthContext.tsx
           grep -q "p_odometer: odometerValue" src/customer/CustomerAppointmentsScreen.tsx
           grep -q "bikeOdometer" src/screens/CustomersScreen.tsx
           ! grep -q "Tahsil edilecek ücret gerekli" src/screens/WorkOrderDetailV04.tsx
