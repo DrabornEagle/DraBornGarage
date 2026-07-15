@@ -17,31 +17,41 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Read latest release run
+      - name: Read latest release run and failed log
         shell: bash
         run: |
           set -euo pipefail
           gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --limit 1 --json databaseId,status,conclusion,headSha,url > run.json
+          run_id="$(jq -r '.[0].databaseId // empty' run.json)"
+          if [ -n "$run_id" ]; then
+            gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --log-failed > failed.log 2>&1 || true
+          else
+            echo 'Release run bulunamadı' > failed.log
+          fi
+          tail -n 260 failed.log > failed-tail.log
           cat run.json
 
-      - name: Publish snapshot
+      - name: Publish snapshot and diagnostics
         shell: bash
         run: |
           set -euo pipefail
-          path=.github/v1.0.6-live-status.json
-          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
-          export TARGET_SHA="$sha"
           python3 <<'PY'
-          import base64, json, os
-          rows = json.load(open('run.json', encoding='utf-8'))
-          result = rows[0] if rows else {'status':'not_found','conclusion':None}
-          payload = {
-              'message': 'ci: update v1.0.6 release status',
-              'content': base64.b64encode((json.dumps(result, indent=2) + '\n').encode()).decode(),
-              'branch': 'main',
+          from pathlib import Path
+          import base64, json, os, subprocess
+          repo=os.environ['GITHUB_REPOSITORY']
+          rows=json.load(open('run.json',encoding='utf-8'))
+          status=rows[0] if rows else {'status':'not_found','conclusion':None}
+          targets={
+            '.github/v1.0.6-live-status.json': (json.dumps(status,indent=2)+'\n').encode(),
+            '.github/v1.0.6-release-failed.log': Path('failed-tail.log').read_bytes(),
           }
-          if os.environ.get('TARGET_SHA'):
-              payload['sha'] = os.environ['TARGET_SHA']
-          json.dump(payload, open('payload.json','w',encoding='utf-8'))
+          for path,data in targets.items():
+            try:
+              sha=subprocess.check_output(['gh','api',f'repos/{repo}/contents/{path}?ref=main','--jq','.sha'],text=True,stderr=subprocess.DEVNULL).strip()
+            except subprocess.CalledProcessError:
+              sha=''
+            payload={'message':'ci: update v1.0.6 release diagnostics','content':base64.b64encode(data).decode(),'branch':'main'}
+            if sha: payload['sha']=sha
+            Path('payload.json').write_text(json.dumps(payload),encoding='utf-8')
+            subprocess.run(['gh','api','--method','PUT',f'repos/{repo}/contents/{path}','--input','payload.json'],check=True,stdout=subprocess.DEVNULL)
           PY
-          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" --input payload.json >/dev/null
