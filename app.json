@@ -78,6 +78,12 @@
         }
       ],
       "googleServicesFile": "./google-services.json"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "98699f70-2c67-4e9f-8919-70e8243ce280"
+      }
+    },
+    "owner": "draborneagle"
   }
 }
