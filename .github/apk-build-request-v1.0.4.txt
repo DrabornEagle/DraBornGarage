@@ -1,6 +1,6 @@
-DraBornGarage v1.0.4 test APK hotfix build request
+DraBornGarage v1.0.4 final hotfix verification build
 Requested: 2026-07-15
-Retry: non-blocking source persistence
+Persistence: fetch + rebase + push verification required
 Fixes: notification permission native crash, transparent Android navigation, bottom menu safe area, dynamic version label
 Expected Android versionCode: 22
 Release tag: v1.0.4-test
