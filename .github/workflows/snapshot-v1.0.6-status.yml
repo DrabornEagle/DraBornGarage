@@ -17,11 +17,11 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Read latest apply run
+      - name: Read latest release run
         shell: bash
         run: |
           set -euo pipefail
-          gh run list --repo "$GITHUB_REPOSITORY" --workflow apply-v1.0.6.yml --limit 1 --json databaseId,status,conclusion,headSha,url > run.json
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --limit 1 --json databaseId,status,conclusion,headSha,url > run.json
           cat run.json
 
       - name: Publish snapshot
@@ -36,7 +36,7 @@ jobs:
           rows = json.load(open('run.json', encoding='utf-8'))
           result = rows[0] if rows else {'status':'not_found','conclusion':None}
           payload = {
-              'message': 'ci: update v1.0.6 live status',
+              'message': 'ci: update v1.0.6 release status',
               'content': base64.b64encode((json.dumps(result, indent=2) + '\n').encode()).decode(),
               'branch': 'main',
           }
