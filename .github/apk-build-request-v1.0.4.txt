@@ -1,6 +1,6 @@
 DraBornGarage v1.0.4 test APK hotfix build request
 Requested: 2026-07-15
-Retry: idempotent workflow configuration
+Retry: non-blocking source persistence
 Fixes: notification permission native crash, transparent Android navigation, bottom menu safe area, dynamic version label
 Expected Android versionCode: 22
 Release tag: v1.0.4-test
