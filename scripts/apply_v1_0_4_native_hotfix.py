@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import os
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,8 +21,6 @@ def replace_exact(path: str, old: str, new: str, count: int = 1) -> None:
     write(path, text.replace(old, new, count))
 
 
-# Second push trigger: workflow is already present on main.
-# Android edge-to-edge sistem çubuğu için resmi uyum katmanı.
 package_path = ROOT / 'package.json'
 package = json.loads(package_path.read_text(encoding='utf-8'))
 package['dependencies']['react-native-edge-to-edge'] = '1.8.1'
@@ -145,10 +144,11 @@ workflow = workflow.replace('- Android versionCode: **21**', '- Android versionC
 workflow = workflow.replace('          make_latest: false\n          files:', '          make_latest: false\n          overwrite_files: true\n          files:')
 workflow_path.write_text(workflow, encoding='utf-8')
 
-request_path = ROOT / '.github/apk-build-request-v1.0.4.txt'
-request = request_path.read_text(encoding='utf-8')
-request += '\nRetry: notification crash + Android system navigation + dynamic version hotfix\nExpected Android versionCode: 22\n'
-request_path.write_text(request, encoding='utf-8')
+if os.getenv('DGB_APPLY_TRIGGER', '1') != '0':
+    request_path = ROOT / '.github/apk-build-request-v1.0.4.txt'
+    request = request_path.read_text(encoding='utf-8')
+    request += '\nRetry: notification crash + Android system navigation + dynamic version hotfix\nExpected Android versionCode: 22\n'
+    request_path.write_text(request, encoding='utf-8')
 
 changelog = ROOT / 'docs/CHANGELOG_V1.0.4_NATIVE_HOTFIX.md'
 changelog.write_text('''# DraBornGarage v1.0.4 Native Hotfix\n\n- Bildirim izni sonrası MIUI native kapanma riski giderildi.\n- EAS/FCM kimlik bilgisi bulunmayan GitHub test APK'sında remote push token kaydı devre dışı.\n- Yerel bildirim merkezi ve yerel cihaz bildirimleri çalışmaya devam eder.\n- Remote push, Google Play final aşamasında FCM V1 kimlik bilgileriyle tekrar açılacak.\n- Android üç tuşlu navigasyon çubuğu tam şeffaf edge-to-edge yapılandırmasına alındı.\n- Personel ve müşteri alt menülerine Xiaomi safe-area yedeği eklendi.\n- Giriş ekranı sürüm bilgisi app.json'dan dinamik okunur.\n- Android test build versionCode 22.\n''', encoding='utf-8')
