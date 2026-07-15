@@ -85,6 +85,8 @@ export function NotificationCenterScreen() {
     return [...sourceItems].sort((a, b) => new Date(b.deliver_at).getTime() - new Date(a.deliver_at).getTime());
   }, [tab, notifications, upcoming]);
 
+  if (!open) return null;
+
   const permissionLabel = permissionStatus === 'granted'
     ? 'Telefon bildirim izni açık'
     : permissionStatus === 'denied'

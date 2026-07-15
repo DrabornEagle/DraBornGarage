@@ -350,26 +350,41 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     mountedRef.current = true;
     ensureAndroidChannels().catch(() => undefined);
-    Notifications.getPermissionsAsync().then((status) => mountedRef.current && setPermissionStatus(status.status)).catch(() => undefined);
-    const receivedListener = Notifications.addNotificationReceivedListener((notification) => {
-      const data = notification.request.content.data || {};
-      const notificationId = typeof data.notificationId === 'string'
-        ? data.notificationId
-        : typeof data.notification_id === 'string'
-          ? data.notification_id
-          : null;
-      if (!notificationId) return;
-      const ids = receivedSystemNotificationIdsRef.current;
-      ids.add(notificationId);
-      while (ids.size > 350) {
-        const oldest = ids.values().next().value;
-        if (typeof oldest !== 'string') break;
-        ids.delete(oldest);
+
+    const api = Notifications as typeof Notifications & Record<string, unknown>;
+    if (typeof api.getPermissionsAsync === 'function') {
+      Promise.resolve(Notifications.getPermissionsAsync())
+        .then((status) => mountedRef.current && setPermissionStatus(status.status))
+        .catch(() => undefined);
+    }
+
+    let receivedListener: { remove?: () => void } | null = null;
+    if (typeof api.addNotificationReceivedListener === 'function') {
+      try {
+        receivedListener = Notifications.addNotificationReceivedListener((notification) => {
+          const data = notification.request.content.data || {};
+          const notificationId = typeof data.notificationId === 'string'
+            ? data.notificationId
+            : typeof data.notification_id === 'string'
+              ? data.notification_id
+              : null;
+          if (!notificationId) return;
+          const ids = receivedSystemNotificationIdsRef.current;
+          ids.add(notificationId);
+          while (ids.size > 350) {
+            const oldest = ids.values().next().value;
+            if (typeof oldest !== 'string') break;
+            ids.delete(oldest);
+          }
+        });
+      } catch {
+        receivedListener = null;
       }
-    });
+    }
+
     return () => {
       mountedRef.current = false;
-      receivedListener.remove();
+      if (typeof receivedListener?.remove === 'function') receivedListener.remove();
     };
   }, []);
 
@@ -441,11 +456,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const api = Notifications as typeof Notifications & {
       getLastNotificationResponse?: () => Notifications.NotificationResponse | null;
       getLastNotificationResponseAsync?: () => Promise<Notifications.NotificationResponse | null>;
+      addNotificationResponseReceivedListener?: typeof Notifications.addNotificationResponseReceivedListener;
     };
     if (typeof api.getLastNotificationResponseAsync === 'function') api.getLastNotificationResponseAsync().then(handleResponse).catch(() => undefined);
     else if (typeof api.getLastNotificationResponse === 'function') handleResponse(api.getLastNotificationResponse());
-    const response = Notifications.addNotificationResponseReceivedListener(handleResponse);
-    return () => response.remove();
+    let response: { remove?: () => void } | null = null;
+    if (typeof api.addNotificationResponseReceivedListener === 'function') {
+      try {
+        response = api.addNotificationResponseReceivedListener(handleResponse);
+      } catch {
+        response = null;
+      }
+    }
+    return () => {
+      if (typeof response?.remove === 'function') response.remove();
+    };
   }, [refresh]);
 
   const updatePreferences = useCallback(async (patch: Partial<NotificationPreferences>) => {

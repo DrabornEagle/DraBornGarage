@@ -36,7 +36,7 @@ function RecoveryScreen({ error, reset }: { error: Error; reset: () => void }) {
         <Text style={styles.eyebrow}>DraBornGarage • Güvenli Kurtarma</Text>
         <Text style={styles.title}>Uygulama kapanmadan hata yakalandı</Text>
         <Text style={styles.body}>Oturum veya bildirim başlatılırken beklenmeyen bir sorun oluştu. Önce yeniden dene; devam ederse oturumu temizleyip tekrar giriş yap.</Text>
-        <View style={styles.errorBox}><Text selectable style={styles.errorText}>{error.message || 'Bilinmeyen uygulama hatası'}</Text></View>
+        <View style={styles.errorBox}><Text selectable style={styles.errorText}>{error.message || 'Bilinmeyen uygulama hatası'}{error.stack ? `\n\n${error.stack.split('\n').slice(0, 10).join('\n')}` : ''}</Text></View>
         <AnimatedPressable onPress={reset} style={styles.primary}><Text style={styles.primaryText}>Yeniden Dene</Text></AnimatedPressable>
         <AnimatedPressable onPress={() => signOut()} style={styles.secondary}><Text style={styles.secondaryText}>Oturumu Temizle</Text></AnimatedPressable>
       </ScrollView>
