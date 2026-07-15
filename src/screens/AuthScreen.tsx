@@ -17,7 +17,7 @@ import { AccountMode, WorkshopSearchResult } from '../types';
 
 type BusinessEntryMode = 'new' | 'existing';
 
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.4';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.6';
 
 export function AuthScreen() {
   const { colors } = useTheme();
@@ -30,6 +30,7 @@ export function AuthScreen() {
   const [plate, setPlate] = useState('');
   const [motorcycleBrand, setMotorcycleBrand] = useState('');
   const [motorcycleModel, setMotorcycleModel] = useState('');
+  const [motorcycleOdometer, setMotorcycleOdometer] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [businessPhone, setBusinessPhone] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
@@ -77,8 +78,12 @@ export function AuthScreen() {
 
   const submit = async () => {
     const normalizedPlate = plate.trim().toUpperCase();
+    const normalizedOdometerText = motorcycleOdometer.replace(/\D/g, '');
+    const motorcycleOdometerValue = normalizedOdometerText ? Number(normalizedOdometerText) : null;
     const customerMotorMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer'
       && (normalizedPlate.replace(/[^A-Z0-9ÇĞİÖŞÜ]/g, '').length < 5 || !motorcycleBrand.trim() || !motorcycleModel.trim());
+    const customerOdometerInvalid = mode === 'register' && registerMode === 'customer'
+      && motorcycleOdometerValue !== null && (!Number.isInteger(motorcycleOdometerValue) || motorcycleOdometerValue < 0);
     const normalizedTaxNumber = taxNumber.replace(/\D/g, '');
     const joiningExisting = registerMode === 'staff' && businessEntryMode === 'existing';
     const businessMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'staff'
@@ -88,11 +93,13 @@ export function AuthScreen() {
     const passwordPolicy = validateRegistrationPassword(password, email);
     const passwordInvalid = mode === 'register' ? !passwordPolicy.valid : password.length < 6;
 
-    if (!email.trim() || passwordInvalid || (mode === 'register' && !fullName.trim()) || customerMotorMissing || businessMissing) {
+    if (!email.trim() || passwordInvalid || (mode === 'register' && !fullName.trim()) || customerMotorMissing || customerOdometerInvalid || businessMissing) {
       Alert.alert(
         'Eksik bilgi',
         customerMotorMissing
           ? 'Kullanıcı hesabı için plaka, motosiklet markası ve modeli zorunludur.'
+          : customerOdometerInvalid
+            ? 'Kilometre sıfır veya daha büyük tam sayı olmalıdır.'
           : businessMissing
             ? joiningExisting
               ? 'Ortaklık başvurusu için listeden bir işletme seçmelisin.'
@@ -113,7 +120,7 @@ export function AuthScreen() {
           email,
           password,
           registerMode,
-          registerMode === 'customer' && !isPrimaryAdminEmail ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel } : undefined,
+          registerMode === 'customer' && !isPrimaryAdminEmail ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel, odometer: motorcycleOdometerValue } : undefined,
           registerMode === 'staff' && !isPrimaryAdminEmail
             ? joiningExisting
               ? {
@@ -207,6 +214,7 @@ export function AuthScreen() {
                     <FormField label="Plaka" value={plate} onChangeText={(value) => setPlate(value.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" />
                     <FormField label="Motosiklet Markası" value={motorcycleBrand} onChangeText={setMotorcycleBrand} placeholder="Örn. Honda" autoCapitalize="words" />
                     <FormField label="Motosiklet Modeli" value={motorcycleModel} onChangeText={setMotorcycleModel} placeholder="Örn. Forza 250" autoCapitalize="words" />
+                    <FormField label="Güncel Kilometre (opsiyonel)" value={motorcycleOdometer} onChangeText={(value) => setMotorcycleOdometer(value.replace(/\D/g, ''))} placeholder="Örn. 24500" keyboardType="number-pad" />
                   </View>
                 )}
 
