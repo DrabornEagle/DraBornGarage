@@ -1,0 +1,11 @@
+{
+  "status": "success",
+  "remaining_workflows": [
+    "release-apk.yml",
+    "release-aab.yml"
+  ],
+  "release_options": [
+    "Release APK",
+    "Release AAB"
+  ]
+}
