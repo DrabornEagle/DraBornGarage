@@ -1,0 +1,28 @@
+name: Temporary Dispatch Fixed APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-dispatch-fixed-apk.yml
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Release APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release-apk.yml --repo "$GITHUB_REPOSITORY" --ref main -f publish_github_release=true
+      - name: Remove temporary dispatcher
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          self=.github/workflows/_temporary-dispatch-fixed-apk.yml
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${self}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${self}" -f message='ci: remove temporary fixed APK dispatcher' -f sha="$sha" -f branch=main >/dev/null
