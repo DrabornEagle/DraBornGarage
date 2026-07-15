@@ -1,0 +1,67 @@
+name: Temporary Track v1.0.8
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-track-v108.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Wait for hotfix workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 8
+          hotfix_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow _temporary-v108-runtime-hotfix.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+          [ -n "$hotfix_id" ]
+          while :; do
+            status="$(gh run view "$hotfix_id" --repo "$GITHUB_REPOSITORY" --json status --jq .status)"
+            [ "$status" = completed ] && break
+            sleep 12
+          done
+          gh run view "$hotfix_id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,url,jobs > hotfix.json
+          conclusion="$(jq -r .conclusion hotfix.json)"
+          if [ "$conclusion" != success ]; then
+            jq -n --slurpfile hotfix hotfix.json '{hotfix:$hotfix[0],release:null}' > final.json
+            exit 0
+          fi
+
+          sleep 10
+          release_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+          [ -n "$release_id" ]
+          while :; do
+            status="$(gh run view "$release_id" --repo "$GITHUB_REPOSITORY" --json status --jq .status)"
+            [ "$status" = completed ] && break
+            sleep 20
+          done
+          gh run view "$release_id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,url,jobs > release.json
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${release_id}/artifacts" > artifacts.json
+          jq -n --slurpfile hotfix hotfix.json --slurpfile release release.json --slurpfile artifacts artifacts.json '{hotfix:$hotfix[0],release:$release[0],artifacts:$artifacts[0].artifacts}' > final.json
+
+      - name: Publish tracker result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -s final.json ] || jq -n '{error:"tracker failed before producing status"}' > final.json
+          path=.github/v108-build-status.json
+          existing="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
+          content="$(base64 -w0 final.json)"
+          args=(--method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message='ci: publish v1.0.8 build status' -f content="$content" -f branch=main)
+          [ -z "$existing" ] || args+=(-f sha="$existing")
+          gh api "${args[@]}" >/dev/null
+          self=.github/workflows/_temporary-track-v108.yml
+          self_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${self}?ref=main" --jq .sha 2>/dev/null || true)"
+          if [ -n "$self_sha" ]; then
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${self}" -f message='ci: remove temporary v1.0.8 tracker' -f sha="$self_sha" -f branch=main >/dev/null
+          fi
