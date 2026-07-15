@@ -1,4 +1,4 @@
-import { StatusBar } from 'expo-status-bar';
+import { SystemBars } from 'react-native-edge-to-edge';
 import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppRoot } from './src/AppRoot';
@@ -9,7 +9,7 @@ import { NotificationProvider } from './src/notifications/NotificationContext';
 
 function StatusBarBridge() {
   const { resolvedMode } = useTheme();
-  return <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />;
+  return <SystemBars style={resolvedMode === 'dark' ? 'light' : 'dark'} />;
 }
 
 export default function App() {
