@@ -1,0 +1,8 @@
+Production-signed Release APK	Verify manifest, signature and collect APK	2026-07-15T22:18:03.5653811Z ^[[36;1mif not candidates: raise SystemExit('Merged release manifest bulunamadı')^[[0m
+Production-signed Release APK	Verify manifest, signature and collect APK	2026-07-15T22:18:03.5659806Z ^[[36;1mif blocked & permissions: raise SystemExit(f'Engellenen izinler bulundu: {sorted(blocked & permissions)}')^[[0m
+Production-signed Release APK	Verify manifest, signature and collect APK	2026-07-15T22:18:03.5661161Z ^[[36;1m    if required not in permissions: raise SystemExit(f'{required} bulunamadı')^[[0m
+Production-signed Release APK	Verify manifest, signature and collect APK	2026-07-15T22:18:03.5665398Z ^[[36;1mAPK_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' release-output/apk-signature.txt | head -n 1 | tr '[:lower:]' '[:upper:]' | sed 's/../&:/g;s/:$//')"^[[0m
+Production-signed Release APK	Verify manifest, signature and collect APK	2026-07-15T22:18:03.5666338Z ^[[36;1m[ "$APK_CERT" = "$EXPECTED_UPLOAD_CERT_SHA256" ] || { echo "APK yanlış sertifikayla imzalandı: $APK_CERT"; exit 1; }^[[0m
+Production-signed Release APK	Verify manifest, signature and collect APK	2026-07-15T22:18:04.5802987Z V2 Signer: certificate SHA-256 digest: 61695a48640775753a0c68b18e23ac3456fed5adde50e5ff92bd06a46d4deaee
+Production-signed Release APK	Verify manifest, signature and collect APK	2026-07-15T22:18:04.5920230Z APK yanlış sertifikayla imzalandı: 
+Production-signed Release APK	Verify manifest, signature and collect APK	2026-07-15T22:18:04.5933160Z ##[error]Process completed with exit code 1.
