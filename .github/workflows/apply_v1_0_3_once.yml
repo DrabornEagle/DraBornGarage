@@ -1,0 +1,54 @@
+name: Apply DraBornGarage v1.0.3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/apply_v1_0_3.py
+      - .github/workflows/apply_v1_0_3_once.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-draborngarage-v1-0-3
+  cancel-in-progress: false
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: v1.0.3 yamasını uygula
+        run: python scripts/apply_v1_0_3.py
+
+      - name: Bağımlılıkları kur
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript ve Android Expo paket kontrolü
+        run: npm run test:release
+
+      - name: Tek kullanımlık dosyaları temizle
+        run: rm -f scripts/apply_v1_0_3.py .github/workflows/apply_v1_0_3_once.yml
+
+      - name: v1.0.3 sürümünü main dalına yükle
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "DraBornGarage v1.0.3 RC: başvuru merkezi ve erişim düzeni"
+          git push origin main
