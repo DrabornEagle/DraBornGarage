@@ -1,0 +1,31 @@
+name: Temporary Cancel Duplicate APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/cancel-duplicate-apk-request.txt
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel duplicate queued APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel 29455712886 --repo "$GITHUB_REPOSITORY" || true
+      - name: Remove cancellation files
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          req=.github/cancel-duplicate-apk-request.txt
+          req_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${req}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${req}" -f message='ci: remove duplicate APK cancellation request' -f sha="$req_sha" -f branch=main >/dev/null
+          self=.github/workflows/_temporary-cancel-duplicate-apk.yml
+          self_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${self}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${self}" -f message='ci: remove temporary duplicate APK canceller' -f sha="$self_sha" -f branch=main >/dev/null
