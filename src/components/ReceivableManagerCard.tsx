@@ -44,6 +44,7 @@ export function ReceivableManagerCard({ orderId, onChanged }: { orderId: string;
   const [customerNote, setCustomerNote] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const [debtAmount, setDebtAmount] = useState('');
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc('staff_get_receivable_detail', { p_work_order_id: orderId });
@@ -73,13 +74,17 @@ export function ReceivableManagerCard({ orderId, onChanged }: { orderId: string;
 
   const saveDebt = async () => {
     if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return Alert.alert('Tarih biçimi', 'Tarihi YYYY-AA-GG biçiminde gir.');
+    const needsInitialCharge = Number(detail?.total_amount || 0) <= 0;
+    const amount = Number(debtAmount.replace(',', '.'));
+    if (needsInitialCharge && amount <= 0) return Alert.alert('Borç tutarı gerekli', 'Ücret girilmediği için borç tutarı Net Fiyat olarak kaydedilecek.');
     const saved = await run(supabase.rpc('staff_open_receivable', {
       p_work_order_id: orderId,
       p_due_date: dueDate || null,
       p_staff_note: staffNote.trim() || null,
       p_customer_note: customerNote.trim() || null,
+      p_amount: needsInitialCharge ? amount : null,
     }), detail?.receivable_status === 'open' ? 'Alacak bilgisi güncellendi ve motosiklet teslim edildi' : 'Borç / veresiye kaydı açıldı ve motosiklet teslim edildi');
-    if (saved) setCollectionChoice('debt');
+    if (saved) { setCollectionChoice('debt'); setDebtAmount(''); }
   };
 
   const addPayment = async () => {
@@ -110,6 +115,7 @@ export function ReceivableManagerCard({ orderId, onChanged }: { orderId: string;
   if (!detail) return <GlassCard><Text style={{ color: colors.textMuted }}>Finans bilgisi yükleniyor…</Text></GlassCard>;
 
   const remaining = Number(detail.remaining_amount || 0);
+  const needsInitialCharge = Number(detail.total_amount || 0) <= 0;
   const isOpen = detail.receivable_status === 'open';
   const statusAccent = detail.receivable_status === 'closed' ? colors.green : detail.receivable_status === 'cancelled' ? colors.red : isOpen ? colors.orange : colors.textMuted;
   const statusText = detail.receivable_status === 'closed' ? 'Tam ödendi' : detail.receivable_status === 'cancelled' ? 'Kapatıldı' : isOpen ? (detail.payment_status === 'partial' ? 'Kısmi ödendi' : 'Borç açık') : 'Borç yazılmadı';
@@ -127,7 +133,7 @@ export function ReceivableManagerCard({ orderId, onChanged }: { orderId: string;
       <View style={styles.metrics}><Metric label="TOPLAM" value={money(detail.total_amount)} icon="receipt" /><Metric label="ÖDENEN" value={money(detail.amount_received)} accent={colors.green} icon="checkmark-circle" /><Metric label="KALAN" value={money(remaining)} accent={remaining > 0 ? colors.orange : colors.green} icon="hourglass" /></View>
     </GlassCard>
 
-    {remaining > 0 ? <>
+    {(remaining > 0 || needsInitialCharge) ? <>
       <View style={styles.methodGrid}>
         <MethodChoice value="cash" active={collectionChoice === 'cash'} label="NAKİT" subtitle="Kasadan tahsil" icon="cash" accent={colors.green} onPress={() => setCollectionChoice('cash')} />
         <MethodChoice value="transfer" active={collectionChoice === 'transfer'} label="IBAN" subtitle="Banka transferi" icon="business" accent={colors.cyan} onPress={() => setCollectionChoice('transfer')} />
@@ -140,8 +146,8 @@ export function ReceivableManagerCard({ orderId, onChanged }: { orderId: string;
           <View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>{paymentTitle}</Text><Text style={[styles.formSubtitle, { color: colors.textMuted }]}>Kaydedildiğinde motosiklet otomatik olarak Teslim Edildi olur.</Text></View>
           <Text style={[styles.formAmount, { color: paymentAccent }]}>{money(remaining)}</Text>
         </View>
-        <View style={[styles.inlineNotice, { backgroundColor: `${paymentAccent}0D`, borderColor: `${paymentAccent}30` }]}><Ionicons name="information-circle" size={18} color={paymentAccent} /><Text style={[styles.inlineNoticeText, { color: colors.textMuted }]}>Ödeme tutarı kalan borçtan fazla olamaz. Kısmi ödeme de kaydedilebilir.</Text></View>
-        <FormField label="Tahsilat tutarı" value={paymentAmount} onChangeText={setPaymentAmount} keyboardType="decimal-pad" placeholder={String(remaining)} />
+        <View style={[styles.inlineNotice, { backgroundColor: `${paymentAccent}0D`, borderColor: `${paymentAccent}30` }]}><Ionicons name="information-circle" size={18} color={paymentAccent} /><Text style={[styles.inlineNoticeText, { color: colors.textMuted }]}>{needsInitialCharge ? 'Önceden ücret girilmedi. Yazdığın tahsilat tutarı otomatik olarak Net Fiyat kabul edilir.' : 'Ödeme tutarı kalan borçtan fazla olamaz. Kısmi ödeme de kaydedilebilir.'}</Text></View>
+        <FormField label="Tahsilat tutarı" value={paymentAmount} onChangeText={setPaymentAmount} keyboardType="decimal-pad" placeholder={needsInitialCharge ? 'Net fiyat olacak tutar' : String(remaining)} />
         <FormField label="Tahsilat notu (opsiyonel)" value={paymentNote} onChangeText={setPaymentNote} placeholder={paymentMethod === 'cash' ? 'Nakit teslim alındı' : 'IBAN açıklaması veya dekont notu'} />
         <PrimaryButton title={`${paymentMethod === 'cash' ? 'Nakit' : 'IBAN'} Tahsilatını Kaydet`} onPress={addPayment} loading={loading} />
       </GlassCard>}
@@ -155,6 +161,7 @@ export function ReceivableManagerCard({ orderId, onChanged }: { orderId: string;
             <View style={[styles.formIcon, { backgroundColor: `${colors.orange}16` }]}><Ionicons name="time" size={23} color={colors.orange} /></View>
             <View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>{isOpen ? 'Borç Bilgisini Güncelle' : 'Borç / Veresiye Yaz'}</Text><Text style={[styles.formSubtitle, { color: colors.textMuted }]}>Kaydedildiğinde motosiklet otomatik olarak Teslim Edildi olur.</Text></View>
           </View>
+          {needsInitialCharge && <FormField label="Borç tutarı / Net fiyat" value={debtAmount} onChangeText={setDebtAmount} keyboardType="decimal-pad" placeholder="Örn. 2500" />}
           <FormField label="Ödeme sözü tarihi (YYYY-AA-GG)" value={dueDate} onChangeText={setDueDate} placeholder="2026-07-20" />
           <FormField label="Personel özel notu" value={staffNote} onChangeText={setStaffNote} multiline placeholder="Ödeme sözü ve dahili not" />
           <FormField label="Müşterinin göreceği ödeme notu" value={customerNote} onChangeText={setCustomerNote} multiline placeholder="Kalan ödeme bilgisi" />
