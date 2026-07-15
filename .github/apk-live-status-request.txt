@@ -1,3 +1,3 @@
-DraBornGarage v1.0.4 APK hotfix live status request
+DraBornGarage v1.0.4 final hotfix live status request
 Requested: 2026-07-15
-Build trigger: a14a1d0c9c39cd1b05903b0a35a47b458c87a1d9
+Build trigger: 5d7775c2a546516ef4223f5e4388bbf2aff90543
