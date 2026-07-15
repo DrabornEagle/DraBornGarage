@@ -56,7 +56,8 @@ jobs:
           if (pkg.version !== '1.0.7' || lock.version !== '1.0.7' || lock.packages?.['']?.version !== '1.0.7') throw new Error('Package version mismatch');
           NODE
           grep -q "AppErrorBoundary" App.tsx
-          grep -q "customer_motorcycle_odometer').eq" src/context/AuthContext.tsx
+          grep -q "odometerProfile" src/context/AuthContext.tsx
+          grep -q "select('customer_motorcycle_odometer')" src/context/AuthContext.tsx
           grep -q "const EAS_PROJECT_ID" src/notifications/NotificationContextV101.tsx
           grep -q "Boolean(EAS_PROJECT_ID)" src/notifications/NotificationContextV101.tsx
           grep -q "unreadCountRef.current" src/notifications/NotificationContextV101.tsx
