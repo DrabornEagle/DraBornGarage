@@ -2,3 +2,4 @@ DraBornGarage v1.0.5 notification upgrade request
 Requested: 2026-07-15
 Backup: backup/v1.0.4-before-v1.0.5-20260715
 Targets: first-run permission screen, system notification sound, new Android channels, versionCode 23
+Retry: status reporting enabled
