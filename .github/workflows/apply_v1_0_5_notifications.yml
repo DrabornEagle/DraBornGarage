@@ -121,3 +121,23 @@ jobs:
           echo "$APP_JSON" | grep -q '"version": "1.0.5"'
           echo "$APP_JSON" | grep -q '"versionCode": 23'
           echo "$CONTEXT" | grep -q "notification_sound: 'system_loud'"
+
+  report:
+    if: always()
+    needs: apply-test-persist
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Write result
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload="$(jq -n --arg result '${{ needs.apply-test-persist.result }}' --arg run_url '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}' --arg head_sha '${{ github.sha }}' '{result:$result,run_url:$run_url,head_sha:$head_sha}')"
+          content="$(printf '%s\n' "$payload" | base64 -w0)"
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/.github/v1.0.5-apply-status.json?ref=main" --jq .sha 2>/dev/null || true)"
+          if [ -n "$sha" ]; then
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/.github/v1.0.5-apply-status.json" -f message='ci: update v1.0.5 apply status' -f content="$content" -f sha="$sha" -f branch=main >/dev/null
+          else
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/.github/v1.0.5-apply-status.json" -f message='ci: record v1.0.5 apply status' -f content="$content" -f branch=main >/dev/null
+          fi
