@@ -28,8 +28,12 @@ const DELIVERED_STORAGE_PREFIX = '@draborngarage/v101-delivered/';
 const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
 const PUSH_TOKEN_STORAGE_KEY = '@draborngarage/expo-push-token';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
-const NATIVE_PUSH_ENABLED = process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED === 'true';
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.6';
+const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID
+  || Constants.expoConfig?.extra?.eas?.projectId
+  || Constants.easConfig?.projectId
+  || null;
+const NATIVE_PUSH_ENABLED = process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED === 'true' && Boolean(EAS_PROJECT_ID);
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.7';
 
 export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: string; subtitle: string; icon: 'musical-notes' | 'volume-mute' }[] = [
   { key: 'system_loud', label: 'Telefon Bildirim Sesi', subtitle: 'Telefonunun bildirim sesi ve ses seviyesini kullanır', icon: 'musical-notes' },
@@ -127,9 +131,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const mountedRef = useRef(true);
   const preferencesRef = useRef(DEFAULT_PREFERENCES);
   const pushStatusRef = useRef<PushRegistrationStatus>('idle');
+  const unreadCountRef = useRef(0);
 
   useEffect(() => { preferencesRef.current = preferences; }, [preferences]);
   useEffect(() => { pushStatusRef.current = pushStatus; }, [pushStatus]);
+  useEffect(() => { unreadCountRef.current = unreadCount; }, [unreadCount]);
 
   const cancelGarageSchedules = useCallback(async () => {
     try {
@@ -273,10 +279,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setPushStatus('denied');
         return false;
       }
-      const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID
-        || Constants.expoConfig?.extra?.eas?.projectId
-        || Constants.easConfig?.projectId;
-      if (!projectId) {
+      if (!EAS_PROJECT_ID) {
         setPushStatus('missing_project');
         return false;
       }
@@ -285,7 +288,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         deviceId = `garage-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
         await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
       }
-      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      const token = (await Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID })).data;
       const { error } = await supabase.rpc('notification_register_push_token', {
         p_expo_push_token: token,
         p_device_id: deviceId,
@@ -359,7 +362,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${session.user.id}`,
       }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          presentDueNotifications([payload.new as GarageNotification], preferencesRef.current, unreadCount + 1);
+          presentDueNotifications([payload.new as GarageNotification], preferencesRef.current, unreadCountRef.current + 1);
         }
         setTimeout(() => refresh(), 180);
       })
@@ -370,13 +373,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         refresh();
       }
     });
-    const tokenListener = !NATIVE_PUSH_ENABLED || IS_EXPO_GO ? null : Notifications.addPushTokenListener(() => { registerPushNotifications(); });
+    let tokenListener: { remove: () => void } | null = null;
+    if (NATIVE_PUSH_ENABLED && !IS_EXPO_GO) {
+      try {
+        tokenListener = Notifications.addPushTokenListener(() => { registerPushNotifications(); });
+      } catch {
+        setPushStatus('error');
+      }
+    }
     return () => {
       appState.remove();
       tokenListener?.remove();
       supabase.removeChannel(channel);
     };
-  }, [session?.user, refresh, presentDueNotifications, cancelGarageSchedules, registerPushNotifications, unreadCount]);
+  }, [session?.user, refresh, presentDueNotifications, cancelGarageSchedules, registerPushNotifications]);
 
   useEffect(() => {
     let lastResponseKey = '';
