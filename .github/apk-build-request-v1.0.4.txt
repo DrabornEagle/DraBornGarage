@@ -1,6 +1,5 @@
-DraBornGarage v1.0.4 final Contents API persistence build
+DraBornGarage v1.0.4 clean APK verification
 Requested: 2026-07-15
-Persistence: GitHub Contents API with verification
-Fixes: notification permission native crash, transparent Android navigation, bottom menu safe area, dynamic version label
+Source: main
 Expected Android versionCode: 22
 Release tag: v1.0.4-test
