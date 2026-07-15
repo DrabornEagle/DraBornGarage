@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - .github/apk-build-request-v1.0.5.txt
+      - .github/apk-build-request-v1.0.6.txt
 
 permissions:
   contents: write
@@ -21,13 +21,14 @@ env:
   EXPO_NO_GIT_STATUS: "1"
   EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
-  EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "false"
+  EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+  EXPO_PUBLIC_EAS_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_EAS_PROJECT_ID }}
 
 jobs:
   release-apk:
-    name: Build and publish signed v1.0.5 notification APK
+    name: Build and publish signed v1.0.6 Firebase APK
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 65
 
     steps:
       - name: Checkout
@@ -75,22 +76,33 @@ jobs:
               print(f'{path}: {width}x{height}, {len(data)} bytes, sha256={hashlib.sha256(data).hexdigest()}')
           PY
 
-      - name: Validate v1.0.5 source metadata
+      - name: Validate v1.0.6 source and Firebase metadata
+        shell: bash
         run: |
+          set -euo pipefail
           node <<'NODE'
+          const fs = require('fs');
           const pkg = require('./package.json');
           const lock = require('./package-lock.json');
           const app = require('./app.json').expo;
-          if (pkg.version !== '1.0.5' || lock.version !== '1.0.5' || lock.packages?.['']?.version !== '1.0.5') {
-            throw new Error('Paket sürümleri 1.0.5 ile eşleşmiyor.');
+          const firebase = require('./google-services.json');
+          if (pkg.version !== '1.0.6' || lock.version !== '1.0.6' || lock.packages?.['']?.version !== '1.0.6') {
+            throw new Error('Paket sürümleri 1.0.6 ile eşleşmiyor.');
           }
           if (pkg.dependencies.expo !== '~54.0.36' || lock.packages?.['node_modules/expo']?.version !== '54.0.36') {
             throw new Error('Expo SDK 54.0.36 kilidi eksik.');
           }
-          if (app.version !== '1.0.5' || app.android?.versionCode !== 23 || app.ios?.buildNumber !== '23') {
-            throw new Error('Native sürüm bilgileri 1.0.5 / 23 ile eşleşmiyor.');
+          if (app.version !== '1.0.6' || app.android?.versionCode !== 24 || app.ios?.buildNumber !== '24') {
+            throw new Error('Native sürüm bilgileri 1.0.6 / 24 ile eşleşmiyor.');
           }
-          console.log('Source metadata OK: 1.0.5 / 23 / Expo 54.0.36');
+          if (app.android?.googleServicesFile !== './google-services.json' || !fs.existsSync('google-services.json')) {
+            throw new Error('Firebase google-services.json yapılandırması eksik.');
+          }
+          const firebasePackage = firebase.client?.[0]?.client_info?.android_client_info?.package_name;
+          if (firebasePackage !== app.android.package) {
+            throw new Error(`Firebase paket adı uyuşmuyor: ${firebasePackage} / ${app.android.package}`);
+          }
+          console.log('Source metadata OK: 1.0.6 / 24 / Expo 54.0.36 / Firebase Android');
           NODE
 
       - name: Install locked dependencies
@@ -105,7 +117,7 @@ jobs:
       - name: Android JavaScript bundle
         run: npm run test:bundle
 
-      - name: Verify v1.0.5 notification source rules
+      - name: Verify v1.0.6 source rules
         shell: bash
         run: |
           set -euo pipefail
@@ -114,7 +126,11 @@ jobs:
           grep -q "sound: 'default'" src/notifications/notificationPermissions.ts
           grep -q "AndroidImportance.MAX" src/notifications/notificationPermissions.ts
           grep -q "notification_sound: 'system_loud'" src/notifications/NotificationContextV101.tsx
-          grep -q "requestDeviceNotificationPermission" src/notifications/NotificationContextV101.tsx
+          grep -q "motorcycleOdometer" src/screens/AuthScreen.tsx
+          grep -q "p_odometer: odometerValue" src/customer/CustomerAppointmentsScreen.tsx
+          grep -q "bikeOdometer" src/screens/CustomersScreen.tsx
+          grep -q "needsInitialCharge" src/components/ReceivableManagerCard.tsx
+          ! grep -q "Tahsil edilecek ücret gerekli" src/screens/WorkOrderDetailV04.tsx
           grep -q 'GARAGE OS • v${APP_VERSION} TEST APK' src/screens/AuthScreen.tsx
           grep -q "Math.max(insets.bottom, 36)" src/AppShellV102.tsx
           grep -q "Math.max(insets.bottom, 36)" src/customer/CustomerShell.tsx
@@ -124,6 +140,19 @@ jobs:
 
       - name: Generate clean Android native project
         run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Verify generated Firebase Android configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s android/app/google-services.json
+          node <<'NODE'
+          const app = require('./app.json').expo;
+          const generated = require('./android/app/google-services.json');
+          const packageName = generated.client?.[0]?.client_info?.android_client_info?.package_name;
+          if (packageName !== app.android.package) throw new Error('Üretilen Firebase Android paket adı uyuşmuyor.');
+          console.log('Generated Firebase Android config OK:', packageName);
+          NODE
 
       - name: Normalize generated Android manifest
         shell: bash
@@ -204,7 +233,7 @@ jobs:
         run: |
           SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
           test -f "$SOURCE_APK"
-          APK_NAME="DraBornGarage-v1.0.5-release-test.apk"
+          APK_NAME="DraBornGarage-v1.0.6-release-test.apk"
           APK_PATH="release-output/${APK_NAME}"
           cp "$SOURCE_APK" "$APK_PATH"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
@@ -216,37 +245,42 @@ jobs:
       - name: Build information
         shell: bash
         run: |
+          if [ -n "${EXPO_PUBLIC_EAS_PROJECT_ID:-}" ]; then EAS_STATUS="configured"; else EAS_STATUS="missing"; fi
           {
-            echo "DraBornGarage v1.0.5 RC"
-            echo "Android versionCode: 23"
+            echo "DraBornGarage v1.0.6 RC"
+            echo "Android versionCode: 24"
             echo "Commit: $GITHUB_SHA"
             echo "Run: $GITHUB_RUN_ID"
+            echo "Firebase Android google-services.json: configured"
+            echo "Native push client flag: enabled"
+            echo "Expo EAS project ID secret: ${EAS_STATUS}"
             echo "Notification sound: phone default notification sound / MAX importance channel v3"
-            echo "First-run notification permission education: enabled"
-            echo "Remote push: Firebase FCM V1 and EAS project credentials are still required"
             echo "Signing: GitHub test signing; Google Play production upload key değildir"
           } | tee release-output/BUILD_INFO.txt
 
           cat > release-output/RELEASE_NOTES.md <<'EOF'
-          # DraBornGarage v1.0.5 Test APK
+          # DraBornGarage v1.0.6 Test APK
 
-          Google Play final yayını öncesi bildirim ve ilk kurulum test paketi.
+          Google Play final yayını öncesi Firebase, tahsilat ve kilometre test paketi.
 
-          - Uygulama sürümü: **1.0.5 RC**
-          - Android versionCode: **23**
-          - İlk açılış akışında modern bildirim izin açıklaması
-          - Telefonun varsayılan bildirim sesini kullanan yeni yüksek öncelikli Android v3 kanalı
-          - Güçlü titreşim, kilit ekranı görünürlüğü ve rozet desteği
-          - Eski düşük seviyeli özel WAV kanalları yerine telefonun Bildirim Sesi seviyesi
-          - Yerel test bildirimi ve zamanlı hatırlatmalar uygulama kapalıyken çalışır
-          - Yeni sunucu hareketlerinin uygulama tamamen kapalıyken gelmesi için Firebase FCM V1/EAS kimlik bilgileri ayrıca bağlanmalıdır
-          - Expo Doctor, TypeScript, Android bundle, lint, manifest ve APK imza kontrolleri tamamlandı
+          - Uygulama sürümü: **1.0.6 RC**
+          - Android versionCode: **24**
+          - Firebase Android `google-services.json` entegrasyonu
+          - Native push istemci bağlantısı etkin
+          - Motor Hazır aşamasında ücret zorunluluğu kaldırıldı
+          - Ücret girilmediyse Nakit/IBAN/Borç tutarı otomatik Net Fiyat olur
+          - Kullanıcı kaydına motosiklet kilometresi eklendi
+          - Randevu oluştururken güncel kilometre kaydı
+          - Müşteriler ekranından motosiklet eklerken kilometre kaydı
+          - Randevu kilometresi servis kaydına otomatik aktarılır
+          - Telefonun varsayılan bildirim sesi ve yüksek öncelikli Android v3 kanalı
+          - Expo Doctor, TypeScript, Android bundle, lint, manifest, Firebase ve APK imza kontrolleri
           EOF
 
       - name: Upload DraBornGarage Release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGarage-v1.0.5-Notification-Release-APK
+          name: DraBornGarage-v1.0.6-Firebase-Release-APK
           path: release-output/
           if-no-files-found: error
           retention-days: 30
@@ -255,15 +289,15 @@ jobs:
       - name: Publish GitHub test release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.5-test
+          tag_name: v1.0.6-test
           target_commitish: main
-          name: DraBornGarage v1.0.5 Test APK
+          name: DraBornGarage v1.0.6 Test APK
           body_path: release-output/RELEASE_NOTES.md
           prerelease: true
           make_latest: false
           overwrite_files: true
           files: |
-            release-output/DraBornGarage-v1.0.5-release-test.apk
+            release-output/DraBornGarage-v1.0.6-release-test.apk
             release-output/SHA256SUMS.txt
             release-output/apk-signature.txt
             release-output/apk-size.txt
@@ -274,10 +308,11 @@ jobs:
         shell: bash
         run: |
           {
-            echo "# DraBornGarage Release APK v1.0.5"
-            echo "- Version: **1.0.5 RC**"
-            echo "- Android versionCode: **23**"
+            echo "# DraBornGarage Release APK v1.0.6"
+            echo "- Version: **1.0.6 RC**"
+            echo "- Android versionCode: **24**"
+            echo "- Firebase Android: **configured**"
             echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
-            echo "- Artifact: **DraBornGarage-v1.0.5-Notification-Release-APK**"
-            echo "- Release tag: **v1.0.5-test**"
+            echo "- Artifact: **DraBornGarage-v1.0.6-Firebase-Release-APK**"
+            echo "- Release tag: **v1.0.6-test**"
           } >> "$GITHUB_STEP_SUMMARY"
