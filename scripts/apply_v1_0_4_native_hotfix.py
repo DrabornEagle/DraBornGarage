@@ -135,13 +135,18 @@ for path in (ROOT / 'src').rglob('*.tsx'):
 
 workflow_path = ROOT / '.github/workflows/release-apk.yml'
 workflow = workflow_path.read_text(encoding='utf-8')
-workflow = workflow.replace("EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}", "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}\n  EXPO_PUBLIC_NATIVE_PUSH_ENABLED: \"false\"")
+if 'EXPO_PUBLIC_NATIVE_PUSH_ENABLED:' not in workflow:
+    workflow = workflow.replace(
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}\n  EXPO_PUBLIC_NATIVE_PUSH_ENABLED: \"false\"",
+    )
 workflow = workflow.replace("app.android?.versionCode !== 21 || app.ios?.buildNumber !== '21'", "app.android?.versionCode !== 22 || app.ios?.buildNumber !== '22'")
 workflow = workflow.replace('Native sürüm bilgileri 1.0.4 / 21 ile eşleşmiyor.', 'Native sürüm bilgileri 1.0.4 / 22 ile eşleşmiyor.')
 workflow = workflow.replace("console.log('Release metadata OK: 1.0.4 / 21');", "console.log('Release metadata OK: 1.0.4 / 22');")
 workflow = workflow.replace('Android versionCode: 21', 'Android versionCode: 22')
 workflow = workflow.replace('- Android versionCode: **21**', '- Android versionCode: **22**')
-workflow = workflow.replace('          make_latest: false\n          files:', '          make_latest: false\n          overwrite_files: true\n          files:')
+if 'overwrite_files: true' not in workflow:
+    workflow = workflow.replace('          make_latest: false\n          files:', '          make_latest: false\n          overwrite_files: true\n          files:')
 workflow_path.write_text(workflow, encoding='utf-8')
 
 if os.getenv('DGB_APPLY_TRIGGER', '1') != '0':
