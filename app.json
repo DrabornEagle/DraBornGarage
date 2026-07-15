@@ -4,6 +4,7 @@
     "slug": "draborngarage",
     "scheme": "draborngarage",
     "version": "1.0.3",
+    "icon": "./assets/draborngarage-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
