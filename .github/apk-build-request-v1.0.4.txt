@@ -1,5 +1,5 @@
 DraBornGarage v1.0.4 test APK build request
 Requested: 2026-07-15
-Retry: embedded artwork available in main
+Retry: repository artwork workflow
 Expected Android versionCode: 21
 Release tag: v1.0.4-test
