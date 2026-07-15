@@ -2,9 +2,14 @@ name: DraBornGarage Release APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/apk-build-request-v1.0.4.txt
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: draborngarage-release-apk-${{ github.ref }}
@@ -19,9 +24,10 @@ env:
 
 jobs:
   release-apk:
-    name: Build signed test Release APK
+    name: Build and publish signed v1.0.4 test APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,22 +45,88 @@ jobs:
           java-version: "17"
 
       - name: Prepare output directory
-        run: mkdir -p release-output
+        run: mkdir -p release-output assets
 
-      - name: Validate v1.0.1 metadata
+      - name: Install artwork verification dependency
+        run: python3 -m pip install --disable-pip-version-check --quiet pillow
+
+      - name: Download and losslessly prepare supplied artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          download_drive_file() {
+            local id="$1"
+            local output="$2"
+            curl --fail --location --retry 5 --retry-delay 3 \
+              "https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t" \
+              --output "$output"
+          }
+
+          download_drive_file "1XaQNV7YCpFC1issHexEte5b6olT0upHL" "release-output/draborngarage-icon-source.jpg"
+          download_drive_file "1Q567k-YzGOpfVAQIpp7masO0MmZ5cH_3" "release-output/draborngarage-welcome-source.jpg"
+
+          python3 <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageChops
+          import hashlib
+
+          jobs = [
+              (
+                  Path('release-output/draborngarage-icon-source.jpg'),
+                  Path('assets/draborngarage-icon.png'),
+                  (1536, 1536),
+              ),
+              (
+                  Path('release-output/draborngarage-welcome-source.jpg'),
+                  Path('assets/draborngarage-welcome.png'),
+                  (864, 1536),
+              ),
+          ]
+
+          for source, target, expected_size in jobs:
+              raw = source.read_bytes()
+              if raw[:2] != b'\xff\xd8':
+                  raise SystemExit(f'{source}: kaynak JPEG değil; indirme yetki veya içerik hatası olabilir')
+
+              with Image.open(source) as image:
+                  original = image.convert('RGB')
+
+              if original.size != expected_size:
+                  raise SystemExit(f'{source}: beklenen {expected_size}, bulunan {original.size}')
+
+              original.save(target, format='PNG', compress_level=6)
+
+              with Image.open(target) as image:
+                  converted = image.convert('RGB')
+
+              if converted.size != expected_size:
+                  raise SystemExit(f'{target}: PNG ölçüsü bozuldu')
+              if ImageChops.difference(original, converted).getbbox() is not None:
+                  raise SystemExit(f'{target}: kayıpsız piksel doğrulaması başarısız')
+
+              print(f'{source}: {len(raw)} bytes, sha256={hashlib.sha256(raw).hexdigest()}')
+              target_raw = target.read_bytes()
+              print(f'{target}: {len(target_raw)} bytes, sha256={hashlib.sha256(target_raw).hexdigest()}')
+          PY
+
+      - name: Synchronize package lock metadata
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Validate v1.0.4 metadata
         shell: bash
         run: |
           node <<'NODE'
           const pkg = require('./package.json');
           const lock = require('./package-lock.json');
           const app = require('./app.json').expo;
-          if (pkg.version !== '1.0.1' || lock.version !== '1.0.1' || lock.packages?.['']?.version !== '1.0.1') {
-            throw new Error('Paket sürümleri 1.0.1 ile eşleşmiyor.');
+          if (pkg.version !== '1.0.4' || lock.version !== '1.0.4' || lock.packages?.['']?.version !== '1.0.4') {
+            throw new Error('Paket sürümleri 1.0.4 ile eşleşmiyor.');
           }
-          if (app.version !== '1.0.1' || app.android?.versionCode !== 18 || app.ios?.buildNumber !== '18') {
-            throw new Error('Native sürüm bilgileri 1.0.1 / 18 ile eşleşmiyor.');
+          if (app.version !== '1.0.4' || app.android?.versionCode !== 21 || app.ios?.buildNumber !== '21') {
+            throw new Error('Native sürüm bilgileri 1.0.4 / 21 ile eşleşmiyor.');
           }
-          console.log('Release metadata OK: 1.0.1 / 18');
+          console.log('Release metadata OK: 1.0.4 / 21');
           NODE
 
       - name: Install locked dependencies
@@ -152,8 +224,7 @@ jobs:
         run: |
           SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
           test -f "$SOURCE_APK"
-          SHORT_SHA="${GITHUB_SHA::12}"
-          APK_NAME="DraBornGarage-v1.0.1-release-test-${SHORT_SHA}.apk"
+          APK_NAME="DraBornGarage-v1.0.4-release-test.apk"
           APK_PATH="release-output/${APK_NAME}"
           cp "$SOURCE_APK" "$APK_PATH"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
@@ -166,30 +237,60 @@ jobs:
         shell: bash
         run: |
           {
-            echo "DraBornGarage v1.0.1 RC"
-            echo "Android versionCode: 18"
+            echo "DraBornGarage v1.0.4 RC"
+            echo "Android versionCode: 21"
             echo "Commit: $GITHUB_SHA"
             echo "Run: $GITHUB_RUN_ID"
             echo "Signing: GitHub test signing; Google Play production upload key değildir"
           } | tee release-output/BUILD_INFO.txt
 
+          cat > release-output/RELEASE_NOTES.md <<EOF
+          # DraBornGarage v1.0.4 Test APK
+
+          Bu paket Google Play final yayını öncesi cihaz testleri için oluşturulmuştur.
+
+          - Uygulama sürümü: **1.0.4 RC**
+          - Android versionCode: **21**
+          - Karşılama ekranı ve özel DraBornGarage ikonu dahil
+          - Supabase bağlantısı dahil
+          - TypeScript, Expo bundle, Android lint, manifest izin ve APK imza kontrolleri tamamlandı
+          - Test imzası kullanır; Google Play production upload key değildir
+          EOF
+
       - name: Upload DraBornGarage Release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DraBornGarage-v1.0.1-Release-APK
+          name: DraBornGarage-v1.0.4-Release-APK
           path: release-output/
           if-no-files-found: error
           retention-days: 30
           compression-level: 6
+
+      - name: Publish GitHub test release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.4-test
+          target_commitish: ${{ github.sha }}
+          name: DraBornGarage v1.0.4 Test APK
+          body_path: release-output/RELEASE_NOTES.md
+          prerelease: true
+          make_latest: false
+          files: |
+            release-output/DraBornGarage-v1.0.4-release-test.apk
+            release-output/SHA256SUMS.txt
+            release-output/apk-signature.txt
+            release-output/apk-size.txt
+            release-output/BUILD_INFO.txt
+            release-output/AndroidManifest-release.xml
 
       - name: Build summary
         shell: bash
         run: |
           {
             echo "# DraBornGarage Release APK"
-            echo "- Version: **1.0.1 RC**"
-            echo "- Android versionCode: **18**"
+            echo "- Version: **1.0.4 RC**"
+            echo "- Android versionCode: **21**"
             echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
-            echo "- Artifact: **DraBornGarage-v1.0.1-Release-APK**"
-            echo "- Trigger: **manual workflow_dispatch**"
+            echo "- Artifact: **DraBornGarage-v1.0.4-Release-APK**"
+            echo "- Release tag: **v1.0.4-test**"
           } >> "$GITHUB_STEP_SUMMARY"
