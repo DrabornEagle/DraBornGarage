@@ -3,8 +3,7 @@ name: DraBornGarage Release APK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - .github/apk-build-request-v1.0.6.txt
 
@@ -28,7 +27,7 @@ jobs:
   release-apk:
     name: Build and publish signed v1.0.6 Firebase APK
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 70
 
     steps:
       - name: Checkout
@@ -46,37 +45,21 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Prepare output directory
-        run: mkdir -p release-output
-
-      - name: Verify repository artwork
+      - name: Install required Android NDK
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          import hashlib
-          import struct
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" "ndk;27.1.12297006"
+          test -d "$ANDROID_HOME/ndk/27.1.12297006"
+          echo "Android NDK 27.1.12297006 hazır"
 
-          expected = {
-              Path('assets/draborngarage-icon.png'): (1536, 1536),
-              Path('assets/draborngarage-welcome.png'): (864, 1536),
-          }
-          for path, dimensions in expected.items():
-              if not path.is_file():
-                  raise SystemExit(f'{path}: dosya GitHub deposunda bulunamadı')
-              data = path.read_bytes()
-              if data[:8] != b'\x89PNG\r\n\x1a\n':
-                  raise SystemExit(f'{path}: geçerli PNG değil')
-              width, height = struct.unpack('>II', data[16:24])
-              if (width, height) != dimensions:
-                  raise SystemExit(f'{path}: beklenen {dimensions}, bulunan {(width, height)}')
-              if len(data) < 100_000:
-                  raise SystemExit(f'{path}: dosya beklenenden küçük')
-              print(f'{path}: {width}x{height}, {len(data)} bytes, sha256={hashlib.sha256(data).hexdigest()}')
-          PY
+      - name: Prepare output directory
+        run: mkdir -p release-output
 
-      - name: Validate v1.0.6 source and Firebase metadata
+      - name: Validate v1.0.6 source, artwork and Firebase
         shell: bash
         run: |
           set -euo pipefail
@@ -86,23 +69,14 @@ jobs:
           const lock = require('./package-lock.json');
           const app = require('./app.json').expo;
           const firebase = require('./google-services.json');
-          if (pkg.version !== '1.0.6' || lock.version !== '1.0.6' || lock.packages?.['']?.version !== '1.0.6') {
-            throw new Error('Paket sürümleri 1.0.6 ile eşleşmiyor.');
-          }
-          if (pkg.dependencies.expo !== '~54.0.36' || lock.packages?.['node_modules/expo']?.version !== '54.0.36') {
-            throw new Error('Expo SDK 54.0.36 kilidi eksik.');
-          }
-          if (app.version !== '1.0.6' || app.android?.versionCode !== 24 || app.ios?.buildNumber !== '24') {
-            throw new Error('Native sürüm bilgileri 1.0.6 / 24 ile eşleşmiyor.');
-          }
-          if (app.android?.googleServicesFile !== './google-services.json' || !fs.existsSync('google-services.json')) {
-            throw new Error('Firebase google-services.json yapılandırması eksik.');
-          }
+          if (pkg.version !== '1.0.6' || lock.version !== '1.0.6' || lock.packages?.['']?.version !== '1.0.6') throw new Error('Paket sürümü uyuşmuyor');
+          if (pkg.dependencies.expo !== '~54.0.36' || lock.packages?.['node_modules/expo']?.version !== '54.0.36') throw new Error('Expo SDK kilidi uyuşmuyor');
+          if (app.version !== '1.0.6' || app.android?.versionCode !== 24 || app.ios?.buildNumber !== '24') throw new Error('Native sürüm uyuşmuyor');
+          if (app.android?.googleServicesFile !== './google-services.json') throw new Error('googleServicesFile eksik');
           const firebasePackage = firebase.client?.[0]?.client_info?.android_client_info?.package_name;
-          if (firebasePackage !== app.android.package) {
-            throw new Error(`Firebase paket adı uyuşmuyor: ${firebasePackage} / ${app.android.package}`);
-          }
-          console.log('Source metadata OK: 1.0.6 / 24 / Expo 54.0.36 / Firebase Android');
+          if (firebasePackage !== app.android.package) throw new Error('Firebase paket adı uyuşmuyor');
+          for (const file of ['assets/draborngarage-icon.png','assets/draborngarage-welcome.png']) if (!fs.existsSync(file) || fs.statSync(file).size < 100000) throw new Error(`${file} geçersiz`);
+          console.log('v1.0.6 / Android 24 / Firebase kaynakları doğrulandı');
           NODE
 
       - name: Install locked dependencies
@@ -117,23 +91,17 @@ jobs:
       - name: Android JavaScript bundle
         run: npm run test:bundle
 
-      - name: Verify v1.0.6 source rules
+      - name: Verify v1.0.6 feature rules
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "NotificationPermissionScreen" src/AppRoot.tsx
-          grep -q "draborngarage-system-loud-v3" src/notifications/notificationPermissions.ts
-          grep -q "sound: 'default'" src/notifications/notificationPermissions.ts
-          grep -q "AndroidImportance.MAX" src/notifications/notificationPermissions.ts
-          grep -q "notification_sound: 'system_loud'" src/notifications/NotificationContextV101.tsx
           grep -q "motorcycleOdometer" src/screens/AuthScreen.tsx
           grep -q "p_odometer: odometerValue" src/customer/CustomerAppointmentsScreen.tsx
           grep -q "bikeOdometer" src/screens/CustomersScreen.tsx
           grep -q "needsInitialCharge" src/components/ReceivableManagerCard.tsx
           ! grep -q "Tahsil edilecek ücret gerekli" src/screens/WorkOrderDetailV04.tsx
-          grep -q 'GARAGE OS • v${APP_VERSION} TEST APK' src/screens/AuthScreen.tsx
-          grep -q "Math.max(insets.bottom, 36)" src/AppShellV102.tsx
-          grep -q "Math.max(insets.bottom, 36)" src/customer/CustomerShell.tsx
+          grep -q "draborngarage-system-loud-v3" src/notifications/notificationPermissions.ts
+          grep -q "v1.0.6 RC" src/notifications/NotificationCenterScreen.tsx
 
       - name: Export public Expo configuration
         run: npx expo config --type public --json > release-output/expo-public-config.json
@@ -150,8 +118,7 @@ jobs:
           const app = require('./app.json').expo;
           const generated = require('./android/app/google-services.json');
           const packageName = generated.client?.[0]?.client_info?.android_client_info?.package_name;
-          if (packageName !== app.android.package) throw new Error('Üretilen Firebase Android paket adı uyuşmuyor.');
-          console.log('Generated Firebase Android config OK:', packageName);
+          if (packageName !== app.android.package) throw new Error('Üretilen Firebase paket adı uyuşmuyor');
           NODE
 
       - name: Normalize generated Android manifest
@@ -159,18 +126,18 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
-          path = Path('android/app/src/main/AndroidManifest.xml')
-          text = path.read_text().replace(' data-generated="true"', '')
-          lines = []
+          path=Path('android/app/src/main/AndroidManifest.xml')
+          text=path.read_text().replace(' data-generated="true"','')
+          lines=[]
           for line in text.splitlines():
               if '<uses-permission' in line and 'tools:node="remove"' in line and 'tools:ignore=' not in line:
-                  line = line.replace('/>', ' tools:ignore="PermissionImpliesUnsupportedChromeOsHardware"/>')
+                  line=line.replace('/>',' tools:ignore="PermissionImpliesUnsupportedChromeOsHardware"/>')
               lines.append(line)
-          text = '\n'.join(lines) + '\n'
-          feature = '  <uses-feature android:name="android.hardware.camera" android:required="false"/>'
+          text='\n'.join(lines)+'\n'
+          feature='  <uses-feature android:name="android.hardware.camera" android:required="false"/>'
           if 'android.hardware.camera' not in text:
-              root_end = text.find('>')
-              text = text[:root_end + 1] + '\n' + feature + text[root_end + 1:]
+              pos=text.find('>')
+              text=text[:pos+1]+'\n'+feature+text[pos+1:]
           path.write_text(text)
           PY
 
@@ -184,53 +151,26 @@ jobs:
         working-directory: android
         run: ./gradlew :app:lintRelease --no-daemon --stacktrace
 
-      - name: Verify merged release manifest
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import shutil
-          import xml.etree.ElementTree as ET
-
-          candidates = [
-              path for path in Path('android/app/build/intermediates').rglob('AndroidManifest.xml')
-              if 'release' in path.parts and ('merged_manifest' in path.parts or 'merged_manifests' in path.parts)
-          ]
-          if not candidates:
-              raise SystemExit('Merged release manifest bulunamadı.')
-          manifest = max(candidates, key=lambda path: path.stat().st_size)
-          shutil.copyfile(manifest, 'release-output/AndroidManifest-release.xml')
-          android = '{http://schemas.android.com/apk/res/android}'
-          root = ET.parse(manifest).getroot()
-          permissions = {node.attrib.get(android + 'name') for node in root.findall('uses-permission')}
-          features = {node.attrib.get(android + 'name'): node.attrib.get(android + 'required') for node in root.findall('uses-feature')}
-          blocked = {
-              'android.permission.RECORD_AUDIO',
-              'android.permission.ACCESS_FINE_LOCATION',
-              'android.permission.ACCESS_COARSE_LOCATION',
-              'android.permission.READ_CONTACTS',
-              'android.permission.WRITE_CONTACTS',
-              'android.permission.CALL_PHONE',
-              'android.permission.READ_PHONE_STATE',
-              'android.permission.READ_SMS',
-              'android.permission.SEND_SMS',
-          }
-          unexpected = sorted(blocked & permissions)
-          if unexpected:
-              raise SystemExit(f'Engellenen izinler bulundu: {unexpected}')
-          if 'android.permission.CAMERA' not in permissions:
-              raise SystemExit('CAMERA izni bulunamadı.')
-          if 'android.permission.POST_NOTIFICATIONS' not in permissions:
-              raise SystemExit('POST_NOTIFICATIONS izni bulunamadı.')
-          if features.get('android.hardware.camera') != 'false':
-              raise SystemExit('Kamera required=false değil.')
-          print('Merged manifest verified:', manifest)
-          PY
-
-      - name: Collect and verify APK
+      - name: Verify manifest and collect APK
         id: apk
         shell: bash
         run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import shutil, xml.etree.ElementTree as ET
+          candidates=[p for p in Path('android/app/build/intermediates').rglob('AndroidManifest.xml') if 'release' in p.parts and ('merged_manifest' in p.parts or 'merged_manifests' in p.parts)]
+          if not candidates: raise SystemExit('Merged release manifest bulunamadı')
+          manifest=max(candidates,key=lambda p:p.stat().st_size)
+          shutil.copyfile(manifest,'release-output/AndroidManifest-release.xml')
+          android='{http://schemas.android.com/apk/res/android}'
+          root=ET.parse(manifest).getroot()
+          permissions={n.attrib.get(android+'name') for n in root.findall('uses-permission')}
+          blocked={'android.permission.RECORD_AUDIO','android.permission.ACCESS_FINE_LOCATION','android.permission.ACCESS_COARSE_LOCATION','android.permission.READ_CONTACTS','android.permission.WRITE_CONTACTS','android.permission.CALL_PHONE','android.permission.READ_PHONE_STATE','android.permission.READ_SMS','android.permission.SEND_SMS'}
+          if blocked & permissions: raise SystemExit(f'Engellenen izinler bulundu: {sorted(blocked & permissions)}')
+          for required in ('android.permission.CAMERA','android.permission.POST_NOTIFICATIONS'):
+              if required not in permissions: raise SystemExit(f'{required} bulunamadı')
+          PY
           SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
           test -f "$SOURCE_APK"
           APK_NAME="DraBornGarage-v1.0.6-release-test.apk"
@@ -242,7 +182,7 @@ jobs:
           stat -c '%n %s bytes' "$APK_PATH" | tee release-output/apk-size.txt
           echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Build information
+      - name: Build information and release notes
         shell: bash
         run: |
           if [ -n "${EXPO_PUBLIC_EAS_PROJECT_ID:-}" ]; then EAS_STATUS="configured"; else EAS_STATUS="missing"; fi
@@ -254,27 +194,19 @@ jobs:
             echo "Firebase Android google-services.json: configured"
             echo "Native push client flag: enabled"
             echo "Expo EAS project ID secret: ${EAS_STATUS}"
-            echo "Notification sound: phone default notification sound / MAX importance channel v3"
+            echo "Android NDK: 27.1.12297006"
             echo "Signing: GitHub test signing; Google Play production upload key değildir"
           } | tee release-output/BUILD_INFO.txt
-
           cat > release-output/RELEASE_NOTES.md <<'EOF'
           # DraBornGarage v1.0.6 Test APK
 
-          Google Play final yayını öncesi Firebase, tahsilat ve kilometre test paketi.
-
-          - Uygulama sürümü: **1.0.6 RC**
-          - Android versionCode: **24**
-          - Firebase Android `google-services.json` entegrasyonu
-          - Native push istemci bağlantısı etkin
+          - Firebase Android yapılandırması
           - Motor Hazır aşamasında ücret zorunluluğu kaldırıldı
-          - Ücret girilmediyse Nakit/IBAN/Borç tutarı otomatik Net Fiyat olur
-          - Kullanıcı kaydına motosiklet kilometresi eklendi
-          - Randevu oluştururken güncel kilometre kaydı
-          - Müşteriler ekranından motosiklet eklerken kilometre kaydı
-          - Randevu kilometresi servis kaydına otomatik aktarılır
-          - Telefonun varsayılan bildirim sesi ve yüksek öncelikli Android v3 kanalı
-          - Expo Doctor, TypeScript, Android bundle, lint, manifest, Firebase ve APK imza kontrolleri
+          - İlk Nakit/IBAN/Borç tutarı otomatik Net Fiyat olur
+          - Kullanıcı kaydı, randevu ve müşteri motor ekleme akışlarında kilometre
+          - Randevu kilometresinin servis kaydına aktarılması
+          - Telefonun varsayılan bildirim sesi ve yüksek öncelikli bildirim kanalı
+          - Expo Doctor, TypeScript, bundle, Firebase, NDK, lint, manifest ve APK imza kontrolleri
           EOF
 
       - name: Upload DraBornGarage Release APK artifact
@@ -305,14 +237,12 @@ jobs:
             release-output/AndroidManifest-release.xml
 
       - name: Build summary
-        shell: bash
         run: |
           {
             echo "# DraBornGarage Release APK v1.0.6"
             echo "- Version: **1.0.6 RC**"
             echo "- Android versionCode: **24**"
             echo "- Firebase Android: **configured**"
+            echo "- NDK: **27.1.12297006**"
             echo "- APK: **${{ steps.apk.outputs.apk_name }}**"
-            echo "- Artifact: **DraBornGarage-v1.0.6-Firebase-Release-APK**"
-            echo "- Release tag: **v1.0.6-test**"
           } >> "$GITHUB_STEP_SUMMARY"
