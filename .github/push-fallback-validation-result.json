@@ -1,0 +1,10 @@
+{
+  "status": "success",
+  "checks": [
+    "expo-doctor",
+    "typescript",
+    "android-bundle",
+    "remote-local-deduplication",
+    "24-hour-push-window"
+  ]
+}
