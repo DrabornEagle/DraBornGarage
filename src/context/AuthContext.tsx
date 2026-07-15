@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const userId = currentSession.user.id;
     const [{ data: profileData, error: profileError }, { data: memberData }, customerWorkshopResult, { data: applicationData }, mechanicApplicationResult] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin, account_mode, customer_plate, customer_motorcycle_brand, customer_motorcycle_model, customer_motorcycle_odometer').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin, account_mode, customer_plate, customer_motorcycle_brand, customer_motorcycle_model').eq('id', userId).maybeSingle(),
       supabase
         .from('workshop_members')
         .select('workshop_id, user_id, role, is_active, availability_status, staff_note')
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase.rpc('customer_get_mechanic_applications'),
     ]);
 
-    if (!profileError && !profileData) {
+    if (profileError || !profileData) {
       await supabase.auth.signOut({ scope: 'local' });
       setSession(null);
       clearState();
@@ -106,7 +106,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const nextProfile = (profileData as Profile | null) ?? null;
+    const { data: odometerProfile } = await supabase
+      .from('profiles')
+      .select('customer_motorcycle_odometer')
+      .eq('id', userId)
+      .maybeSingle();
+    const nextProfile = {
+      ...(profileData as Profile),
+      customer_motorcycle_odometer: Number.isFinite(Number(odometerProfile?.customer_motorcycle_odometer))
+        ? Number(odometerProfile?.customer_motorcycle_odometer)
+        : null,
+    } as Profile;
     const nextMemberships = (memberData as WorkshopMember[]) ?? [];
     const admin = Boolean(nextProfile?.is_admin);
     setProfile(nextProfile);
