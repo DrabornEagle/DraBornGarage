@@ -2,3 +2,4 @@ DraBornGarage v1.0.6 Firebase Release APK build request
 Version: 1.0.6 RC
 Android versionCode: 24
 Requested: 2026-07-15
+Retry: install Android NDK 27.1.12297006
