@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const userId = currentSession.user.id;
     const [{ data: profileData, error: profileError }, { data: memberData }, customerWorkshopResult, { data: applicationData }, mechanicApplicationResult] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin, account_mode, customer_plate, customer_motorcycle_brand, customer_motorcycle_model').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('id, full_name, phone, avatar_url, is_admin, account_mode, customer_plate, customer_motorcycle_brand, customer_motorcycle_model, customer_motorcycle_odometer').eq('id', userId).maybeSingle(),
       supabase
         .from('workshop_members')
         .select('workshop_id, user_id, role, is_active, availability_status, staff_note')
@@ -202,6 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         customer_plate: customerMotor.plate.trim().toUpperCase(),
         customer_motorcycle_brand: customerMotor.brand.trim(),
         customer_motorcycle_model: customerMotor.model.trim(),
+        customer_motorcycle_odometer: customerMotor.odometer ?? null,
       } : {};
       const joiningExisting = accountMode === 'staff' && Boolean(businessRegistration?.join_existing_workshop);
       const businessData = accountMode === 'staff' && businessRegistration
