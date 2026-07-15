@@ -1,24 +1,19 @@
 {
   "cli": {
-    "version": ">= 16.0.0"
+    "version": ">= 21.0.1"
   },
   "build": {
-    "preview": {
+    "production": {
+      "credentialsSource": "local",
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "preview-apk": {
+      "credentialsSource": "local",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      }
-    },
-    "release-apk": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
-      }
-    },
-    "production": {
-      "android": {
-        "buildType": "app-bundle"
       }
     }
   }
