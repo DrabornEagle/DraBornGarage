@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "906730142718",
+    "project_id": "draborngarage",
+    "storage_bucket": "draborngarage.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:906730142718:android:3c9d47d3af62dc7e299eaf",
+        "android_client_info": {
+          "package_name": "com.draborneagle.draborngarage"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAf3e8kau92dwUporRVbfLaxeH09wccIec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
