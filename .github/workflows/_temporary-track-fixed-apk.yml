@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/_temporary-track-fixed-apk.yml
+      - .github/track-fixed-apk-request.txt
 
 permissions:
   actions: read
@@ -18,12 +18,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          sleep 8
           gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --limit 1 --json databaseId,status,conclusion,url,headSha,createdAt > run.json
           id="$(jq -r '.[0].databaseId')"
           gh run view "$id" --repo "$GITHUB_REPOSITORY" --json jobs > jobs.json
           jq -s '{run:.[0][0],jobs:.[1].jobs}' run.json jobs.json > fixed-apk-status.json
-      - name: Persist status and remove tracker
+      - name: Persist status and clean temporary files
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -33,7 +32,9 @@ jobs:
           args=(--method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message='ci: update fixed APK status' -f content="$content" -f branch=main)
           [ -z "$sha" ] || args+=(-f sha="$sha")
           gh api "${args[@]}" >/dev/null
+          req=.github/track-fixed-apk-request.txt
+          req_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${req}?ref=main" --jq .sha)"
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${req}" -f message='ci: remove APK tracking request' -f sha="$req_sha" -f branch=main >/dev/null
           self=.github/workflows/_temporary-track-fixed-apk.yml
           self_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${self}?ref=main" --jq .sha)"
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${self}" -f message='ci: remove temporary fixed APK tracker' -f sha="$self_sha" -f branch=main >/dev/null
-# start tracker
