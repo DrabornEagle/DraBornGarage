@@ -130,7 +130,7 @@ export function NotificationCenterScreen() {
     const ok = await sendTestNotification();
     setSaving(false);
     Alert.alert(ok ? 'Test bildirimi gönderildi' : 'Test bildirimi gönderilemedi', ok
-      ? 'Telefonunun bildirim alanını kontrol et.'
+      ? 'Telefonunun bildirim alanını ve Bildirim Sesi seviyesini kontrol et.'
       : 'Bildirim izni veya cihaz bildirim servisi kullanılamıyor.');
   };
 
@@ -142,7 +142,7 @@ export function NotificationCenterScreen() {
 
         <View style={styles.header}>
           <View style={styles.copy}>
-            <Text style={[styles.eyebrow, { color: colors.primary }]}>v1.0.4 RC • GÜÇLÜ BİLDİRİM MERKEZİ</Text>
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>v1.0.5 RC • ÖNCELİKLİ BİLDİRİM MERKEZİ</Text>
             <Text style={[styles.title, { color: colors.text }]}>Bildirimler</Text>
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>Servis, randevu, ödeme, alacak ve platform hareketleri tek akışta.</Text>
           </View>
@@ -194,7 +194,7 @@ export function NotificationCenterScreen() {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Bildirim tercihleri</Text>
             <GlassCard style={styles.settingsCard}>
               <SettingRow icon="phone-portrait" title="Telefon bildirimleri" subtitle="Planlı hatırlatmaları cihazda göster." value={preferences.local_notifications_enabled} onChange={(value) => updatePreference({ local_notifications_enabled: value })} disabled={saving || permissionStatus !== 'granted'} />
-              <SettingRow icon="cloud-download" title="Uygulama kapalıyken bildir" subtitle={pushStatus === 'registered' ? 'Native push cihazı kayıtlı ve aktif.' : 'APK içinde uzaktan push bağlantısını etkinleştir.'} value={preferences.push_notifications_enabled} onChange={(value) => value ? enablePush() : updatePreference({ push_notifications_enabled: false })} disabled={saving} />
+              <SettingRow icon="cloud-download" title="Uygulama kapalıyken bildir" subtitle={pushStatus === 'registered' ? 'Native push cihazı kayıtlı ve aktif.' : 'FCM bağlantısı tamamlandığında uygulama kapalıyken de gelir.'} value={preferences.push_notifications_enabled} onChange={(value) => value ? enablePush() : updatePreference({ push_notifications_enabled: false })} disabled={saving} />
               <SettingRow icon="construct" title="Servis güncellemeleri" subtitle="Teslim alma, fiyat, tamir, parça, test, hazır ve teslim." value={preferences.service_updates} onChange={(value) => updatePreference({ service_updates: value })} disabled={saving} />
               <SettingRow icon="calendar" title="Randevu bildirimleri" subtitle="Yeni randevu, onay, değişiklik ve iptal." value={preferences.appointment_reminders} onChange={(value) => updatePreference({ appointment_reminders: value })} disabled={saving} />
               <SettingRow icon="time" title="24 saat önce" subtitle="Randevudan bir gün önce hatırlat." value={preferences.appointment_reminder_24h} onChange={(value) => updatePreference({ appointment_reminder_24h: value })} disabled={saving || !preferences.appointment_reminders} nested />
