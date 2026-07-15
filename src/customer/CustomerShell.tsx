@@ -70,8 +70,8 @@ export function CustomerShell() {
     { key: 'account' as const, label: 'Hesabım', icon: 'person-circle-outline' as const, active: 'person-circle' as const, a: colors.primary2, b: colors.cyan },
   ], [colors]);
 
-  const navBottom = Math.max(insets.bottom, 8);
-  const reservedBottom = navBottom + 96;
+  const navBottom = Platform.OS === 'android' ? Math.max(insets.bottom, 36) : Math.max(insets.bottom, 8);
+  const reservedBottom = navBottom + 100;
 
   return <PremiumBackground>
     <View style={[styles.flex, { paddingBottom: reservedBottom }]}>{screen}</View>
