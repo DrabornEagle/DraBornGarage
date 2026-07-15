@@ -48,8 +48,8 @@ jobs:
                       continue
                   output.append(f'===== {path} =====')
                   included = set()
-                  for i in hits[:100]:
-                      for j in range(max(0, i-6), min(len(lines), i+9)):
+                  for i in hits[:70]:
+                      for j in range(max(0, i-5), min(len(lines), i+7)):
                           included.add(j)
                   last = -2
                   for j in sorted(included):
@@ -58,7 +58,7 @@ jobs:
                       output.append(f'{j+1:04d}: {lines[j]}')
                       last = j
                   output.append('')
-          Path('v1.0.6-source-inspection.txt').write_text('\n'.join(output)[:700000], encoding='utf-8')
+          Path('v1.0.6-source-inspection.txt').write_text('\n'.join(output)[:240000], encoding='utf-8')
           PY
 
       - name: Publish inspection safely
@@ -67,10 +67,19 @@ jobs:
           set -euo pipefail
           path=docs/v1.0.6-source-inspection.txt
           sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
-          content="$(base64 -w0 v1.0.6-source-inspection.txt)"
-          if [ -n "$sha" ]; then
-            jq -n --arg message 'ci: update v1.0.6 source inspection' --arg content "$content" --arg sha "$sha" --arg branch main '{message:$message,content:$content,sha:$sha,branch:$branch}' > payload.json
-          else
-            jq -n --arg message 'ci: record v1.0.6 source inspection' --arg content "$content" --arg branch main '{message:$message,content:$content,branch:$branch}' > payload.json
-          fi
+          export TARGET_PATH="$path"
+          export TARGET_SHA="$sha"
+          python3 <<'PY'
+          from pathlib import Path
+          import base64, json, os
+          payload = {
+              'message': 'ci: record v1.0.6 source inspection',
+              'content': base64.b64encode(Path('v1.0.6-source-inspection.txt').read_bytes()).decode(),
+              'branch': 'main',
+          }
+          if os.environ.get('TARGET_SHA'):
+              payload['message'] = 'ci: update v1.0.6 source inspection'
+              payload['sha'] = os.environ['TARGET_SHA']
+          Path('payload.json').write_text(json.dumps(payload), encoding='utf-8')
+          PY
           gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" --input payload.json >/dev/null
