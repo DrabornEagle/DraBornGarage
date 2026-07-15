@@ -2,13 +2,13 @@
   "version": "1.0.4",
   "androidVersionCode": 21,
   "workflow": "DraBornGarage Release APK",
-  "runId": 29427627042,
-  "runNumber": 55,
+  "runId": 29427905019,
+  "runNumber": 56,
   "status": "completed",
-  "conclusion": "failure",
-  "headSha": "b04cddc47ef8fae0320dc5acfa136339fe59b540",
-  "runUrl": "https://github.com/DrabornEagle/DraBornGarage/actions/runs/29427627042",
+  "conclusion": "success",
+  "headSha": "307f6bc5d3e040cab96c27a34f4c3ba83820c222",
+  "runUrl": "https://github.com/DrabornEagle/DraBornGarage/actions/runs/29427905019",
   "releaseTag": "v1.0.4-test",
   "apkName": "DraBornGarage-v1.0.4-release-test.apk",
-  "recordedAt": "2026-07-15T15:21:26.113Z"
+  "recordedAt": "2026-07-15T15:38:10.464Z"
 }
