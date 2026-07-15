@@ -1,0 +1,5 @@
+DraBornGarage v1.0.5 notification APK build request
+Requested: 2026-07-15
+Version: 1.0.5
+Android versionCode: 23
+Tests: first-run notification education, default phone notification sound, loud v3 channel
