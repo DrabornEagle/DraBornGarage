@@ -154,7 +154,7 @@ export function AuthScreen() {
           <View style={styles.hero}>
             <View style={[styles.systemBadge, { backgroundColor: `${colors.green}14`, borderColor: `${colors.green}48` }]}> 
               <Animated.View style={[styles.onlineDot, { backgroundColor: colors.green, opacity: glowOpacity }]} />
-              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v1.0.2 EXPO TEST</Text>
+              <Text style={[styles.systemText, { color: colors.green }]}>GARAGE OS • v1.0.3 EXPO TEST</Text>
             </View>
             <View style={styles.logoStage}>
               <Animated.View pointerEvents="none" style={[styles.logoGlow, { backgroundColor: colors.primary, opacity: glowOpacity, transform: [{ scale: logoScale }] }]} />
@@ -169,7 +169,7 @@ export function AuthScreen() {
             <Text style={[styles.brandTitle, { color: colors.text }]}>DraBornGarage</Text>
             <Text style={[styles.brandText, { color: colors.textMuted }]}>Servis, randevu, alacak ve platform hareketlerini rol güvenliği, canlı bildirimler ve gizlilik kontrolleriyle tek garaj merkezinde buluşturur.</Text>
             <View style={styles.featureRow}>
-              <Feature icon="shield-checkmark" label="Rol Güvenliği" color={colors.green} />
+              <Feature icon="shield-checkmark" label="Güvenli Hizmet" color={colors.green} />
               <Feature icon="construct" label="Canlı Servis" color={colors.orange} />
               <Feature icon="calendar" label="Randevu" color={colors.cyan} />
             </View>
@@ -211,7 +211,7 @@ export function AuthScreen() {
                   <View style={[styles.motorCard, { backgroundColor: `${colors.orange}0D`, borderColor: `${colors.orange}38` }]}> 
                     <View style={styles.businessModeRow}>
                       <ModeButton active={businessEntryMode === 'new'} icon="add-circle" label="Yeni İşletme" accent={colors.orange} onPress={() => setBusinessEntryMode('new')} />
-                      <ModeButton active={businessEntryMode === 'existing'} icon="git-merge" label="Zaten Bir İşletmem Var" accent={colors.green} onPress={() => setBusinessEntryMode('existing')} />
+                      <ModeButton active={businessEntryMode === 'existing'} icon="git-merge" label="İşletmem Var" accent={colors.green} onPress={() => setBusinessEntryMode('existing')} />
                     </View>
 
                     {businessEntryMode === 'new' ? (
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   secureStrip: { minHeight: 48, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
   secureStripText: { flex: 1, fontSize: 12, lineHeight: 17, textAlign: 'left' },
   businessModeRow: { flexDirection: 'row', gap: 8 },
-  modeButton: { flex: 1, minHeight: 54, borderWidth: 1, borderRadius: 16, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  modeButton: { flex: 1, minHeight: 66, borderWidth: 1, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 9, alignItems: 'center', justifyContent: 'center', gap: 5 },
   modeButtonText: { fontSize: 12, fontWeight: '900', textAlign: 'center' },
   workshopResult: { minHeight: 70, borderWidth: 1, borderRadius: 17, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
   resultIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },

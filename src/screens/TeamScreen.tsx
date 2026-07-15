@@ -21,7 +21,7 @@ const roleLabels: Record<MemberRole, string> = {
   apprentice: 'Çırak',
 };
 
-export function TeamScreen() {
+export function TeamScreen({ accessEntry }: { accessEntry?: React.ReactNode }) {
   const { colors } = useTheme();
   const { workshop, workshops, membership, isAdmin, createInviteCode, selectWorkshop, createWorkshop, refreshWorkspace } = useAuth();
   const [members, setMembers] = useState<any[]>([]);
@@ -30,6 +30,7 @@ export function TeamScreen() {
   const [latestCode, setLatestCode] = useState<{ code: string; role: MemberRole } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
+  const [showBusinessUpdate, setShowBusinessUpdate] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [businessPhone, setBusinessPhone] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
@@ -193,6 +194,7 @@ export function TeamScreen() {
     <ScrollView contentContainerStyle={styles.content}>
       <ScreenHeader eyebrow={isAdmin ? 'ADMIN YÖNETİMİ' : 'İŞLETME YÖNETİMİ'} title="İşletme ve Ekip" subtitle="İşletme bilgileri, işletme seçimi, personel davetleri ve roller." />
       <OwnerCenterSwitch value={ownerSection} onChange={setOwnerSection} />
+      {accessEntry}
 
       {isAdmin && (
         <>
@@ -202,15 +204,21 @@ export function TeamScreen() {
         </>
       )}
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Seçili İşletme</Text>
-      <GlassCard style={styles.formCard}>
-        <FormField label="İşletme adı" value={editName} onChangeText={setEditName} />
-        <FormField label="Telefon" value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" />
-        <FormField label="Adres" value={editAddress} onChangeText={setEditAddress} multiline />
-        <FormField label="Vergi Dairesi" value={editTaxOffice} onChangeText={setEditTaxOffice} placeholder="Örn. Muratpaşa Vergi Dairesi" />
-        <FormField label="Vergi Numarası" value={editTaxNumber} onChangeText={(value) => setEditTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} />
-        <PrimaryButton title="İşletme Bilgilerini Güncelle" onPress={saveBusiness} loading={loading} secondary />
-      </GlassCard>
+      <View style={[styles.businessUpdateCategory, { backgroundColor: colors.card, borderColor: showBusinessUpdate ? `${colors.cyan}58` : colors.border }]}>
+        <AnimatedPressable onPress={() => setShowBusinessUpdate((value) => !value)} style={styles.businessUpdateHeader}>
+          <View style={[styles.businessUpdateIcon, { backgroundColor: `${colors.cyan}14`, borderColor: `${colors.cyan}34` }]}><Ionicons name="business" size={22} color={colors.cyan} /></View>
+          <View style={styles.copy}><Text style={[styles.businessUpdateTitle, { color: colors.text }]}>İşletmemi Güncelle</Text><Text style={[styles.businessUpdateSubtitle, { color: colors.textMuted }]}>{workshop?.name || 'Aktif işletme seçilmedi'} • Açılır işletme ayarları</Text></View>
+          <View style={[styles.businessUpdateChevron, { borderColor: showBusinessUpdate ? `${colors.cyan}58` : colors.border }]}><Ionicons name={showBusinessUpdate ? 'chevron-up' : 'chevron-down'} size={20} color={showBusinessUpdate ? colors.cyan : colors.textMuted} /></View>
+        </AnimatedPressable>
+        {showBusinessUpdate && <View style={[styles.businessUpdateBody, { borderTopColor: colors.border }]}>
+          <FormField label="İşletme adı" value={editName} onChangeText={setEditName} />
+          <FormField label="Telefon" value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" />
+          <FormField label="Adres" value={editAddress} onChangeText={setEditAddress} multiline />
+          <FormField label="Vergi Dairesi" value={editTaxOffice} onChangeText={setEditTaxOffice} placeholder="Örn. Muratpaşa Vergi Dairesi" />
+          <FormField label="Vergi Numarası" value={editTaxNumber} onChangeText={(value) => setEditTaxNumber(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={11} />
+          <PrimaryButton title="İşletme Bilgilerini Güncelle" onPress={saveBusiness} loading={loading} secondary />
+        </View>}
+      </View>
 
       <View style={styles.sectionHeader}>
         <View><Text style={[styles.sectionTitle, { color: colors.text }]}>Usta Başvuruları</Text><Text style={[styles.applicationSummary, { color: colors.textMuted }]}>{mechanicApplications.filter((item) => item.status === 'pending').length} başvuru işletme onayı bekliyor</Text></View>
@@ -290,6 +298,13 @@ const styles = StyleSheet.create({
   amount: { fontSize: 15, fontWeight: '900' },
   empty: { textAlign: 'center', paddingVertical: 10 },
   formCard: { gap: 13 },
+  businessUpdateCategory: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
+  businessUpdateHeader: { minHeight: 82, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  businessUpdateIcon: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  businessUpdateTitle: { fontSize: 16, fontWeight: '900' },
+  businessUpdateSubtitle: { fontSize: 12, lineHeight: 16, marginTop: 4 },
+  businessUpdateChevron: { width: 38, height: 38, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  businessUpdateBody: { borderTopWidth: 1, padding: 12, gap: 13 },
   businessCard: { gap: 10, padding: 14 },
   businessMain: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   businessIcon: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },

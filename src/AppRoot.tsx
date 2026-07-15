@@ -6,11 +6,12 @@ import { PremiumBackground } from './components/PremiumBackground';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 import { CustomerShell } from './customer/CustomerShell';
+import { ApplicationEntryScreen } from './screens/ApplicationEntryScreen';
 import { AuthScreen } from './screens/AuthScreen';
 
 export function AppRoot() {
   const { colors } = useTheme();
-  const { loading, session, workshop, membership, isAdmin } = useAuth();
+  const { loading, session, workshop, membership, isAdmin, accountMode } = useAuth();
 
   if (loading) {
     return <PremiumBackground><View style={styles.loading}><View style={[styles.logo, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="construct" size={34} color={colors.primary} /></View><Text style={[styles.title, { color: colors.text }]}>DraBornGarage</Text><ActivityIndicator color={colors.primary} size="large" /></View></PremiumBackground>;
@@ -19,6 +20,7 @@ export function AppRoot() {
   if (!session) return <AuthScreen />;
   if (isAdmin) return <AppShellV102 />;
   if (workshop && membership) return <AppShellV102 />;
+  if (accountMode === 'staff') return <ApplicationEntryScreen />;
   return <CustomerShell />;
 }
 

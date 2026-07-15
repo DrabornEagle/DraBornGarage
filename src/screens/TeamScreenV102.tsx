@@ -153,27 +153,30 @@ export function TeamScreenV102() {
     );
   };
 
+  const accessEntry = isOwner ? (
+    <AnimatedPressable
+      onPress={() => setVisible(true)}
+      style={[styles.accessButton, { backgroundColor: colors.cardStrong, borderColor: `${colors.green}70`, shadowColor: colors.green }]}
+    >
+      <Ionicons name="people-circle" size={24} color={colors.green} />
+      <View style={styles.copy}>
+        <Text style={[styles.accessTitle, { color: colors.text }]}>İşletme ve Usta Erişimi</Text>
+        <Text style={[styles.accessSubtitle, { color: colors.textMuted }]}>Kullanıcı ara • İşletme/Usta paneli aç</Text>
+      </View>
+      {requests.filter((item) => item.status === 'pending').length > 0 && <View style={[styles.badge, { backgroundColor: colors.red }]}><Text style={styles.badgeText}>{requests.filter((item) => item.status === 'pending').length}</Text></View>}
+      <Ionicons name="chevron-forward" size={20} color={colors.green} />
+    </AnimatedPressable>
+  ) : undefined;
+
   return (
     <View style={styles.root}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><TeamScreen /></KeyboardAvoidingView>
-      {isOwner && <AnimatedPressable
-        onPress={() => setVisible(true)}
-        style={[styles.accessButton, { backgroundColor: colors.cardStrong, borderColor: `${colors.green}70`, shadowColor: colors.green }]}
-      >
-        <Ionicons name="people-circle" size={24} color={colors.green} />
-        <View style={styles.copy}>
-          <Text style={[styles.accessTitle, { color: colors.text }]}>Ortak ve Panel Erişimi</Text>
-          <Text style={[styles.accessSubtitle, { color: colors.textMuted }]}>Kullanıcı ara • İşletme/Usta paneli aç</Text>
-        </View>
-        {requests.filter((item) => item.status === 'pending').length > 0 && <View style={[styles.badge, { backgroundColor: colors.red }]}><Text style={styles.badgeText}>{requests.filter((item) => item.status === 'pending').length}</Text></View>}
-        <Ionicons name="chevron-forward" size={20} color={colors.green} />
-      </AnimatedPressable>}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}><TeamScreen accessEntry={accessEntry} /></KeyboardAvoidingView>
 
       <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setVisible(false)}>
         <KeyboardAvoidingView style={[styles.modal, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <View style={[styles.headerIcon, { backgroundColor: `${colors.green}16` }]}><Ionicons name="people-circle" size={29} color={colors.green} /></View>
-            <View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>Ortak ve Panel Erişimi</Text><Text style={[styles.subtitle, { color: colors.textMuted }]}>{workshop?.name} ekibini ve ortaklarını yönet.</Text></View>
+            <View style={styles.copy}><Text style={[styles.title, { color: colors.text }]}>İşletme ve Usta Erişimi</Text><Text style={[styles.subtitle, { color: colors.textMuted }]}>{workshop?.name} ekibini ve ortaklarını yönet.</Text></View>
             <AnimatedPressable onPress={() => setVisible(false)} style={[styles.close, { borderColor: colors.border }]}><Ionicons name="close" size={23} color={colors.text} /></AnimatedPressable>
           </View>
 
@@ -229,7 +232,7 @@ function PanelButton({ icon, label, accent, onPress }: { icon: keyof typeof Ioni
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
-  accessButton: { position: 'absolute', left: 18, right: 18, bottom: 8, zIndex: 30, minHeight: 72, borderWidth: 1, borderRadius: 21, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, shadowOpacity: 0.3, shadowRadius: 16, elevation: 14 },
+  accessButton: { minHeight: 72, borderWidth: 1, borderRadius: 21, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, shadowOpacity: 0.22, shadowRadius: 12, elevation: 7 },
   copy: { flex: 1, minWidth: 0 },
   accessTitle: { fontSize: 14, fontWeight: '900' },
   accessSubtitle: { fontSize: 11.5, marginTop: 3 },

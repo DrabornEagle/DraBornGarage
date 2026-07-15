@@ -4,11 +4,11 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel sürüm
 
-**v1.0.2 RC — Ortaklık, Panel Erişimi ve Arayüz Düzeltmeleri**
+**v1.0.3 RC — Başvuru Merkezi ve Erişim Düzeni**
 
-v1.0.2 RC; çok ortaklı işletme yapısını, kullanıcı arayarak İşletme/Usta paneli açmayı, kayıt sırasında mevcut işletmeye ortaklık başvurusunu, otomatik platform bedelini, klavye güvenli formları ve gridsiz modern arka planı Expo üzerinde test eder.
+v1.0.3 RC; işletme/Usta başvurularını ilk girişte müşteri hesabına göndermeyen Başvurum merkezini, Hesabım üzerinden isteğe bağlı müşteri geçişini, Ekip sayfasına özel İşletme ve Usta Erişimi yönetimini ve açılır İşletmemi Güncelle kategorisini Expo üzerinde test eder.
 
-## v1.0.2 ile tamamlananlar
+## v1.0.3 ile tamamlananlar
 
 - Arka plan grid çizgilerinin kaldırılması
 - Android klavye düzeninin `resize` yapılması
@@ -95,11 +95,11 @@ v1.0.2 RC; çok ortaklı işletme yapısını, kullanıcı arayarak İşletme/Us
 
 ## Sürüm ve yedek
 
-- **Uygulama:** `1.0.2 RC`
-- **Android versionCode:** `19`
-- **iOS buildNumber:** `19`
-- **Önceki sürüm yedeği:** `backup/v1.0.1-before-v1.0.2-20260715`
-- **Veritabanı rollback:** `supabase/rollbacks/rollback_v1_0_2_to_v1_0_1.sql`
+- **Uygulama:** `1.0.3 RC`
+- **Android versionCode:** `20`
+- **iOS buildNumber:** `20`
+- **Önceki sürüm yedeği:** `backup/v1.0.2-before-v1.0.3-20260715`
+- **Veritabanı rollback:** `supabase/rollbacks/rollback_v1_0_3_to_v1_0_2.sql`
 - **APK workflow:** `DraBornGarage Release APK` — yalnız manuel çalışır
 
 ## Çalıştırma
@@ -132,4 +132,4 @@ npm run test:release
 - `20260714232820_v1_0_2_platform_fee_defaults.sql`
 - `20260714232847_v1_0_2_registration_partner_request.sql`
 
-v1.0.2 RC Expo test sürümüdür. Bu turda otomatik APK üretilmez; Expo testleri tamamlandıktan sonra `DraBornGarage Release APK` workflow’u manuel başlatılır.
+v1.0.3 RC Expo test sürümüdür. Bu turda otomatik APK üretilmez; Expo testleri tamamlandıktan sonra `DraBornGarage Release APK` workflow’u manuel başlatılır.
