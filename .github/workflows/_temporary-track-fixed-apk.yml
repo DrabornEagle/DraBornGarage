@@ -36,3 +36,4 @@ jobs:
           self=.github/workflows/_temporary-track-fixed-apk.yml
           self_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${self}?ref=main" --jq .sha)"
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/contents/${self}" -f message='ci: remove temporary fixed APK tracker' -f sha="$self_sha" -f branch=main >/dev/null
+# start tracker
