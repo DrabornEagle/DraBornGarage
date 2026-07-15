@@ -1,0 +1,30 @@
+name: Temporary List APK Runs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/list-apk-runs-request.txt
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List Release APK runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --limit 5 --json databaseId,status,conclusion,url,headSha,createdAt > apk-runs.json
+      - name: Persist report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          path=.github/apk-runs.json
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=main" --jq .sha 2>/dev/null || true)"
+          content="$(base64 -w0 apk-runs.json)"
+          args=(--method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message='ci: update APK run list' -f content="$content" -f branch=main)
+          [ -z "$sha" ] || args+=(-f sha="$sha")
+          gh api "${args[@]}" >/dev/null
