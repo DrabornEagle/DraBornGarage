@@ -4,7 +4,7 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel geliştirme sürümü
 
-**v1.1.0 — Bildirim Güvenilirliği, Yüzdelik Platform Bedeli ve Google Play Hazırlığı**
+**v1.1.1 — Bildirim İzni ve Zil Sesi Düzeltmesi**
 
 - Geliştirme/test sürümleri: `v1.1.0`, ardından `v1.1.1`, `v1.1.2`…
 - AAB alınana kadar Android `versionCode` sabit: `1`
@@ -13,6 +13,12 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 - Google Play paketi: **DraBornGarage Release AAB**
 - İlk Google Play yayını: uygulama `versionName` **1.0**, `versionCode` **1**
 - İlk Play yayınından sonra her mağaza güncellemesinde hem sürüm hem `versionCode` artırılır.
+
+## v1.1.1 düzeltmeleri
+
+- Android bildirim izni açma akışındaki native yöntem hatası giderildi.
+- Tüm zil sesleri Supabase tercih kaydında kabul edilir.
+- Android bildirim kanalları temiz `v6` kimlikleriyle yeniden oluşturulur.
 
 ## v1.1.0 ile yapılanlar
 

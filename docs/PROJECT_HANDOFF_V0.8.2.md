@@ -1,7 +1,7 @@
 # DraBornGarage — Teslim ve Devam Dosyası
 
 **Son güncelleme:** 16 Temmuz 2026  
-**Güncel geliştirme sürümü:** `v1.1.0`  
+**Güncel geliştirme sürümü:** `v1.1.1`  
 **Android test versionCode:** `1`  
 **İlk Google Play sürümü:** `v1.0 / versionCode 1`  
 **GitHub:** `DrabornEagle/DraBornGarage`  
