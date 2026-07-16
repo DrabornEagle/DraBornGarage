@@ -1,0 +1,677 @@
+=== APP METADATA ===
+{
+  "expo": {
+    "name": "DraBornGarage",
+    "slug": "draborngarage",
+    "scheme": "draborngarage",
+    "version": "1.0.8",
+    "icon": "./assets/draborngarage-icon.png",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "DraBornGarage servis QR kodlarını taramak için kameraya erişsin.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "DraBornGarage yalnız seçtiğin platform ödeme dekontunu yüklemek için fotoğraflarına erişsin.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#7C5CFF",
+          "defaultChannel": "draborngarage-system-loud-v3"
+        }
+      ],
+      [
+        "react-native-edge-to-edge",
+        {
+          "android": {
+            "parentTheme": "Default",
+            "enforceNavigationBarContrast": false
+          }
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.draborneagle.draborngarage",
+      "buildNumber": "26"
+    },
+    "android": {
+      "package": "com.draborneagle.draborngarage",
+      "versionCode": 26,
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.CALL_PHONE",
+        "android.permission.READ_PHONE_STATE",
+        "android.permission.READ_SMS",
+        "android.permission.SEND_SMS"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "draborngarage",
+              "host": "claim"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "98699f70-2c67-4e9f-8919-70e8243ce280"
+      }
+    },
+    "owner": "draborneagle"
+  }
+}
+
+=== PACKAGE METADATA ===
+{
+  "name": "draborngarage",
+  "version": "1.0.8",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "start:clear": "expo start -c --go",
+    "typecheck": "tsc --noEmit",
+    "test:bundle": "expo export --platform android --output-dir dist",
+    "test:release": "npm run typecheck && npm run test:bundle"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.110.2",
+    "expo": "~54.0.36",
+    "expo-blur": "~15.0.8",
+    "expo-camera": "~17.0.10",
+    "expo-constants": "~18.0.13",
+    "expo-font": "~14.0.12",
+    "expo-haptics": "~15.0.8",
+    "expo-image-picker": "~17.0.11",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-notifications": "~0.32.17",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-qrcode-svg": "^6.3.15",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-svg": "15.12.1",
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-edge-to-edge": "1.8.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}
+
+=== WORKFLOWS ===
+_temporary-v100-inventory.yml
+release-aab.yml
+release-apk.yml
+
+=== SOURCE FILES ===
+src/AppRoot.tsx
+src/AppShell.tsx
+src/AppShellV101.tsx
+src/AppShellV102.tsx
+src/components/AnimatedMotorcycleIcon.tsx
+src/components/AnimatedPressable.tsx
+src/components/AppErrorBoundary.tsx
+src/components/FormField.tsx
+src/components/GlassCard.tsx
+src/components/PlatformFeesDashboard.tsx
+src/components/PremiumBackground.tsx
+src/components/PrimaryButton.tsx
+src/components/ReadyPaymentSettings.tsx
+src/components/ReceivableManagerCard.tsx
+src/components/ReportsDashboard.tsx
+src/components/ScreenHeader.tsx
+src/components/StatCard.tsx
+src/components/StatusPill.tsx
+src/context/AuthContext.tsx
+src/context/ThemeContext.tsx
+src/customer/CustomerAccountScreen.tsx
+src/customer/CustomerAppointmentsScreen.tsx
+src/customer/CustomerHomeScreen.tsx
+src/customer/CustomerLinkPanel.tsx
+src/customer/CustomerLockedState.tsx
+src/customer/CustomerMotorcyclesScreen.tsx
+src/customer/CustomerReadyPaymentCard.tsx
+src/customer/CustomerReceivableCard.tsx
+src/customer/CustomerServicesScreen.tsx
+src/customer/CustomerShell.tsx
+src/lib/calendar.ts
+src/lib/format.ts
+src/lib/passwordPolicy.ts
+src/lib/supabase.ts
+src/notifications/NotificationBell.tsx
+src/notifications/NotificationCenterScreen.tsx
+src/notifications/NotificationContext.tsx
+src/notifications/NotificationContextV101.tsx
+src/notifications/expoNotificationsCompat.ts
+src/notifications/notificationPermissions.ts
+src/notifications/types.ts
+src/privacy/PrivacyCenter.tsx
+src/screens/AdminScreen.tsx
+src/screens/ApplicationEntryScreen.tsx
+src/screens/AppointmentsScreen.tsx
+src/screens/AuthScreen.tsx
+src/screens/CustomerMemoryScreen.tsx
+src/screens/CustomerPaymentReportInbox.tsx
+src/screens/CustomersScreen.tsx
+src/screens/HomeScreen.tsx
+src/screens/NewWorkOrderScreen.tsx
+src/screens/NotificationPermissionScreen.tsx
+src/screens/ReceivablesScreen.tsx
+src/screens/SettingsScreen.tsx
+src/screens/TeamScreen.tsx
+src/screens/TeamScreenV102.tsx
+src/screens/WelcomeScreen.tsx
+src/screens/WorkOrderDetailV04.tsx
+src/screens/WorkOrdersScreen.tsx
+src/screens/WorkshopSetupScreen.tsx
+src/theme.ts
+src/types.ts
+
+=== SERVICE / PRICE / READY MATCHES ===
+src/types.ts:9:  | 'price_entered'
+src/types.ts:182:  price: number;
+src/types.ts:194:  unit_price: number;
+src/types.ts:195:  total_price: number;
+src/types.ts:253:  price_type?: PriceType | null;
+src/types.ts:254:  estimated_price_min?: number | null;
+src/types.ts:255:  estimated_price_max?: number | null;
+src/types.ts:256:  quoted_price?: number | null;
+src/types.ts:464:  price_type?: PriceType | null;
+src/types.ts:465:  estimated_price_min?: number | null;
+src/types.ts:466:  estimated_price_max?: number | null;
+src/types.ts:467:  quoted_price?: number | null;
+src/customer/CustomerServicesScreen.tsx:21:const timeline: WorkOrderStatus[] = ['received', 'queued', 'precheck', 'price_entered', 'approval_waiting', 'repair_started', 'extra_approval_waiting', 'parts_waiting', 'testing', 'ready', 'delivered'];
+src/customer/CustomerServicesScreen.tsx:36:function displayedPrice(item: { total_amount?: number | null; price_type?: string | null; estimated_price_min?: number | null; estimated_price_max?: number | null }) {
+src/customer/CustomerServicesScreen.tsx:38:  if (item.price_type === 'estimated' && Number(item.estimated_price_min || 0) > 0 && Number(item.estimated_price_max || 0) >= Number(item.estimated_price_min || 0)) {
+src/customer/CustomerServicesScreen.tsx:39:    return `Tahmini ${money(item.estimated_price_min)} – ${money(item.estimated_price_max)}`;
+src/customer/CustomerServicesScreen.tsx:78:    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>{([['all', 'Tümü'], ['active', 'Aktif'], ['approval', 'Onay Bekliyor'], ['ready', 'Motor Hazır'], ['history', 'Geçmiş']] as [Filter, string][]).map(([value, label]) => <AnimatedPressable key={value} onPress={() => setFilter(value)} style={[styles.filter, { backgroundColor: filter === value ? colors.primary : colors.card, borderColor: filter === value ? colors.primary : colors.border }]}><Text style={[styles.filterText, { color: filter === value ? '#fff' : colors.textMuted }]}>{label}</Text></AnimatedPressable>)}</ScrollView>
+src/customer/CustomerServicesScreen.tsx:133:        <View style={styles.priceGrid}><Price label="EK İŞÇİLİK" value={money(item.labor_amount)} /><Price label="EK PARÇA" value={money(item.parts_amount)} /><Price label="TOPLAM" value={money(item.total_amount)} accent={colors.orange} /></View>
+src/customer/CustomerServicesScreen.tsx:139:    <GlassCard style={styles.summary}><Text style={[styles.summaryTitle, { color: colors.text }]}>{detail.complaint}</Text>{detail.diagnosis && <Text style={[styles.diagnosis, { color: colors.textSoft }]}>Tespit: {detail.diagnosis}</Text>}<Text style={[styles.meta, { color: colors.textMuted }]}>{shortDate(detail.arrived_at)}</Text><View style={styles.priceGrid}><Price label="İŞÇİLİK" value={money(detail.labor_amount)} /><Price label="PARÇA" value={money(detail.parts_amount)} /><Price label="TOPLAM" value={displayedPrice(detail)} accent={finalPriceReady ? colors.green : colors.orange} /></View><View style={styles.priceGrid}><Price label="ÖDENEN" value={money(detail.amount_received)} accent={colors.green} /><Price label="KALAN" value={finalPriceReady ? money(detail.remaining_amount) : 'Belirlenmedi'} accent={finalPriceReady ? (detail.remaining_amount > 0 ? colors.orange : colors.green) : colors.textMuted} /><Price label="HAZIR" value={dateTime(detail.ready_at)} /></View>{!finalPriceReady && <View style={[styles.pricePending, { backgroundColor: `${colors.orange}0D`, borderColor: `${colors.orange}38` }]}><Ionicons name="information-circle" size={20} color={colors.orange} /><Text style={[styles.pricePendingText, { color: colors.textMuted }]}>Bu tutar henüz kesinleşmedi. Tahmini aralık bilgi amaçlıdır; ödeme tamamlandı sayılmaz. İşletme motoru teslim etmeden önce son net fiyatı kaydedecek.</Text></View>}</GlassCard>
+src/customer/CustomerServicesScreen.tsx:152:    <GlassCard>{detail.services.length === 0 ? <Empty text="Henüz işlem kalemi paylaşılmadı." /> : detail.services.map((service, index) => <View key={service.id || `${service.title}-${index}`} style={[styles.itemRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><Ionicons name={service.completed ? 'checkmark-circle' : service.started_at ? 'play-circle' : 'time'} size={21} color={service.completed ? colors.green : service.started_at ? colors.cyan : colors.orange} /><View style={styles.copy}><Text style={[styles.itemTitle, { color: colors.text }]}>{service.title}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{service.completed ? `Tamamlandı • ${dateTime(service.completed_at)}` : service.started_at ? `İşlemde • ${dateTime(service.started_at)}` : 'Planlandı'}</Text>{service.description && <Text style={[styles.note, { color: colors.textSoft }]}>{service.description}</Text>}</View><Text style={[styles.amount, { color: colors.text }]}>{money(service.price)}</Text></View>)}</GlassCard>
+src/customer/CustomerServicesScreen.tsx:155:    <GlassCard>{detail.parts.length === 0 ? <Empty text="Parça kaydı yok." /> : detail.parts.map((part, index) => <View key={part.id} style={[styles.itemRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><Ionicons name="cog" size={21} color={colors.primary2} /><View style={styles.copy}><Text style={[styles.itemTitle, { color: colors.text }]}>{part.part_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{Number(part.quantity)} adet × {money(part.unit_price)} • {dateTime(part.used_at)}</Text></View><Text style={[styles.amount, { color: colors.text }]}>{money(part.total_price)}</Text></View>)}</GlassCard>
+src/customer/CustomerServicesScreen.tsx:161:function Price({ label, value, accent }: { label: string; value: string; accent?: string }) { const { colors } = useTheme(); return <View style={[styles.price, { backgroundColor: colors.surfaceSoft }]}><Text style={[styles.priceLabel, { color: colors.textMuted }]}>{label}</Text><Text style={[styles.priceValue, { color: accent ?? colors.text }]}>{value}</Text></View>; }
+src/customer/CustomerServicesScreen.tsx:191:  pricePending: { minHeight: 66, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+src/customer/CustomerServicesScreen.tsx:192:  pricePendingText: { flex: 1, fontSize: 11.5, lineHeight: 16 },
+src/customer/CustomerServicesScreen.tsx:194:  priceGrid: { flexDirection: 'row', gap: 7 },
+src/customer/CustomerServicesScreen.tsx:195:  price: { flex: 1, minHeight: 65, borderRadius: 14, padding: 10, justifyContent: 'center' },
+src/customer/CustomerServicesScreen.tsx:196:  priceLabel: { fontSize: 10, fontWeight: '900' },
+src/customer/CustomerServicesScreen.tsx:197:  priceValue: { fontSize: 12.5, fontWeight: '900', marginTop: 4 },
+src/components/ReceivableManagerCard.tsx:79:    if (needsInitialCharge && amount <= 0) return Alert.alert('Borç tutarı gerekli', 'Ücret girilmediği için borç tutarı Net Fiyat olarak kaydedilecek.');
+src/components/ReceivableManagerCard.tsx:149:        <View style={[styles.inlineNotice, { backgroundColor: `${paymentAccent}0D`, borderColor: `${paymentAccent}30` }]}><Ionicons name="information-circle" size={18} color={paymentAccent} /><Text style={[styles.inlineNoticeText, { color: colors.textMuted }]}>{needsInitialCharge ? 'Önceden ücret girilmedi. Yazdığın tahsilat tutarı otomatik olarak Net Fiyat kabul edilir.' : 'Ödeme tutarı kalan borçtan fazla olamaz. Kısmi ödeme de kaydedilebilir.'}</Text></View>
+src/components/ReportsDashboard.tsx:37:type ServiceRow = { id?: string; title: string; description?: string | null; price: number; completed: boolean; started_at?: string | null; completed_at?: string | null; mechanic_name?: string | null };
+src/components/ReportsDashboard.tsx:38:type PartRow = { id?: string; part_name: string; quantity: number; unit_price?: number; total_price: number; used_at?: string | null };
+src/components/ReportsDashboard.tsx:283:    <SubList icon="construct" title="Yaptığın İşlemler" empty="İşlem kaydı yok" items={item.services.length > 0 ? item.services.map((s) => `${s.title} • ${money(n(s.price))}${s.completed ? '' : ' • Devam ediyor'}`) : n(item.recorded_amount) > 0 ? [`Genel servis işçiliği • ${money(n(item.recorded_amount))}`] : []} />
+src/components/ReportsDashboard.tsx:284:    <SubList icon="cog" title="Kullandığın Parçalar" empty="Parça kaydı yok" items={item.parts.map((p) => `${p.part_name} • ${p.quantity} adet • ${money(n(p.total_price))}`)} />
+src/components/PlatformFeesDashboard.tsx:108:  services: { id: string; title: string; description?: string | null; price: number; completed: boolean }[];
+src/components/PlatformFeesDashboard.tsx:109:  parts: { id: string; part_name: string; quantity: number; unit_price: number; total_price: number }[];
+src/components/PlatformFeesDashboard.tsx:587:          <GlassCard style={styles.detailCard}><Text style={[styles.detailSectionTitle, { color: colors.text }]}>Yapılan İşlemler</Text>{detail.services.length === 0 ? <Text style={[styles.empty, { color: colors.textMuted }]}>İşlem satırı yok.</Text> : detail.services.map((item) => <View key={item.id} style={[styles.detailItem, { borderBottomColor: colors.border }]}><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{item.title}</Text>{item.description && <Text style={[styles.rowMeta, { color: colors.textMuted }]}>{item.description}</Text>}</View><Text style={[styles.rowAmount, { color: colors.green }]}>{money(number(item.price))}</Text></View>)}</GlassCard>
+src/components/PlatformFeesDashboard.tsx:588:          <GlassCard style={styles.detailCard}><Text style={[styles.detailSectionTitle, { color: colors.text }]}>Kullanılan Parçalar</Text>{detail.parts.length === 0 ? <Text style={[styles.empty, { color: colors.textMuted }]}>Parça kaydı yok.</Text> : detail.parts.map((item) => <View key={item.id} style={[styles.detailItem, { borderBottomColor: colors.border }]}><View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.text }]}>{item.part_name}</Text><Text style={[styles.rowMeta, { color: colors.textMuted }]}>{number(item.quantity)} adet × {money(number(item.unit_price))}</Text></View><Text style={[styles.rowAmount, { color: colors.text }]}>{money(number(item.total_price))}</Text></View>)}</GlassCard>
+src/components/StatusPill.tsx:11:  price_entered: 'Ücret Girildi',
+src/components/StatusPill.tsx:13:  repair_started: 'Tamire Başlandı',
+src/components/StatusPill.tsx:17:  ready: 'Motor Hazır',
+src/components/StatusPill.tsx:29:    : ['precheck', 'price_entered', 'approval_waiting'].includes(status)
+src/components/ReadyPaymentSettings.tsx:84:      ? 'IBAN bilgisi Motor Hazır servislerinde ve açık veresiye borçlarında müşteriye gösterilecek.'
+src/components/ReadyPaymentSettings.tsx:96:          <Text style={[styles.body, { color: colors.textMuted }]}>Sana atanmış servis Motor Hazır olduğunda veya müşterinin açık veresiye borcu bulunduğunda gösterilir. Müşteri ödeme yaptıktan sonra Usta onayı için bildirim gönderebilir.</Text>
+src/components/ReadyPaymentSettings.tsx:111:          <Text style={[styles.toggleText, { color: colors.textMuted }]}>{enabled ? 'Motor Hazır ve açık veresiye servislerinde aktif' : 'IBAN müşterilerden gizli'}</Text>
+src/screens/WorkOrdersScreen.tsx:19:const ACTIVE_STATUSES: WorkOrderStatus[] = ['precheck', 'price_entered', 'approval_waiting', 'repair_started', 'extra_approval_waiting', 'testing', 'in_progress'];
+src/screens/WorkOrdersScreen.tsx:43:      .select('id,workshop_id,status,payment_status,service_type,customer_waiting_status,queue_position,complaint,total_amount,amount_received,price_type,estimated_price_min,estimated_price_max,quoted_price,arrived_at,assigned_mechanic_id,customer:customers(full_name,phone),motorcycle:motorcycles(brand,model,plate),mechanic:profiles!work_orders_assigned_mechanic_id_fkey(full_name)')
+src/screens/HomeScreen.tsx:59:      .select('id,workshop_id,status,payment_status,service_type,customer_waiting_status,queue_position,complaint,total_amount,amount_received,price_type,estimated_price_min,estimated_price_max,quoted_price,arrived_at,assigned_mechanic_id,customer:customers(full_name,phone),motorcycle:motorcycles(brand,model,plate),mechanic:profiles!work_orders_assigned_mechanic_id_fkey(full_name)')
+src/screens/HomeScreen.tsx:81:    const activeStatuses = ['opened', 'received', 'queued', 'precheck', 'price_entered', 'approval_waiting', 'repair_started', 'extra_approval_waiting', 'parts_waiting', 'testing', 'waiting', 'in_progress'];
+src/screens/SettingsScreen.tsx:111:    {canConfigureReadyPayment && <SettingsAccordion title="IBAN Ayarları" subtitle="Motor Hazır ve açık veresiye ödemeleri" icon="card" accent={colors.green} open={openSection === 'payment'} onToggle={() => toggleSection('payment')}>
+src/screens/SettingsScreen.tsx:122:      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v1.0.4 RC • Expo Test Adayı" /><Info icon="shield-checkmark" label="Motor Hazır kuralı" value="Son net ücret girilmeden Motor Hazır yapılamaz" /><Info icon="key" label="Şifre güvenliği" value="En az 6 karakter • basit kayıt şifresi" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v1.0.2-before-v1.0.4-20260715" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v1.0.2 RC" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + GitHub kalite testleri" /><Info icon="storefront" label="Mağaza durumu" value="Expo testinde • sonraki adım Test APK" /></GlassCard>
+src/screens/WorkOrderDetailV04.tsx:26:  'received', 'queued', 'precheck', 'price_entered', 'approval_waiting', 'repair_started',
+src/screens/WorkOrderDetailV04.tsx:82:  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
+src/screens/WorkOrderDetailV04.tsx:84:  const [priceType, setPriceType] = useState<PriceType>('fixed');
+src/screens/WorkOrderDetailV04.tsx:131:    setPriceType(next.price_type ?? 'fixed');
+src/screens/WorkOrderDetailV04.tsx:132:    setFixedPrice(next.quoted_price ? String(next.quoted_price) : '');
+src/screens/WorkOrderDetailV04.tsx:133:    setEstimateMin(next.estimated_price_min ? String(next.estimated_price_min) : '');
+src/screens/WorkOrderDetailV04.tsx:134:    setEstimateMax(next.estimated_price_max ? String(next.estimated_price_max) : '');
+src/screens/WorkOrderDetailV04.tsx:187:    if (priceType === 'fixed' && fixed <= 0) return Alert.alert('Geçerli net fiyat gir');
+src/screens/WorkOrderDetailV04.tsx:188:    if (priceType === 'estimated' && (min <= 0 || max < min)) return Alert.alert('Tahmini fiyat aralığını kontrol et');
+src/screens/WorkOrderDetailV04.tsx:190:      price_type: priceType,
+src/screens/WorkOrderDetailV04.tsx:191:      quoted_price: priceType === 'fixed' ? fixed : null,
+src/screens/WorkOrderDetailV04.tsx:192:      estimated_price_min: priceType === 'estimated' ? min : null,
+src/screens/WorkOrderDetailV04.tsx:193:      estimated_price_max: priceType === 'estimated' ? max : null,
+src/screens/WorkOrderDetailV04.tsx:194:      status: ['opened', 'received', 'queued', 'waiting', 'precheck'].includes(order.status) ? 'price_entered' : order.status,
+src/screens/WorkOrderDetailV04.tsx:223:    const price = Number(servicePrice.replace(',', '.')) || 0;
+src/screens/WorkOrderDetailV04.tsx:224:    if (serviceTitle.trim().length < 2 || (!serviceExtraId && price <= 0)) return Alert.alert('İşlem adı ve tutarı gerekli');
+src/screens/WorkOrderDetailV04.tsx:229:      p_price: price,
+src/screens/WorkOrderDetailV04.tsx:253:      p_unit_price: unit,
+src/screens/WorkOrderDetailV04.tsx:294:    <DetailAccordion title="Ücret ve Tahmini Fiyat" subtitle="Tamire başlamadan önce net veya tahmini fiyatı kaydet." icon="pricetag" accent={colors.green} open={openSections.price} onToggle={() => toggleSection('price')} badge={order.quoted_price ? money(order.quoted_price) : order.estimated_price_min ? 'Tahmini' : 'Girilmedi'}>
+src/screens/WorkOrderDetailV04.tsx:295:      <Toggle values={[['fixed', 'Net Fiyat'], ['estimated', 'Tahmini Fiyat']]} active={priceType} onChange={(value) => setPriceType(value as PriceType)} />
+src/screens/WorkOrderDetailV04.tsx:296:      {priceType === 'fixed' ? <FormField label="Net fiyat" value={fixedPrice} onChangeText={setFixedPrice} keyboardType="decimal-pad" /> : <View style={styles.twoCol}><View style={styles.flex}><FormField label="En az" value={estimateMin} onChangeText={setEstimateMin} keyboardType="decimal-pad" /></View><View style={styles.flex}><FormField label="En fazla" value={estimateMax} onChangeText={setEstimateMax} keyboardType="decimal-pad" /></View></View>}
+src/screens/WorkOrderDetailV04.tsx:297:      <PrimaryButton title="Ücreti Kaydet" onPress={savePrice} loading={saving} />
+src/screens/WorkOrderDetailV04.tsx:319:      {services.length === 0 ? <Empty text="Henüz işlem kalemi yok." /> : services.map((item, index) => <View key={item.id} style={[styles.listItem, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.mechanic?.full_name || 'Usta'} • {item.completed ? 'Tamamlandı' : item.started_at ? 'İşlemde' : 'Planlandı'}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>Başlangıç {dateTime(item.started_at)} • Bitiş {dateTime(item.completed_at)}</Text>{item.extra_request_id && <Text style={[styles.linked, { color: colors.orange }]}>Onaylı ek işlem kapsamında • Toplama tekrar eklenmez</Text>}</View><Text style={[styles.boldAmount, { color: colors.green }]}>{money(item.price)}</Text><View style={styles.verticalActions}>{!item.started_at && <IconAction icon="play" accent={colors.cyan} onPress={() => setServiceState(item.id, 'started')} />}{!item.completed && <IconAction icon="checkmark" accent={colors.green} onPress={() => setServiceState(item.id, 'completed')} />}<IconAction icon="trash" accent={colors.red} onPress={() => deleteService(item.id, item.title)} /></View></View>)}
+src/screens/WorkOrderDetailV04.tsx:326:      {parts.length === 0 ? <Empty text="Parça kullanımı eklenmedi." /> : parts.map((item, index) => <View key={item.id} style={[styles.listItem, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.part_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{Number(item.quantity)} adet × {money(item.unit_price)} • {dateTime(item.used_at)}</Text>{item.extra_request_id && <Text style={[styles.linked, { color: colors.orange }]}>Onaylı ek işlem kapsamında • Toplama tekrar eklenmez</Text>}</View><Text style={[styles.boldAmount, { color: colors.text }]}>{money(item.total_price)}</Text><IconAction icon="trash" accent={colors.red} onPress={() => deletePart(item.id, item.part_name)} /></View>)}
+src/screens/WorkOrderDetailV04.tsx:348:      total={Number(order.total_amount || order.quoted_price || 0)}
+src/screens/WorkOrderDetailV04.tsx:367:        <Text style={[styles.readyText, { color: colors.textMuted }]}>Teslimden önce tahsilatı kaydet veya Borç / Veresiye olarak aç. Önceden ücret girilmediyse yazdığın tahsilat ya da borç tutarı otomatik Net Fiyat olur.</Text>
+src/screens/AdminScreen.tsx:77:        .select('mechanic_id,price,completed')
+src/screens/AdminScreen.tsx:313:          const total = memberServices.reduce((sum, item) => sum + Number(item.price), 0);
+src/screens/NewWorkOrderScreen.tsx:45:  const [priceType, setPriceType] = useState<PriceType>('fixed');
+src/screens/NewWorkOrderScreen.tsx:75:    if (priceType === 'fixed' && fixedPrice && !paymentAmount) setPaymentAmount(fixedPrice);
+src/screens/NewWorkOrderScreen.tsx:76:  }, [fixedPrice, priceType]);
+src/screens/NewWorkOrderScreen.tsx:107:    const priceComplete = priceType === 'fixed' ? fixed > 0 : min > 0 && max >= min;
+src/screens/NewWorkOrderScreen.tsx:108:    if (paymentMethod !== 'none' && (!priceComplete || Number(paymentAmount.replace(',', '.')) <= 0)) {
+src/screens/NewWorkOrderScreen.tsx:149:      price_type: priceComplete ? priceType : null,
+src/screens/NewWorkOrderScreen.tsx:150:      quoted_price: priceType === 'fixed' && priceComplete ? fixed : null,
+src/screens/NewWorkOrderScreen.tsx:151:      estimated_price_min: priceType === 'estimated' && priceComplete ? min : null,
+src/screens/NewWorkOrderScreen.tsx:152:      estimated_price_max: priceType === 'estimated' && priceComplete ? max : null,
+src/screens/NewWorkOrderScreen.tsx:153:      status: startImmediately ? 'repair_started' : priceComplete ? 'price_entered' : 'queued',
+src/screens/NewWorkOrderScreen.tsx:161:    if (priceType === 'fixed' && priceComplete) {
+src/screens/NewWorkOrderScreen.tsx:167:        price: fixed,
+src/screens/NewWorkOrderScreen.tsx:275:          <Toggle value={priceType === 'fixed'} onChange={(value) => setPriceType(value ? 'fixed' : 'estimated')} first="Net Fiyat" second="Tahmini Fiyat" />
+src/screens/NewWorkOrderScreen.tsx:276:          {priceType === 'fixed' ? (
+src/screens/TeamScreen.tsx:60:        supabase.from('work_order_services').select('mechanic_id,price,completed').eq('workshop_id', workshop.id).eq('completed', true),
+src/screens/TeamScreen.tsx:68:      const { data } = await supabase.from('work_order_services').select('id,title,price,completed,created_at,work_order:work_orders(customer:customers(full_name),motorcycle:motorcycles(brand,model,plate))').eq('mechanic_id', membership.user_id).eq('completed', true).order('created_at', { ascending: false });
+src/screens/TeamScreen.tsx:245:          const total = memberServices.reduce((sum, item) => sum + Number(item.price), 0);
+src/screens/CustomerMemoryScreen.tsx:54:  price: number;
+src/screens/CustomerMemoryScreen.tsx:66:  unit_price: number;
+src/screens/CustomerMemoryScreen.tsx:67:  total_price: number;
+src/screens/CustomerMemoryScreen.tsx:158:        supabase.from('work_order_services').select('id,work_order_id,title,description,price,completed,started_at,completed_at,created_at').in('work_order_id', orderIds).order('created_at', { ascending: false }),
+src/screens/CustomerMemoryScreen.tsx:159:        supabase.from('work_order_parts').select('id,work_order_id,part_name,quantity,unit_price,total_price,used_at,created_at').in('work_order_id', orderIds).order('created_at', { ascending: false }),
+src/screens/CustomerMemoryScreen.tsx:326:                      {orderServices.length === 0 ? <Text style={[styles.emptyText, { color: colors.textMuted }]}>İşlem kalemi girilmemiş.</Text> : orderServices.map((item) => <View key={item.id} style={[styles.lineItem, { borderBottomColor: colors.border }]}><Ionicons name={item.completed ? 'checkmark-circle' : 'time'} size={19} color={item.completed ? colors.green : colors.orange} /><View style={styles.copy}><Text style={[styles.lineTitle, { color: colors.text }]}>{item.title}</Text>{!!item.description && <Text style={[styles.meta, { color: colors.textMuted }]}>{item.description}</Text>}<Text style={[styles.meta, { color: colors.textMuted }]}>{fullDateTime(item.completed_at || item.started_at || item.created_at)}</Text></View><Text style={[styles.lineAmount, { color: colors.green }]}>{money(item.price)}</Text></View>)}
+src/screens/CustomerMemoryScreen.tsx:329:                      {orderParts.length === 0 ? <Text style={[styles.emptyText, { color: colors.textMuted }]}>Parça kaydı yok.</Text> : orderParts.map((item) => <View key={item.id} style={[styles.lineItem, { borderBottomColor: colors.border }]}><Ionicons name="cog" size={19} color={colors.primary} /><View style={styles.copy}><Text style={[styles.lineTitle, { color: colors.text }]}>{item.part_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.quantity} adet • {fullDateTime(item.used_at || item.created_at)}</Text></View><Text style={[styles.lineAmount, { color: colors.text }]}>{money(item.total_price)}</Text></View>)}
+
+=== CUSTOMER MEMORY / BELL MATCHES ===
+src/AppShellV101.tsx:11:import { NotificationBell } from './notifications/NotificationBell';
+src/AppShellV101.tsx:12:import { useNotifications } from './notifications/NotificationContext';
+src/notifications/types.ts:24:  local_notifications_enabled: boolean;
+src/notifications/types.ts:34:  push_notifications_enabled: boolean;
+src/notifications/types.ts:39:  notifications: GarageNotification[];
+src/notifications/notificationPermissions.ts:2:import * as Notifications from 'expo-notifications';
+src/notifications/expoNotificationsCompat.ts:7:const NativeNotifications = isExpoGoAndroid ? null : require('expo-notifications/build/index');
+src/notifications/NotificationContextV101.tsx:3:import * as Notifications from 'expo-notifications';
+src/notifications/NotificationContextV101.tsx:52:  local_notifications_enabled: true,
+src/notifications/NotificationContextV101.tsx:62:  push_notifications_enabled: true,
+src/notifications/NotificationContextV101.tsx:68:  notifications: GarageNotification[];
+src/notifications/NotificationContextV101.tsx:70:  unreadCount: number;
+src/notifications/NotificationContextV101.tsx:76:  openCenter: () => void;
+src/notifications/NotificationContextV101.tsx:122:  const [notifications, setNotifications] = useState<GarageNotification[]>([]);
+src/notifications/NotificationContextV101.tsx:124:  const [unreadCount, setUnreadCount] = useState(0);
+src/notifications/NotificationContextV101.tsx:134:  const unreadCountRef = useRef(0);
+src/notifications/NotificationContextV101.tsx:139:  useEffect(() => { unreadCountRef.current = unreadCount; }, [unreadCount]);
+src/notifications/NotificationContextV101.tsx:156:      if (permission.status !== 'granted' || !nextPreferences.local_notifications_enabled) {
+src/notifications/NotificationContextV101.tsx:202:    if (!session?.user || !nextPreferences.local_notifications_enabled) return;
+src/notifications/NotificationContextV101.tsx:258:      const sorted = [...(payload.notifications || [])].sort((a, b) => new Date(b.deliver_at).getTime() - new Date(a.deliver_at).getTime());
+src/notifications/NotificationContextV101.tsx:277:    if (!session?.user || !preferencesRef.current.push_notifications_enabled) return false;
+src/notifications/NotificationContextV101.tsx:326:      const merged = { ...preferencesRef.current, local_notifications_enabled: true };
+src/notifications/NotificationContextV101.tsx:328:        p_local_notifications_enabled: true,
+src/notifications/NotificationContextV101.tsx:338:        p_push_notifications_enabled: merged.push_notifications_enabled,
+src/notifications/NotificationContextV101.tsx:342:      await syncFutureSchedules(upcoming, merged, unreadCount + 1);
+src/notifications/NotificationContextV101.tsx:343:      if (merged.push_notifications_enabled && NATIVE_PUSH_ENABLED) await registerPushNotifications();
+src/notifications/NotificationContextV101.tsx:348:  }, [upcoming, unreadCount, syncFutureSchedules, registerPushNotifications]);
+src/notifications/NotificationContextV101.tsx:407:      .channel(`garage-notifications-v101-${session.user.id}`)
+src/notifications/NotificationContextV101.tsx:409:        event: '*', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${session.user.id}`,
+src/notifications/NotificationContextV101.tsx:412:          presentDueNotifications([payload.new as GarageNotification], preferencesRef.current, unreadCountRef.current + 1);
+src/notifications/NotificationContextV101.tsx:479:      p_local_notifications_enabled: merged.local_notifications_enabled,
+src/notifications/NotificationContextV101.tsx:489:      p_push_notifications_enabled: merged.push_notifications_enabled,
+src/notifications/NotificationContextV101.tsx:494:    if (!next.local_notifications_enabled) await cancelGarageSchedules();
+src/notifications/NotificationContextV101.tsx:495:    else await syncFutureSchedules(upcoming, next, unreadCount + 1);
+src/notifications/NotificationContextV101.tsx:496:    if (next.push_notifications_enabled && NATIVE_PUSH_ENABLED) await registerPushNotifications();
+src/notifications/NotificationContextV101.tsx:499:  }, [upcoming, unreadCount, cancelGarageSchedules, syncFutureSchedules, refresh, registerPushNotifications]);
+src/notifications/NotificationContextV101.tsx:570:    open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget,
+src/notifications/NotificationContextV101.tsx:571:    openCenter: () => setOpen(true), closeCenter: () => setOpen(false), refresh, markRead, markAllRead, archive, deleteNotification,
+src/notifications/NotificationContextV101.tsx:573:  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, consumeNavigationTarget]);
+src/notifications/NotificationCenterScreen.tsx:61:    notifications,
+src/notifications/NotificationCenterScreen.tsx:63:    unreadCount,
+src/notifications/NotificationCenterScreen.tsx:84:    const sourceItems = tab === 'unread' ? notifications.filter((item) => !item.read_at) : notifications;
+src/notifications/NotificationCenterScreen.tsx:86:  }, [tab, notifications, upcoming]);
+src/notifications/NotificationCenterScreen.tsx:121:    const error = await updatePreferences({ push_notifications_enabled: true });
+src/notifications/NotificationCenterScreen.tsx:157:          <View style={styles.heroIcon}><Ionicons name="notifications" size={31} color="#fff" /></View>
+src/notifications/NotificationCenterScreen.tsx:160:            <Text style={styles.heroValue}>{unreadCount}</Text>
+src/notifications/NotificationCenterScreen.tsx:169:          <TabButton active={tab === 'all'} label="Tümü" icon="layers" badge={notifications.length} onPress={() => setTab('all')} />
+src/notifications/NotificationCenterScreen.tsx:170:          <TabButton active={tab === 'unread'} label="Okunmamış" icon="ellipse" badge={unreadCount} onPress={() => setTab('unread')} />
+src/notifications/NotificationCenterScreen.tsx:179:                <Ionicons name={permissionStatus === 'granted' ? 'notifications' : 'notifications-off'} size={25} color={permissionStatus === 'granted' ? colors.green : colors.orange} />
+src/notifications/NotificationCenterScreen.tsx:198:              <SettingRow icon="phone-portrait" title="Telefon bildirimleri" subtitle="Planlı hatırlatmaları cihazda göster." value={preferences.local_notifications_enabled} onChange={(value) => updatePreference({ local_notifications_enabled: value })} disabled={saving || permissionStatus !== 'granted'} />
+src/notifications/NotificationCenterScreen.tsx:199:              <SettingRow icon="cloud-download" title="Uygulama kapalıyken bildir" subtitle={pushStatus === 'registered' ? 'Native push cihazı kayıtlı ve aktif.' : 'FCM bağlantısı tamamlandığında uygulama kapalıyken de gelir.'} value={preferences.push_notifications_enabled} onChange={(value) => value ? enablePush() : updatePreference({ push_notifications_enabled: false })} disabled={saving} />
+src/notifications/NotificationCenterScreen.tsx:217:            {tab === 'unread' && unreadCount > 0 && (
+src/notifications/NotificationCenterScreen.tsx:226:                <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}12` }]}><Ionicons name={tab === 'upcoming' ? 'time-outline' : 'notifications-off-outline'} size={33} color={colors.primary} /></View>
+src/notifications/NotificationBell.tsx:13:  const { unreadCount, upcomingCount, openCenter, loading } = useNotifications();
+src/notifications/NotificationBell.tsx:14:  const badge = unreadCount > 99 ? '99+' : String(unreadCount);
+src/notifications/NotificationBell.tsx:17:  const needsAttention = unreadCount > 0 && unreadCount > acknowledgedUnreadCount;
+src/notifications/NotificationBell.tsx:20:    if (unreadCount === 0) setAcknowledgedUnreadCount(0);
+src/notifications/NotificationBell.tsx:21:  }, [unreadCount]);
+src/notifications/NotificationBell.tsx:41:    setAcknowledgedUnreadCount(unreadCount);
+src/notifications/NotificationBell.tsx:44:    openCenter();
+src/notifications/NotificationBell.tsx:57:          accessibilityLabel={`${unreadCount} okunmamış bildirim`}
+src/notifications/NotificationBell.tsx:59:          style={[styles.button, { backgroundColor: colors.cardStrong, borderColor: unreadCount > 0 ? `${colors.orange}8A` : colors.border, shadowColor: colors.primary }]}
+src/notifications/NotificationBell.tsx:61:          {unreadCount > 0 ? (
+src/notifications/NotificationBell.tsx:63:              <Ionicons name="notifications" size={20} color="#fff" />
+src/notifications/NotificationBell.tsx:67:              <Ionicons name={loading ? 'sync' : 'notifications-outline'} size={20} color={colors.primary} />
+src/notifications/NotificationBell.tsx:70:          {unreadCount > 0 && <Animated.View style={[styles.badge, { backgroundColor: colors.red, borderColor: colors.cardStrong, transform: [{ scale }] }]}><Text style={styles.badgeText}>{badge}</Text></Animated.View>}
+src/notifications/NotificationBell.tsx:71:          {unreadCount === 0 && upcomingCount > 0 && <View style={[styles.futureDot, { backgroundColor: colors.cyan, borderColor: colors.cardStrong }]} />}
+src/customer/CustomerReceivableCard.tsx:51:    {(detail.receivable_notes?.length ?? 0) > 0 && <GlassCard style={styles.listCard}><Text style={[styles.listTitle, { color: colors.text }]}>İşletmeden Ödeme Notları</Text>{detail.receivable_notes?.map((item, index) => <View key={item.id} style={[styles.noteRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><Ionicons name="notifications" size={18} color={colors.orange} /><View style={styles.copy}><Text style={[styles.note, { color: colors.text }]}>{item.note}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{dateTime(item.created_at)}</Text></View></View>)}</GlassCard>}
+src/customer/CustomerShell.tsx:11:import { NotificationBell } from '../notifications/NotificationBell';
+src/customer/CustomerShell.tsx:12:import { useNotifications } from '../notifications/NotificationContext';
+src/components/PlatformFeesDashboard.tsx:474:      icon="notifications"
+src/AppShellV102.tsx:11:import { NotificationBell } from './notifications/NotificationBell';
+src/AppShellV102.tsx:12:import { useNotifications } from './notifications/NotificationContext';
+src/screens/NotificationPermissionScreen.tsx:14:} from '../notifications/notificationPermissions';
+src/screens/NotificationPermissionScreen.tsx:44:            <Ionicons name="notifications-off" size={42} color={colors.orange} />
+src/screens/NotificationPermissionScreen.tsx:61:          <Ionicons name="notifications" size={44} color={colors.primary} />
+src/screens/SettingsScreen.tsx:14:import { useNotifications } from '../notifications/NotificationContext';
+src/screens/SettingsScreen.tsx:39:  const { unreadCount, upcomingCount, permissionStatus, openCenter, refresh: refreshNotifications } = useNotifications();
+src/screens/SettingsScreen.tsx:95:    <AnimatedPressable onPress={openCenter} style={[styles.modeCard, { backgroundColor: `${colors.orange}11`, borderColor: `${colors.orange}40` }]}><View style={[styles.modeIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="notifications" size={24} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.modeTitle, { color: colors.text }]}>Bildirim Merkezi ve tercihleri</Text><Text style={[styles.modeText, { color: colors.textMuted }]}>{unreadCount} okunmamış • {upcomingCount} yaklaşan • Telefon izni: {permissionStatus === 'granted' ? 'Açık' : 'Kapalı'}</Text></View><Ionicons name="chevron-forward" size={20} color={colors.orange} /></AnimatedPressable>
+src/screens/SettingsScreen.tsx:116:      <GlassCard style={styles.info}><Info icon="camera" label="Kamera" value="Yalnız QR tarama" /><Info icon="images" label="Fotoğraflar" value="Yalnız isteğe bağlı dekont" /><Info icon="notifications" label="Bildirim" value="Servis ve randevu hatırlatmaları" /><Info icon="location" label="Konum / Mikrofon / Rehber" value="Kullanılmıyor ve engelli" /><Info icon="person-remove" label="Hesap silme" value="Sağ üstteki kalkan ile talep oluşturma" /></GlassCard>
+src/screens/CustomersScreen.tsx:16:import { useNotifications } from '../notifications/NotificationContext';
+src/screens/CustomersScreen.tsx:26:  const { notifications, markRead } = useNotifications();
+src/screens/CustomersScreen.tsx:93:    const unreadClaimNotifications = notifications.filter((item) => !item.read_at && item.notification_type === 'customer_claim_pending');
+src/screens/CustomersScreen.tsx:154:    <ScreenHeader eyebrow="MÜŞTERİ HAFIZASI" title="Müşteriler" subtitle="Müşteri, motor, servis erişimi ve hesap eşleştirme talepleri." actionIcon={tab === 'customers' ? (showNew ? 'close' : 'person-add') : undefined} onAction={tab === 'customers' ? () => setShowNew((v) => !v) : undefined} />
+src/screens/CustomersScreen.tsx:156:      <TabButton active={tab === 'customers'} label="Müşteriler" icon="people" onPress={() => setTab('customers')} />
+src/screens/CustomerPaymentReportInbox.tsx:12:import { useNotifications } from '../notifications/NotificationContext';
+src/screens/CustomerPaymentReportInbox.tsx:104:          <Ionicons name="notifications" size={23} color={colors.orange} />
+src/screens/CustomerMemoryScreen.tsx:218:        <ModeButton active={false} label="Müşteri Hafızası" icon="time" onPress={() => setMode('memory')} />
+src/screens/CustomerMemoryScreen.tsx:230:    <ScreenHeader eyebrow="v1.0.1 MÜŞTERİ HAFIZASI" title="Müşteriler" subtitle="Motorun kilometreli servis geçmişi, yapılan işlemler, parçalar ve ustanın sonraki geliş notları." />
+src/screens/CustomerMemoryScreen.tsx:233:      <ModeButton active label="Müşteri Hafızası" icon="time" onPress={() => undefined} />
+src/screens/AppointmentsScreen.tsx:169:  return <Animated.View style={[styles.attentionWrap, { transform: [{ scale }] }]}><Animated.View pointerEvents="none" style={[styles.attentionGlow, { backgroundColor: colors.orange, opacity }]} /><GlassCard style={[styles.attentionCard, { borderColor: `${colors.orange}80` }]}><View style={styles.attentionHeader}><View style={[styles.attentionIcon, { backgroundColor: `${colors.orange}20` }]}><Ionicons name="notifications" size={25} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.attentionTitle, { color: colors.text }]}>Yeni müşteri randevusu</Text><Text style={[styles.attentionMeta, { color: colors.textMuted }]}>{appointments.length} randevu işletme onayı bekliyor. Tarihine gitmek için dokun.</Text></View><View style={[styles.attentionCount, { backgroundColor: colors.orange }]}><Text style={styles.attentionCountText}>{appointments.length}</Text></View></View>{appointments.slice(0, 3).map((item) => <AnimatedPressable key={item.id} onPress={() => onOpen(item)} style={[styles.attentionItem, { backgroundColor: colors.surfaceSoft, borderColor: `${colors.orange}38` }]}><View style={[styles.attentionTime, { backgroundColor: `${colors.orange}15` }]}><Text style={[styles.attentionTimeText, { color: colors.orange }]}>{formatAppointmentTime(item.scheduled_start)}</Text></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{item.customer_name} • {item.service_title}</Text><Text style={[styles.cardMeta, { color: colors.textMuted }]}>{formatAppointmentDate(item.scheduled_start)} • {item.brand} {item.model} • {item.mechanic_name}</Text></View><Ionicons name="arrow-forward-circle" size={22} color={colors.orange} /></AnimatedPressable>)}</GlassCard></Animated.View>;
+src/AppRoot.tsx:13:import { shouldShowNotificationIntro } from './notifications/notificationPermissions';
+src/AppShell.tsx:10:import { NotificationBell } from './notifications/NotificationBell';
+src/AppShell.tsx:11:import { useNotifications } from './notifications/NotificationContext';
+
+=== REFRESH / REALTIME MATCHES ===
+src/notifications/NotificationContextV101.tsx:5:import { AppState, Platform } from 'react-native';
+src/notifications/NotificationContextV101.tsx:78:  refresh: () => Promise<void>;
+src/notifications/NotificationContextV101.tsx:130:  const refreshingRef = useRef(false);
+src/notifications/NotificationContextV101.tsx:249:  const refresh = useCallback(async () => {
+src/notifications/NotificationContextV101.tsx:250:    if (!session?.user || refreshingRef.current) return;
+src/notifications/NotificationContextV101.tsx:251:    refreshingRef.current = true;
+src/notifications/NotificationContextV101.tsx:271:      refreshingRef.current = false;
+src/notifications/NotificationContextV101.tsx:404:    refresh();
+src/notifications/NotificationContextV101.tsx:408:      .on('postgres_changes', {
+src/notifications/NotificationContextV101.tsx:414:        setTimeout(() => refresh(), 180);
+src/notifications/NotificationContextV101.tsx:416:      .subscribe();
+src/notifications/NotificationContextV101.tsx:417:    const appState = AppState.addEventListener('change', (state) => {
+src/notifications/NotificationContextV101.tsx:420:        refresh();
+src/notifications/NotificationContextV101.tsx:436:  }, [session?.user, refresh, presentDueNotifications, cancelGarageSchedules, registerPushNotifications]);
+src/notifications/NotificationContextV101.tsx:447:      if (notificationId) supabase.rpc('notification_mark_read', { p_notification_id: notificationId }).then(() => refresh());
+src/notifications/NotificationContextV101.tsx:474:  }, [refresh]);
+src/notifications/NotificationContextV101.tsx:497:    await refresh();
+src/notifications/NotificationContextV101.tsx:499:  }, [upcoming, unreadCount, cancelGarageSchedules, syncFutureSchedules, refresh, registerPushNotifications]);
+src/notifications/NotificationContextV101.tsx:505:    await refresh();
+src/notifications/NotificationContextV101.tsx:506:  }, [refresh]);
+src/notifications/NotificationContextV101.tsx:514:    await refresh();
+src/notifications/NotificationContextV101.tsx:515:  }, [refresh]);
+src/notifications/NotificationContextV101.tsx:522:    await refresh();
+src/notifications/NotificationContextV101.tsx:523:  }, [refresh]);
+src/notifications/NotificationContextV101.tsx:530:    await refresh();
+src/notifications/NotificationContextV101.tsx:531:  }, [refresh]);
+src/notifications/NotificationContextV101.tsx:571:    openCenter: () => setOpen(true), closeCenter: () => setOpen(false), refresh, markRead, markAllRead, archive, deleteNotification,
+src/notifications/NotificationContextV101.tsx:573:  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, consumeNavigationTarget]);
+src/notifications/NotificationCenterScreen.tsx:69:    refresh,
+src/notifications/NotificationCenterScreen.tsx:163:          <AnimatedPressable onPress={refresh} style={styles.heroRefresh}>
+src/notifications/NotificationCenterScreen.tsx:164:            <Ionicons name={loading ? 'sync' : 'refresh'} size={20} color="#fff" />
+src/customer/CustomerHomeScreen.tsx:20:  const { profile, customerWorkshop, customerWorkshops, businessApplication, selectCustomerWorkshop, refreshWorkspace } = useAuth();
+src/customer/CustomerHomeScreen.tsx:23:  const [refreshing, setRefreshing] = useState(false);
+src/customer/CustomerHomeScreen.tsx:44:  const refresh = async () => { setRefreshing(true); await refreshWorkspace(undefined, customerWorkshop?.workshop_id ?? null); await load(); setRefreshing(false); };
+src/customer/CustomerHomeScreen.tsx:46:  return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
+src/customer/CustomerServicesScreen.tsx:50:  const [refreshing, setRefreshing] = useState(false);
+src/customer/CustomerServicesScreen.tsx:76:  return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
+src/customer/CustomerMotorcyclesScreen.tsx:19:  const [refreshing, setRefreshing] = useState(false);
+src/customer/CustomerMotorcyclesScreen.tsx:30:  return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
+src/customer/CustomerLinkPanel.tsx:24:  const { profile, refreshWorkspace, searchWorkshops } = useAuth();
+src/customer/CustomerLinkPanel.tsx:98:    await refreshWorkspace(); await loadClaims(); onLinked?.();
+src/customer/CustomerAccountScreen.tsx:40:    refreshWorkspace,
+src/customer/CustomerAccountScreen.tsx:82:          await refreshWorkspace();
+src/customer/CustomerAppointmentsScreen.tsx:39:  const [refreshing, setRefreshing] = useState(false);
+src/customer/CustomerAppointmentsScreen.tsx:134:  const refresh = async () => { setRefreshing(true); await loadAppointments(); await loadSlots(); setRefreshing(false); };
+src/customer/CustomerAppointmentsScreen.tsx:137:    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
+src/context/AuthContext.tsx:33:  refreshWorkspace: (preferredWorkshopId?: string | null, preferredCustomerWorkshopId?: string | null) => Promise<void>;
+src/context/AuthContext.tsx:73:  const refreshWorkspace = useCallback(async (
+src/context/AuthContext.tsx:172:    refreshWorkspace();
+src/context/AuthContext.tsx:173:    const { data } = supabase.auth.onAuthStateChange(() => refreshWorkspace());
+src/context/AuthContext.tsx:174:    return () => data.subscription.unsubscribe();
+src/context/AuthContext.tsx:175:  }, [refreshWorkspace]);
+src/context/AuthContext.tsx:181:      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+src/context/AuthContext.tsx:182:      .on('postgres_changes', { event: '*', schema: 'public', table: 'mechanic_applications', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+src/context/AuthContext.tsx:183:      .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_access_requests', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+src/context/AuthContext.tsx:184:      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` }, () => refreshWorkspace())
+src/context/AuthContext.tsx:185:      .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_members', filter: `user_id=eq.${userId}` }, () => refreshWorkspace())
+src/context/AuthContext.tsx:186:      .subscribe();
+src/context/AuthContext.tsx:188:  }, [session?.user.id, refreshWorkspace]);
+src/context/AuthContext.tsx:207:      await refreshWorkspace();
+src/context/AuthContext.tsx:243:      await refreshWorkspace();
+src/context/AuthContext.tsx:252:    refreshWorkspace,
+src/context/AuthContext.tsx:255:      await refreshWorkspace(workshopId, customerWorkshop?.workshop_id ?? null);
+src/context/AuthContext.tsx:259:      await refreshWorkspace(workshop?.id ?? null, workshopId);
+src/context/AuthContext.tsx:264:      await refreshWorkspace(workshop?.id ?? null, customerWorkshop?.workshop_id ?? null);
+src/context/AuthContext.tsx:278:      await refreshWorkspace(data ? String(data) : null, customerWorkshop?.workshop_id ?? null);
+src/context/AuthContext.tsx:284:      await refreshWorkspace(data ? String(data) : null, customerWorkshop?.workshop_id ?? null);
+src/context/AuthContext.tsx:294:      await refreshWorkspace(workshop?.id ?? null, customerWorkshop?.workshop_id ?? null);
+src/context/AuthContext.tsx:303:  }), [session, profile, workshop, workshops, membership, memberships, customerWorkshop, customerWorkshops, businessApplication, mechanicApplications, loading, refreshWorkspace, clearState]);
+src/components/ReportsDashboard.tsx:154:      <AnimatedPressable onPress={load} style={[styles.refresh, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}40` }]}><Ionicons name="refresh" size={18} color={colors.primary} /></AnimatedPressable>
+src/components/ReportsDashboard.tsx:326:  refresh: { width: 42, height: 42, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+src/components/PlatformFeesDashboard.tsx:385:      <AnimatedPressable onPress={load} style={[styles.refresh, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}><Ionicons name="refresh" size={18} color={colors.primary} /></AnimatedPressable>
+src/components/PlatformFeesDashboard.tsx:618:  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 }, sectionTitle: { fontSize: 19, fontWeight: '900' }, sectionSub: { fontSize: 12, marginTop: 4 }, refresh: { width: 42, height: 42, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+src/lib/supabase.ts:3:import { AppState, Platform } from 'react-native';
+src/lib/supabase.ts:25:  AppState.addEventListener('change', (state) => {
+src/screens/WorkOrdersScreen.tsx:29:  const [refreshing, setRefreshing] = useState(false);
+src/screens/WorkOrdersScreen.tsx:70:  const refresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+src/screens/WorkOrdersScreen.tsx:72:  return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
+src/screens/ApplicationEntryScreen.tsx:48:    refreshWorkspace,
+src/screens/ApplicationEntryScreen.tsx:52:  const [refreshing, setRefreshing] = useState(false);
+src/screens/ApplicationEntryScreen.tsx:72:      .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_access_requests', filter: `user_id=eq.${profile.id}` }, () => {
+src/screens/ApplicationEntryScreen.tsx:74:        refreshWorkspace().catch(() => undefined);
+src/screens/ApplicationEntryScreen.tsx:76:      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_applications', filter: `user_id=eq.${profile.id}` }, () => refreshWorkspace())
+src/screens/ApplicationEntryScreen.tsx:77:      .on('postgres_changes', { event: '*', schema: 'public', table: 'mechanic_applications', filter: `user_id=eq.${profile.id}` }, () => refreshWorkspace())
+src/screens/ApplicationEntryScreen.tsx:78:      .subscribe();
+src/screens/ApplicationEntryScreen.tsx:80:  }, [profile?.id, loadAccessRequests, refreshWorkspace]);
+src/screens/ApplicationEntryScreen.tsx:94:  const refresh = async () => {
+src/screens/ApplicationEntryScreen.tsx:96:    await Promise.all([loadAccessRequests(), refreshWorkspace()]);
+src/screens/ApplicationEntryScreen.tsx:124:        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
+src/screens/ApplicationEntryScreen.tsx:151:              <AnimatedPressable onPress={refresh} style={[styles.refreshButton, { borderColor: colors.border }]}><Ionicons name="refresh" size={20} color={colors.primary} /></AnimatedPressable>
+src/screens/ApplicationEntryScreen.tsx:260:  refreshButton: { width: 43, height: 43, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+src/screens/HomeScreen.tsx:38:  const [refreshing, setRefreshing] = useState(false);
+src/screens/HomeScreen.tsx:105:    const refreshLiveStats = () => { load().catch(() => undefined); };
+src/screens/HomeScreen.tsx:108:      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `workshop_id=eq.${workshop.id}` }, refreshLiveStats)
+src/screens/HomeScreen.tsx:109:      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_order_services', filter: `workshop_id=eq.${workshop.id}` }, refreshLiveStats)
+src/screens/HomeScreen.tsx:110:      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `workshop_id=eq.${workshop.id}` }, refreshLiveStats)
+src/screens/HomeScreen.tsx:111:      .subscribe();
+src/screens/HomeScreen.tsx:115:  const refresh = async () => {
+src/screens/HomeScreen.tsx:139:      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
+src/screens/TeamScreenV102.tsx:50:  const { workshop, membership, isAdmin, refreshWorkspace } = useAuth();
+src/screens/TeamScreenV102.tsx:76:      .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_access_requests', filter: `workshop_id=eq.${workshop.id}` }, () => loadRequests())
+src/screens/TeamScreenV102.tsx:77:      .subscribe();
+src/screens/TeamScreenV102.tsx:117:            await Promise.all([loadRequests(), refreshWorkspace(workshop.id)]);
+src/screens/TeamScreenV102.tsx:149:            await Promise.all([loadRequests(), refreshWorkspace(workshop?.id ?? null)]);
+src/screens/TeamScreenV102.tsx:190:            <View style={styles.sectionHeader}><View><Text style={[styles.sectionTitle, { color: colors.text }]}>Onay Bekleyen Başvurular</Text><Text style={[styles.sectionSubtitle, { color: colors.textMuted }]}>Kayıt sırasında mevcut işletmeyi seçen kullanıcılar.</Text></View><AnimatedPressable onPress={loadRequests} style={[styles.refresh, { borderColor: colors.border }]}><Ionicons name="refresh" size={19} color={colors.primary} /></AnimatedPressable></View>
+src/screens/TeamScreenV102.tsx:251:  refresh: { width: 42, height: 42, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+src/screens/SettingsScreen.tsx:38:  const { profile, workshop, membership, isAdmin, signOut, refreshWorkspace, setAccountMode } = useAuth();
+src/screens/SettingsScreen.tsx:39:  const { unreadCount, upcomingCount, permissionStatus, openCenter, refresh: refreshNotifications } = useNotifications();
+src/screens/SettingsScreen.tsx:70:    await refreshWorkspace(workshop.id);
+src/screens/SettingsScreen.tsx:72:    await refreshNotifications();
+src/screens/SettingsScreen.tsx:76:  const clearDemo = () => workshop && Alert.alert('Pilot verileri temizlensin mi?', 'Gerçek kayıtlar etkilenmez. Demo bildirimleri de temizlenir.', [{ text: 'Vazgeç' }, { text: 'Temizle', style: 'destructive', onPress: async () => { setLoading(true); const { data, error } = await supabase.rpc('clear_demo_data', { p_workshop_id: workshop.id }); setLoading(false); if (error) return Alert.alert('Temizlenemedi', error.message); await refreshWorkspace((data as any)?.root_workshop_id ?? null); setDemo(EMPTY_DEMO); await refreshNotifications(); } }]);
+src/screens/SettingsScreen.tsx:122:      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v1.0.4 RC • Expo Test Adayı" /><Info icon="shield-checkmark" label="Motor Hazır kuralı" value="Son net ücret girilmeden Motor Hazır yapılamaz" /><Info icon="key" label="Şifre güvenliği" value="En az 6 karakter • basit kayıt şifresi" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v1.0.2-before-v1.0.4-20260715" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v1.0.2 RC" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + GitHub kalite testleri" /><Info icon="storefront" label="Mağaza durumu" value="Expo testinde • sonraki adım Test APK" /></GlassCard>
+src/screens/ReceivablesScreen.tsx:156:  const [refreshing, setRefreshing] = useState(false);
+src/screens/ReceivablesScreen.tsx:175:  const refresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+src/screens/ReceivablesScreen.tsx:181:  return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
+src/screens/ReceivablesScreen.tsx:182:    <ScreenHeader eyebrow="v0.5 ALACAK TAKİBİ" title="Alacaklar" subtitle={`${workshop?.name ?? 'DraBornGarage'} • Borç, kısmi ödeme ve söz tarihi merkezi`} actionIcon="refresh" onAction={load} />
+src/screens/CustomersScreen.tsx:41:  const [saving, setSaving] = useState(false); const [refreshing, setRefreshing] = useState(false);
+src/screens/CustomersScreen.tsx:61:      .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_claims', filter: `workshop_id=eq.${workshop.id}` }, () => load())
+src/screens/CustomersScreen.tsx:62:      .subscribe();
+src/screens/CustomersScreen.tsx:153:  return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
+src/screens/AdminScreen.tsx:34:    refreshWorkspace,
+src/screens/AdminScreen.tsx:91:      .on('postgres_changes', { event: '*', schema: 'public', table: 'mechanic_applications', filter: `workshop_id=eq.${workshop.id}` }, () => load())
+src/screens/AdminScreen.tsx:92:      .subscribe();
+src/screens/AdminScreen.tsx:125:    await refreshWorkspace(workshop.id);
+src/screens/AdminScreen.tsx:139:        await refreshWorkspace(workshop?.id ?? null);
+src/screens/AdminScreen.tsx:167:    await refreshWorkspace(workshop?.id ?? null);
+src/screens/CustomerPaymentReportInbox.tsx:36:  const { refresh: refreshNotifications } = useNotifications();
+src/screens/CustomerPaymentReportInbox.tsx:87:            await refreshNotifications();
+src/screens/CustomerPaymentReportInbox.tsx:110:        <AnimatedPressable onPress={load} style={[styles.refresh, { borderColor: colors.border }]}>
+src/screens/CustomerPaymentReportInbox.tsx:111:          <Ionicons name="refresh" size={19} color={colors.cyan} />
+src/screens/CustomerPaymentReportInbox.tsx:165:  refresh: { width: 42, height: 42, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+src/screens/TeamScreen.tsx:26:  const { workshop, workshops, membership, isAdmin, createInviteCode, selectWorkshop, createWorkshop, refreshWorkspace } = useAuth();
+src/screens/TeamScreen.tsx:77:      .on('postgres_changes', { event: '*', schema: 'public', table: 'mechanic_applications', filter: `workshop_id=eq.${workshop.id}` }, () => load())
+src/screens/TeamScreen.tsx:78:      .subscribe();
+src/screens/TeamScreen.tsx:114:    await refreshWorkspace(workshop.id);
+src/screens/TeamScreen.tsx:121:    await refreshWorkspace(workshop?.id ?? null);
+src/screens/CustomerMemoryScreen.tsx:133:  const [refreshing, setRefreshing] = useState(false);
+src/screens/CustomerMemoryScreen.tsx:227:    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}
+src/screens/AppointmentsScreen.tsx:28:  const { workshop, membership, isAdmin, refreshWorkspace } = useAuth();
+src/screens/AppointmentsScreen.tsx:38:  const [refreshing, setRefreshing] = useState(false);
+src/screens/AppointmentsScreen.tsx:106:      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `workshop_id=eq.${workshop.id}` }, () => {
+src/screens/AppointmentsScreen.tsx:109:      .subscribe();
+src/screens/AppointmentsScreen.tsx:120:  const refresh = async () => { setRefreshing(true); await Promise.all([loadBase(), loadAppointments(), loadAttention(), loadHistory()]); setRefreshing(false); };
+src/screens/AppointmentsScreen.tsx:123:  return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
+src/screens/AppointmentsScreen.tsx:134:    {tab === 'schedule' && <ScheduleTab workshop={workshop} membershipId={membership?.user_id ?? ''} isOwner={isOwner} canWork={canWork} mechanics={mechanics} refreshWorkspace={refreshWorkspace} />}
+src/screens/AppointmentsScreen.tsx:199:function ScheduleTab({ workshop, membershipId, isOwner, canWork, mechanics, refreshWorkspace }: { workshop: any; membershipId: string; isOwner: boolean; canWork: boolean; mechanics: AppointmentMechanic[]; refreshWorkspace: (...args: any[]) => Promise<void> }) {
+src/screens/AppointmentsScreen.tsx:207:  const saveSettings = async () => { if (!workshop?.id) return; const { error } = await supabase.rpc('staff_update_appointment_settings', { p_workshop_id: workshop.id, p_enabled: enabled, p_auto_confirm: autoConfirm, p_booking_days: Number(bookingDays), p_min_notice_minutes: Number(minNotice), p_timezone: workshop.timezone || 'Europe/Istanbul' }); if (error) return Alert.alert('Ayarlar kaydedilemedi', error.message); await refreshWorkspace(workshop.id); Alert.alert('Randevu ayarları kaydedildi'); };
+
+=== VERSION STRINGS ===
+src/notifications/NotificationContextV101.tsx:36:const APP_VERSION = Constants.expoConfig?.version ?? '1.0.7';
+src/notifications/NotificationCenterScreen.tsx:147:            <Text style={[styles.eyebrow, { color: colors.primary }]}>v1.0.6 RC • FIREBASE BİLDİRİM MERKEZİ</Text>
+src/customer/CustomerReadyPaymentCard.tsx:107:          <Text style={styles.eyebrow}>{isReceivable ? 'AÇIK VERESİYE BORCU' : 'MOTORUN HAZIR'}</Text>
+src/screens/NotificationPermissionScreen.tsx:63:        <Text style={[styles.eyebrow, { color: colors.green }]}>DraBornGarage • v1.0.6</Text>
+src/screens/ApplicationEntryScreen.tsx:130:          <Text style={[styles.eyebrow, { color: colors.orange }]}>DraBornGarage • v1.0.4 RC</Text>
+src/screens/SettingsScreen.tsx:121:    <SettingsAccordion title="Uygulama" subtitle="v1.0.4 RC • Başvuru merkezi ve erişim düzeni" icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
+src/screens/SettingsScreen.tsx:122:      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v1.0.4 RC • Expo Test Adayı" /><Info icon="shield-checkmark" label="Motor Hazır kuralı" value="Son net ücret girilmeden Motor Hazır yapılamaz" /><Info icon="key" label="Şifre güvenliği" value="En az 6 karakter • basit kayıt şifresi" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v1.0.2-before-v1.0.4-20260715" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v1.0.2 RC" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + GitHub kalite testleri" /><Info icon="storefront" label="Mağaza durumu" value="Expo testinde • sonraki adım Test APK" /></GlassCard>
+src/screens/AuthScreen.tsx:20:const APP_VERSION = Constants.expoConfig?.version ?? '1.0.6';
+src/screens/CustomersScreen.tsx:4:import QRCode from 'react-native-qrcode-svg';
+src/screens/CustomersScreen.tsx:168:        {expanded && <View style={[styles.expanded, { borderTopColor: colors.border }]}>{bikes.map((bike) => { const bikeOrders = customerOrders.filter((o) => o.motorcycle_id === bike.id); const latest = bikeOrders[0]; return <View key={bike.id} style={[styles.bike, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}><View style={styles.bikeTop}><AnimatedMotorcycleIcon size={32} color={colors.primary2} /><View style={styles.copy}><Text style={[styles.bikeTitle, { color: colors.text }]}>{bike.brand} {bike.model}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{bike.plate || 'Plaka yok'} • {bike.odometer != null ? `${Number(bike.odometer).toLocaleString('tr-TR')} km • ` : ''}{bikeOrders.length} servis</Text>{latest && <Text style={[styles.meta, { color: colors.textMuted }]}>Son: {latest.complaint} • {shortDate(latest.arrived_at)}</Text>}</View>{latest && <StatusPill status={latest.status} />}</View><AnimatedPressable onPress={() => openAccess(bike.id)} style={[styles.accessButton, { borderColor: `${colors.cyan}40`, backgroundColor: `${colors.cyan}0D` }]}><Ionicons name="qr-code" size={18} color={colors.cyan} /><Text style={[styles.accessText, { color: colors.cyan }]}>{accessBike === bike.id ? 'Erişim Kartını Kapat' : 'Takip Kodu / QR'}</Text></AnimatedPressable>{accessBike === bike.id && access && <View style={[styles.accessPanel, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={styles.qr}><QRCode value={access.qr_payload} size={135} /></View><Text style={[styles.codeLabel, { color: colors.textMuted }]}>SERVİS TAKİP KODU</Text><Text style={[styles.code, { color: colors.text }]}>{access.tracking_code}</Text><PrimaryButton title="Müşteriyle Paylaş" secondary onPress={() => Share.share({ message: `DraBornGarage servis takibi\n${bike.brand} ${bike.model} • ${bike.plate}\nKod: ${access.tracking_code}\n${access.qr_payload}` })} /></View>}</View>; })}
+src/screens/CustomerMemoryScreen.tsx:230:    <ScreenHeader eyebrow="v1.0.1 MÜŞTERİ HAFIZASI" title="Müşteriler" subtitle="Motorun kilometreli servis geçmişi, yapılan işlemler, parçalar ve ustanın sonraki geliş notları." />
+app.json:6:    "version": "1.0.8",
+package.json:3:  "version": "1.0.8",
+
+=== SOUND ASSETS ===
+assets/sounds/garage_alert.wav
+assets/sounds/garage_chime.wav
+assets/sounds/garage_pulse.wav
+
+=== SUPABASE MIGRATIONS ===
+supabase/migrations/20260710170000_init_v0_1_core.sql
+supabase/migrations/20260710170100_init_v0_1_logic.sql
+supabase/migrations/20260710170200_init_v0_1_rls.sql
+supabase/migrations/20260710173000_harden_function_permissions.sql
+supabase/migrations/20260710174500_optimize_rls_and_indexes.sql
+supabase/migrations/20260710190000_add_demo_test_data_system.sql
+supabase/migrations/20260710200000_extend_v0_1_enums.sql
+supabase/migrations/20260710200100_v0_1_columns_and_admin.sql
+supabase/migrations/20260710200200_v0_1_role_helpers.sql
+supabase/migrations/20260710200300_v0_1_admin_staff_rpcs.sql
+supabase/migrations/20260710200400_v0_1_queue_price_rules.sql
+supabase/migrations/20260710200500_v0_1_apprentice_and_finance_policies.sql
+supabase/migrations/20260710200600_v0_1_workshop_invites.sql
+supabase/migrations/20260710200700_v0_1_demo_management.sql
+supabase/migrations/20260710200800_v0_1_demo_seed.sql
+supabase/migrations/20260710200900_v0_1_apprentice_lockdown.sql
+supabase/migrations/20260710201000_v0_1_creator_owner_mechanic.sql
+supabase/migrations/20260710201100_v0_1_demo_batch_index.sql
+supabase/migrations/20260711010100_v0_3_appointment_schema.sql
+supabase/migrations/20260711010200_v0_3_slots_and_customer_rpcs.sql
+supabase/migrations/20260711010300_v0_3_staff_schedule_rpcs.sql
+supabase/migrations/20260711010400_v0_3_staff_appointment_rpcs.sql
+supabase/migrations/20260711010500_v0_3_appointment_fk_indexes.sql
+supabase/migrations/20260711010600_v0_3_harden_seed_function.sql
+supabase/migrations/20260711010700_v0_3_remaining_fk_indexes.sql
+supabase/migrations/20260711020100_v0_4_service_approval_schema.sql
+supabase/migrations/20260711020200_v0_4_core_functions.sql
+supabase/migrations/20260711020300_v0_4_service_detail_rpcs.sql
+supabase/migrations/20260711020400_v0_4_customer_approval_rpcs.sql
+supabase/migrations/20260711020500_v0_4_demo_data.sql
+supabase/migrations/20260711020600_v0_4_security_and_fk_indexes.sql
+supabase/migrations/20260711103000_v0_5_receivables_core.sql
+supabase/migrations/20260711103100_v0_5_customer_receivables_and_demo.sql
+supabase/migrations/20260711103200_v0_5_security_and_fk_indexes.sql
+supabase/migrations/20260711110000_v0_6_mechanic_income_and_business_reports.sql
+supabase/migrations/20260711120000_v0_7_platform_fee_core.sql
+supabase/migrations/20260711120100_v0_7_platform_fee_api.sql
+supabase/migrations/20260711120200_v0_7_fix_period_intervals.sql
+supabase/migrations/20260711120300_v0_7_fix_admin_overview_alias.sql
+supabase/migrations/20260711120400_v0_7_optimize_platform_policies_and_foreign_keys.sql
+supabase/migrations/20260711130000_v0_8_notification_core.sql
+supabase/migrations/20260711130100_v0_8_notification_schedulers.sql
+supabase/migrations/20260711130200_v0_8_work_order_notifications.sql
+supabase/migrations/20260711130300_v0_8_appointment_extra_notifications.sql
+supabase/migrations/20260711130400_v0_8_customer_link_notifications.sql
+supabase/migrations/20260711130500_v0_8_platform_notifications.sql
+supabase/migrations/20260711130600_v0_8_notification_api.sql
+supabase/migrations/20260711130700_v0_8_notification_demo.sql
+supabase/migrations/20260711220000_v0_8_3_customer_motor_tax_linking.sql
+supabase/migrations/20260712111500_v0_8_5_mechanic_applications.sql
+supabase/migrations/20260712160000_v0_8_6_customer_discovery_booking.sql
+supabase/migrations/20260712193000_v0_8_8_remove_default_platform_note.sql
+supabase/migrations/20260712220000_v0_8_4_business_approval.sql
+supabase/migrations/20260712221000_v0_8_4_business_application_realtime.sql
+supabase/migrations/20260712223000_v0_8_9_ankara_demo_and_admin.sql
+supabase/migrations/20260713023000_v0_8_11_notifications_mechanic_scope_and_platform_periods.sql
+supabase/migrations/20260713113000_v0_8_12_primary_admin_guard.sql
+supabase/migrations/20260713153000_v0_8_14_mechanic_notifications_ready_payment.sql
+supabase/migrations/20260713161000_v0_8_15_payment_category_delivery.sql
+supabase/migrations/20260714002755_v0_9_privacy_account_deletion_security.sql
+supabase/migrations/20260714081258_v0_9_1_push_sounds_payment_focus.sql
+supabase/migrations/20260714093740_v0_9_3_ready_payment_details.sql
+supabase/migrations/20260714104039_v0_9_4_customer_payment_confirmation.sql
+supabase/migrations/20260714105549_v0_9_4_payment_report_collection_source_fix.sql
+supabase/migrations/20260714115331_v0_9_5_report_consistency_and_service_completion.sql
+supabase/migrations/20260714120905_v0_9_5_ready_not_active_report_fix.sql
+supabase/migrations/20260714164000_v0_9_6_pricing_notifications_and_delivery_guard.sql
+supabase/migrations/20260714190500_v0_9_7_today_queue_and_ready_price_guard.sql
+supabase/migrations/20260714232648_v1_0_2_workshop_access_core.sql
+supabase/migrations/20260714232710_v1_0_2_owner_access_management.sql
+supabase/migrations/20260714232731_v1_0_2_submit_access_request.sql
+supabase/migrations/20260714232802_v1_0_2_grant_and_review_access.sql
+supabase/migrations/20260714232820_v1_0_2_platform_fee_defaults.sql
+supabase/migrations/20260714232847_v1_0_2_registration_partner_request.sql
+supabase/migrations/20260715003000_v1_0_1_customer_memory_push_delivery.sql
+supabase/migrations/20260715004500_v1_0_1_note_author_snapshot.sql
+supabase/migrations/20260715005500_v1_0_1_motorcycle_odometer_sync.sql
+supabase/migrations/20260715024249_v1_0_3_application_entry.sql
+supabase/migrations/20260715170000_v1_0_5_notification_sound_channels.sql
+supabase/migrations/20260715213000_v1_0_7_push_delivery_hardening.sql
+supabase/migrations/20260715230000_v1_0_6_finance_mileage_firebase.sql
+supabase/rollbacks/20260711220000_v0_8_3_customer_motor_tax_linking_rollback.sql
+supabase/rollbacks/20260712111500_v0_8_5_mechanic_applications_rollback.sql
+supabase/rollbacks/20260712160000_v0_8_6_customer_discovery_booking_rollback.sql
+supabase/rollbacks/20260712193000_v0_8_8_remove_default_platform_note_rollback.sql
+supabase/rollbacks/20260712220000_v0_8_4_business_approval_rollback.sql
+supabase/rollbacks/20260712221000_v0_8_4_business_application_realtime_rollback.sql
+supabase/rollbacks/20260712223000_v0_8_9_ankara_demo_and_admin_rollback.sql
+supabase/rollbacks/rollback_v0_3_1_to_v0_3_0.sql
+supabase/rollbacks/rollback_v0_3_to_v0_2.sql
+supabase/rollbacks/rollback_v0_4_0_to_v0_3_1.sql
+supabase/rollbacks/rollback_v0_4_1_to_v0_4_0.sql
+supabase/rollbacks/rollback_v0_5_0_to_v0_4_1.sql
+supabase/rollbacks/rollback_v0_6_0_to_v0_5_0.sql
+supabase/rollbacks/rollback_v0_7_0_to_v0_6_0.sql
+supabase/rollbacks/rollback_v0_8_0_to_v0_7_0.sql
+supabase/rollbacks/rollback_v0_9_0_to_v0_8_16.sql
+supabase/rollbacks/rollback_v0_9_1_to_v0_9_0.sql
+supabase/rollbacks/rollback_v0_9_3_to_v0_9_2.sql
+supabase/rollbacks/rollback_v0_9_4_to_v0_9_3.sql
+supabase/rollbacks/rollback_v0_9_5_to_v0_9_4.sql
+supabase/rollbacks/rollback_v0_9_6_to_v0_9_5.sql
+supabase/rollbacks/rollback_v0_9_7_to_v0_9_6.sql
+supabase/rollbacks/rollback_v1_0_2_to_v1_0_1.sql
+supabase/rollbacks/rollback_v1_0_3_to_v1_0_2.sql
