@@ -103,6 +103,7 @@ jobs:
           name: v110-validation-diagnostics
           path: .runtime/
           if-no-files-found: warn
+          include-hidden-files: true
           retention-days: 2
 
       - name: Persist tested v1.1.0 and remove temporary files
