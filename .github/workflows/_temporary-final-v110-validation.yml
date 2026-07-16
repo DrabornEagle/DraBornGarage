@@ -1,0 +1,88 @@
+name: Temporary Final DraBornGarage v1.1.0 Validation
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draborngarage-v110-final-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    if: github.event.pull_request.head.ref == 'agent/v1.1.0-notifications-platform-policy'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+      EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/v1.1.0-notifications-platform-policy
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify workflow inventory and YAML
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t workflows < <(find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort)
+          printf '%s\n' "${workflows[@]}"
+          expected=(
+            _temporary-final-v110-validation.yml
+            release-aab.yml
+            release-apk.yml
+          )
+          [ "${workflows[*]}" = "${expected[*]}" ] || { echo 'Gereksiz veya eksik workflow bulundu'; exit 1; }
+          ruby -e "require 'yaml'; ARGV.each { |f| YAML.load_file(f, aliases: true); puts \"YAML OK: #{f}\" }" .github/workflows/*.yml
+          grep -q '^name: DraBornGarage Release APK$' .github/workflows/release-apk.yml
+          grep -q '^name: DraBornGarage Release AAB$' .github/workflows/release-aab.yml
+          grep -q 'play_version:' .github/workflows/release-aab.yml
+          grep -q 'play_version_code:' .github/workflows/release-aab.yml
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+
+      - name: Verify v1.1.0 contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const app=require('./app.json').expo;
+          const pkg=require('./package.json');
+          const lock=require('./package-lock.json');
+          if(app.version!=='1.1.0' || pkg.version!=='1.1.0' || lock.version!=='1.1.0') throw new Error('v1.1.0 sürüm sözleşmesi bozuk');
+          if(app.android.versionCode!==1 || app.ios.buildNumber!=='1') throw new Error('Test build kodu 1 değil');
+          const n=app.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-notifications')?.[1];
+          if(n?.defaultChannel!=='draborngarage-system-default-v5' || n?.sounds?.length!==9) throw new Error('Bildirim ses sözleşmesi bozuk');
+          for(const file of n.sounds) if(!fs.existsSync(file)||fs.statSync(file).size<20000) throw new Error(`Ses dosyası eksik: ${file}`);
+          NODE
+          test -f supabase/migrations/20260716173000_v1_1_0_notifications_percentage_platform_fee.sql
+          test -f supabase/migrations/20260716173500_v1_1_0_platform_charge_recalculation.sql
+          test -f supabase/migrations/20260716174000_v1_1_0_security_advisor_hardening.sql
+          grep -q 'default_fee_percentage numeric(7,4) not null default 10' supabase/migrations/20260716173000_v1_1_0_notifications_percentage_platform_fee.sql
+          grep -q '31 Ağustos 2026' docs/GOOGLE_PLAY_POLICY_CHECKLIST.md
+          grep -q 'API 36' docs/GOOGLE_PLAY_POLICY_CHECKLIST.md
