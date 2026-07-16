@@ -16,7 +16,7 @@ jobs:
   apply-test-persist:
     if: github.event.pull_request.head.ref == 'feature/v1.1.5-appointment-push-voice'
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 55
     env:
       CI: "true"
       EXPO_NO_TELEMETRY: "1"
@@ -31,39 +31,52 @@ jobs:
           ref: feature/v1.1.5-appointment-push-voice
           fetch-depth: 0
 
-      - name: Detect staged patch
-        id: staged
-        shell: bash
-        run: |
-          if [ -d scripts/v115-stage ]; then echo "needed=true" >> "$GITHUB_OUTPUT"; else echo "needed=false" >> "$GITHUB_OUTPUT"; fi
-
       - uses: actions/setup-node@v4
-        if: steps.staged.outputs.needed == 'true'
         with:
           node-version: 20
           cache: npm
 
-      - name: Apply source patches
-        if: steps.staged.outputs.needed == 'true'
+      - name: Apply, validate and persist v1.1.5
+        id: quality
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+          LOG="$RUNNER_TEMP/V115_QUALITY_EXECUTION.log"
+          : > "$LOG"
+          exec > >(tee -a "$LOG") 2>&1
+
+          save_failure() {
+            local code="$1" line="$2" command="$3"
+            trap - ERR
+            echo "V1.1.5 FAILURE exit=$code line=$line command=$command"
+            cp "$LOG" "$RUNNER_TEMP/V115_QUALITY_FAILURE.log"
+            git reset --hard HEAD
+            mkdir -p docs
+            cp "$RUNNER_TEMP/V115_QUALITY_FAILURE.log" docs/V115_QUALITY_FAILURE.log
+            jq -n --arg status failure --arg command "$command" --argjson exit_code "$code" --argjson line "$line" --arg run_id "$GITHUB_RUN_ID" --arg head_sha "$GITHUB_SHA" '{status:$status,exit_code:$exit_code,line:$line,command:$command,run_id:$run_id,head_sha:$head_sha}' > docs/V115_QUALITY_STATUS.json
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add docs/V115_QUALITY_FAILURE.log docs/V115_QUALITY_STATUS.json
+            git commit -m "ci: record v1.1.5 quality failure" || true
+            git push origin HEAD:feature/v1.1.5-appointment-push-voice || true
+            exit "$code"
+          }
+          trap 'save_failure $? $LINENO "$BASH_COMMAND"' ERR
+
+          test -d scripts/v115-stage
+          test -n "$EXPO_PUBLIC_SUPABASE_URL"
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+
           for file in scripts/v115-stage/core-01.patch scripts/v115-stage/core-02.patch scripts/v115-stage/core-03.patch scripts/v115-stage/core-03b.patch scripts/v115-stage/core-04.patch scripts/v115-stage/core-05.patch scripts/v115-stage/appointments-01.patch scripts/v115-stage/appointments-02.patch; do
             echo "Applying $file"
             patch --batch --forward -p1 < "$file"
           done
 
-      - name: Restore staged source and SQL
-        if: steps.staged.outputs.needed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$EXPO_PUBLIC_SUPABASE_URL"
-          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
-          curl -sS --fail --retry 5 "$EXPO_PUBLIC_SUPABASE_URL/rest/v1/v115_stage_parts?select=group_name,part_no,content&order=group_name.asc,part_no.asc" -H "apikey: $EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" -o /tmp/v115-stage.json
+          curl -sS --fail --retry 5 "$EXPO_PUBLIC_SUPABASE_URL/rest/v1/v115_stage_parts?select=group_name,part_no,content&order=group_name.asc,part_no.asc" -H "apikey: $EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" -o "$RUNNER_TEMP/v115-stage.json"
           node <<'NODE'
           const fs = require('fs');
-          const rows = JSON.parse(fs.readFileSync('/tmp/v115-stage.json', 'utf8'));
+          const rows = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/v115-stage.json', 'utf8'));
           const assemble = (group, expected) => {
             const parts = rows.filter((row) => row.group_name === group).sort((a, b) => a.part_no - b.part_no);
             if (parts.length !== expected || parts.some((row, index) => row.part_no !== index + 1)) throw new Error(`${group}: eksik stage parçası`);
@@ -76,22 +89,18 @@ jobs:
           fs.writeFileSync('supabase/migrations/20260717003000_v1_1_5_real_push_appointment_voice.sql', assemble('migration', 6));
           fs.writeFileSync('supabase/rollback/20260717003000_v1_1_5_real_push_appointment_voice_rollback.sql', assemble('rollback', 1));
           NODE
+
           echo '28a8093515e8c708cae316d441032e87a5f2fc6b056dd1eacda162beffcbd51d  src/notifications/NotificationContextV115.tsx' | sha256sum -c -
           echo '529b8e701d5c3a9ce0e9538c668f9b828ed7c658d0afe116e63a63b187bdddc9  supabase/migrations/20260717003000_v1_1_5_real_push_appointment_voice.sql' | sha256sum -c -
           echo '2ca65fe79d0e504ef103d951dcb67de6462ebbf87fbd44a20ea3a2880453d7e0  supabase/rollback/20260717003000_v1_1_5_real_push_appointment_voice_rollback.sql' | sha256sum -c -
 
-      - name: Generate Turkish voice notification sounds
-        if: steps.staged.outputs.needed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq espeak-ng ffmpeg
-          mkdir -p assets/sounds /tmp/draborngarage-voice
+          mkdir -p assets/sounds "$RUNNER_TEMP/draborngarage-voice"
           make_voice() {
             local name="$1"; shift
-            espeak-ng -v tr -s 142 -p 44 -a 185 -w "/tmp/draborngarage-voice/${name}.raw.wav" "$*"
-            ffmpeg -loglevel error -y -i "/tmp/draborngarage-voice/${name}.raw.wav" -ar 44100 -ac 1 -c:a pcm_s16le "assets/sounds/${name}.wav"
+            espeak-ng -v tr -s 142 -p 44 -a 185 -w "$RUNNER_TEMP/draborngarage-voice/${name}.raw.wav" "$*"
+            ffmpeg -loglevel error -y -i "$RUNNER_TEMP/draborngarage-voice/${name}.raw.wav" -ar 44100 -ac 1 -c:a pcm_s16le "assets/sounds/${name}.wav"
           }
           make_voice voice_appointment 'Randevu geldi. Lütfen kontrol edin.'
           make_voice voice_service 'Servis bildirimi geldi. Lütfen kontrol edin.'
@@ -101,40 +110,17 @@ jobs:
           make_voice voice_customer 'Müşteri bildirimi geldi. Lütfen kontrol edin.'
           make_voice voice_system 'DraBornGarage bildirimi geldi. Lütfen kontrol edin.'
 
-      - name: Remove staging files
-        if: steps.staged.outputs.needed == 'true'
-        shell: bash
-        run: |
           rm -rf scripts/v115-stage
           rm -f scripts/apply_v115_appointment_push_voice.py
-          rm -f docs/V115_WORK_STARTED.md docs/SOURCE_EXPORT_V115.json docs/V115_SECRET_CHECK.json
+          rm -f docs/V115_WORK_STARTED.md docs/SOURCE_EXPORT_V115.json docs/V115_SECRET_CHECK.json docs/V115_QUALITY_FAILURE.log
           rm -f .github/workflows/_temporary-v115-secret-check.yml
 
-      - name: Refresh package lock
-        if: steps.staged.outputs.needed == 'true'
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --no-audit --no-fund
+          npx expo-doctor
+          npm run typecheck
+          npm run test:bundle
 
-      - name: Install locked dependencies
-        if: steps.staged.outputs.needed == 'true'
-        run: npm ci --no-audit --no-fund
-
-      - name: Expo Doctor
-        if: steps.staged.outputs.needed == 'true'
-        run: npx expo-doctor
-
-      - name: TypeScript
-        if: steps.staged.outputs.needed == 'true'
-        run: npm run typecheck
-
-      - name: Android JavaScript bundle
-        if: steps.staged.outputs.needed == 'true'
-        run: npm run test:bundle
-
-      - name: Verify v1.1.5 release contract
-        if: steps.staged.outputs.needed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
           node <<'NODE'
           const fs = require('fs');
           const app = require('./app.json').expo;
@@ -155,15 +141,15 @@ jobs:
           for (const value of ['notification_reconcile_push_attempts','notification_enqueue_pending_appointment_actions',"interval '5 minutes'",'InvalidCredentials']) if (!migration.includes(value)) throw new Error(`Migration eksik: ${value}`);
           NODE
 
-      - name: Persist tested source to feature branch
-        if: steps.staged.outputs.needed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
           rm -rf node_modules dist
+          mkdir -p docs
+          jq -n --arg status success --arg run_id "$GITHUB_RUN_ID" --arg head_sha "$GITHUB_SHA" '{status:$status,run_id:$run_id,head_sha:$head_sha}' > docs/V115_QUALITY_STATUS.json
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
-          git commit -m 'feat: prepare DraBornGarage v1.1.5 appointment push and voice notifications'
-          git pull --rebase origin feature/v1.1.5-appointment-push-voice
+          git commit -m 'feat: complete DraBornGarage v1.1.5 appointment push and voice notifications'
           git push origin HEAD:feature/v1.1.5-appointment-push-voice
+
+      - name: Fail when quality step failed
+        if: steps.quality.outcome == 'failure'
+        run: exit 1
