@@ -1,0 +1,42 @@
+name: Temporary Export Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-export-source.yml
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Create source archive
+        shell: bash
+        run: |
+          mkdir -p source-export
+          tar --exclude=.git --exclude=node_modules --exclude=dist --exclude=source-export -czf source-export/DraBornGarage-main-source.tar.gz .
+          printf '%s\n' "$GITHUB_SHA" > source-export/SOURCE_COMMIT.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DraBornGarage-Current-Source
+          path: source-export/
+          retention-days: 2
+          if-no-files-found: error
+      - name: Publish export run marker
+        shell: bash
+        run: |
+          mkdir -p .runtime
+          printf '%s\n' "$GITHUB_RUN_ID" > .runtime/source-export-run.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_temporary-export-source.yml
+          git add .runtime/source-export-run.txt
+          git commit -m 'chore: publish source export run id'
+          git pull --rebase origin main
+          git push origin HEAD:main
