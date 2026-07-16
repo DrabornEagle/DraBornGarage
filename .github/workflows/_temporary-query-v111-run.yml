@@ -21,10 +21,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p docs
-          gh run list --repo "$GITHUB_REPOSITORY" --workflow _temporary-v111-notification-fix.yml --branch fix/v1.1.1-notification-permission-sounds --limit 10 --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url > docs/V111_RUN_QUERY.json
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow _temporary-finalize-v111.yml --branch main --limit 10 --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url > docs/V111_RUN_QUERY.json
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add docs/V111_RUN_QUERY.json
-          git commit -m 'ci: record v1.1.1 notification fix run status'
+          git commit -m 'ci: record v1.1.1 finalizer status'
           git pull --rebase origin main
           git push origin HEAD:main
