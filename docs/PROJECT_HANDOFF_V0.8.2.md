@@ -1,23 +1,34 @@
 # DraBornGarage — Teslim ve Devam Dosyası
 
 **Son güncelleme:** 16 Temmuz 2026  
-**Güncel geliştirme sürümü:** `v1.1.3`  
+**Güncel geliştirme sürümü:** `v1.1.4`  
 **Android test versionCode:** `1`  
 **İlk Google Play sürümü:** `v1.0 / versionCode 1`  
 **GitHub:** `DrabornEagle/DraBornGarage`  
 **Supabase:** `xpdiwyxnnrmyvpcqwuyb`
 
-> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.3 ile günceldir.
+> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.4 ile günceldir.
 
 ## Sürüm standardı
 
-- Geliştirme sürümleri `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3` şeklinde ilerler.
+- Geliştirme sürümleri `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4` şeklinde ilerler.
 - İlk AAB alınana kadar Android `versionCode=1` sabit kalır.
 - Küçük testler Expo Go ile yapılır.
 - Native bildirim ve gerçek cihaz testleri **DraBornGarage Release APK** workflow’u ile yapılır.
 - Google Play paketi **DraBornGarage Release AAB** workflow’u ile oluşturulur.
 - İlk Play paketi `versionName=1.0`, `versionCode=1` ile başlar.
 - İlk mağaza yayınından sonra sürüm adı ve versionCode birlikte artırılır.
+
+## v1.1.4 — Yayın öncesi son düzenlemeler
+
+- Geçersiz cihaz kimliği yerine RFC 4122 UUID v4 kullanılır.
+- Android bildirim kanalları v7’ye taşınır; ses seçimi anında önizlenir.
+- Bildirim Sesi ve Bildirim Tercihleri açılır/kapanır ana kategorilerdir.
+- Telefon sesini zorla yükseltmek yerine Android bildirim ayarına açık kullanıcı yönlendirmesi sunulur.
+- Pilot Test Atölyesi yalnız Admin’e görünür.
+- İşletme sahibi ve usta hesaplarında Müşteri Görünümüne Geç gösterilmez.
+- Müşteri listeleri 4 kayıtla başlar ve her dokunuşta 10 kayıt daha açılır.
+- Geri alma dalı: `backup/v1.1.3-before-v1.1.4-20260716`.
 
 ## v1.1.3 — Push token modülü düzeltmesi
 
@@ -67,12 +78,12 @@
 6. Native değişiklikte Release APK workflow’unu çalıştır.
 7. Supabase değişikliği varsa migration ve rollback dosyasını birlikte sakla.
 
-## v1.1.3 Termux yedek + kurulum
+## v1.1.4 Termux yedek + kurulum
 
 ```bash
 cd "$HOME"
-KURULAN_SURUM="v1.1.3"
-YEDEKLENEN_SURUM="v1.1.2"
+KURULAN_SURUM="v1.1.4"
+YEDEKLENEN_SURUM="v1.1.3"
 TARIH="$(date +%Y%m%d-%H%M%S)"
 YEDEK_KLASORU="$HOME/DraBornGarage-${YEDEKLENEN_SURUM}-local-backup-${TARIH}"
 ZIP_DOSYASI="$HOME/DraBornGarage-${KURULAN_SURUM}.zip"
@@ -106,4 +117,4 @@ npx expo start -c --go
 
 ## Yerel geri alma
 
-Yeni klasörü silmek yerine hata durumunda ayrı bir adla taşı ve oluşturulan `v1.1.2` yedek klasörünü tekrar `DraBornGarage` adına getir. Ardından `npm ci` ve `npx expo start -c --go` çalıştır.
+Yeni klasörü silmek yerine hata durumunda ayrı bir adla taşı ve oluşturulan `v1.1.3` yedek klasörünü tekrar `DraBornGarage` adına getir. Ardından `npm ci` ve `npx expo start -c --go` çalıştır.

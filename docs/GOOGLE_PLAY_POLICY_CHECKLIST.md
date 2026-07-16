@@ -1,7 +1,7 @@
 # DraBornGarage — Google Play Yayın Öncesi Kontrolü
 
 **Kontrol tarihi:** 16 Temmuz 2026  
-**Geliştirme sürümü:** v1.1.0  
+**Geliştirme sürümü:** v1.1.4  
 **İlk mağaza sürümü:** v1.0 / versionCode 1
 
 ## Kod tarafında tamamlananlar
@@ -14,6 +14,8 @@
 - Push tokenı, bildirim tercihi, isteğe bağlı dekont ve finansal kayıtların kullanım amaçları gizlilik politikasında açıklanır.
 - APK/AAB workflow’ları yasak izin, imza, target SDK ve sürüm metadata kontrolleri yapar.
 - Platform bedeli kullanıcı ödemesi olarak uygulama içinde tahsil edilmez; işletme ile Admin arasındaki kayıt/takip akışıdır.
+- Uygulama telefonun genel bildirim sesini habersiz veya zorla yükseltmez; ses düzeyi ve kanal davranışı Android kullanıcı ayarına bırakılır.
+- Pilot test araçları yalnız Admin rolüne görünür; üretim kullanıcılarının iş akışından gizlenir.
 
 ## Play Console’a girilecek herkese açık bağlantılar
 
@@ -43,10 +45,10 @@ Bu bağlantılar Play Console’a girilmeden önce çıkış yapılmış tarayı
 
 ## Yayın kapısı
 
-Aşağıdakiler tamamlanmadan production AAB yüklenmez:
+**Kod tarafı yayın öncesi hazırdır; ancak aşağıdaki fiziksel cihaz ve Play Console adımları tamamlanmadan production AAB yüklenmez:**
 
 1. Temiz kurulumda kayıt, giriş ve rol geçişleri.
-2. Release APK kurulduktan sonra Bildirim Merkezi’nde push cihaz kaydı durumunun **Kayıtlı** görünmesi.
+2. v1.1.4 Release APK kurulduktan sonra Bildirim Merkezi’nde push cihaz kaydı durumunun **Kayıtlı** görünmesi ve Supabase’te en az bir etkin token oluşması.
 3. Uygulama tamamen kapalıyken push bildirimi ve farklı kanal sesleri.
 4. Bildirim izni reddetme/açma senaryoları.
 5. Yüzde %10 ve sabit 50 TL platform bedeli örnek hesapları.

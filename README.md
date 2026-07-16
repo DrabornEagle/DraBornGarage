@@ -4,15 +4,26 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel geliştirme sürümü
 
-**v1.1.3 — Expo SDK 54 Push Token Modülü Düzeltmesi**
+**v1.1.4 — Yayın Öncesi Bildirim, Rol ve Liste Düzenlemesi**
 
-- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, `v1.1.2`, ardından `v1.1.3`…
+- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, ardından `v1.1.4`…
 - AAB alınana kadar Android `versionCode` sabit: `1`
 - Expo: küçük arayüz ve işlev testleri
 - Native bildirim ve gerçek cihaz testleri: **DraBornGarage Release APK**
 - Google Play paketi: **DraBornGarage Release AAB**
 - İlk Google Play yayını: uygulama `versionName` **1.0**, `versionCode` **1**
 - İlk Play yayınından sonra her mağaza güncellemesinde hem sürüm hem `versionCode` artırılır.
+
+## v1.1.4 düzeltmeleri
+
+- Expo servisinin kabul ettiği RFC 4122 UUID biçiminde kalıcı cihaz kimliği oluşturulur; eski geçersiz `garage-...` kimliği temizlenir.
+- Android bildirim kanalları v7 kimlikleriyle oluşturulur; yüksek önem ve güçlü titreşim korunur.
+- Ses seçildiğinde seçilen kanal anında önizlenir.
+- Bildirim Sesi ve Bildirim Tercihleri ana açılır/kapanır kategorilere dönüştürülür.
+- Telefonun genel ses seviyesi habersiz değiştirilmez; kullanıcı doğrudan Android bildirim ayarına yönlendirilir.
+- Pilot Test Atölyesi yalnız Admin’e görünür; işletme sahibi ve usta hesaplarında Müşteri Görünümüne Geç kartı gösterilmez.
+- Müşteri Hafızası ve Müşteriler ekranı ilk 4 kaydı gösterir; her Daha Fazla dokunuşunda 10 kayıt daha açılır.
+- Güncel geri alma noktası `backup/v1.1.3-before-v1.1.4-20260716` olarak tanımlanır.
 
 ## v1.1.3 düzeltmeleri
 

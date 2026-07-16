@@ -32,7 +32,9 @@ import { NotificationPreferences, NotificationSoundKey, PushRegistrationStatus }
 export const NotificationProvider = BaseNotificationProvider;
 export { NOTIFICATION_SOUND_OPTIONS };
 
-const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
+const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-uuid-v114';
+const LEGACY_DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
+const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PUSH_TOKEN_STORAGE_KEY = '@draborngarage/expo-push-token';
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
 const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID
@@ -83,8 +85,8 @@ function readableError(error: unknown, stage: string) {
   if (raw.includes('ERR_NOTIFICATIONS_NETWORK_ERROR')) {
     return `${stage}: internet bağlantısı kurulamadı`;
   }
-  if (raw.includes('ERR_NOTIF_DEVICE_ID')) {
-    return `${stage}: uygulama kurulum kimliği oluşturulamadı`;
+  if (raw.includes('ERR_NOTIF_DEVICE_ID') || raw.includes('Invalid UUID')) {
+    return `${stage}: geçerli uygulama kurulum kimliği oluşturulamadı`;
   }
   if (raw.includes('undefined is not a function')) {
     return `${stage}: native bildirim köprüsündeki gerekli fonksiyon bulunamadı`;
@@ -92,11 +94,20 @@ function readableError(error: unknown, stage: string) {
   return `${stage}: ${raw}`;
 }
 
+function createUuidV4() {
+  const bytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.map((value) => value.toString(16).padStart(2, '0'));
+  return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10, 16).join('')}`;
+}
+
 async function getDeviceId() {
   let id = await AsyncStorage.getItem(DEVICE_ID_STORAGE_KEY);
-  if (!id) {
-    id = `garage-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  if (!id || !UUID_V4_PATTERN.test(id)) {
+    id = createUuidV4();
     await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+    await AsyncStorage.removeItem(LEGACY_DEVICE_ID_STORAGE_KEY);
   }
   return id;
 }
@@ -225,7 +236,6 @@ export function useNotifications() {
   const updatePreferences = useCallback(async (patch: Partial<NotificationPreferences>) => {
     const error = await base.updatePreferences(patch);
     if (error) return error;
-    if (patch.notification_sound) await previewNotificationSound(patch.notification_sound);
     if (patch.push_notifications_enabled === true) {
       const registered = await registerPushNotifications();
       if (!registered) return errorRef.current || 'Telefon push kaydı tamamlanamadı';
