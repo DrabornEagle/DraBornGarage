@@ -1,0 +1,102 @@
+name: Temporary Finalize DraBornGarage v1.1.1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-finalize-v111.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draborngarage-finalize-v111
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v1.1.1-notification-permission-sounds
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set v1.1.1 metadata
+        shell: bash
+        run: |
+          npm version 1.1.1 --no-git-tag-version
+          node <<'NODE'
+          const fs=require('fs');
+          const app=JSON.parse(fs.readFileSync('app.json','utf8'));
+          app.expo.version='1.1.1';
+          app.expo.android.versionCode=1;
+          const plugin=app.expo.plugins.find((item)=>Array.isArray(item)&&item[0]==='expo-notifications');
+          if(!plugin) throw new Error('expo-notifications plugin bulunamadı');
+          plugin[1].defaultChannel='draborngarage-system-default-v6';
+          fs.writeFileSync('app.json',JSON.stringify(app,null,2)+'\n');
+
+          let readme=fs.readFileSync('README.md','utf8');
+          readme=readme.replace('**v1.1.0 — Bildirim Güvenilirliği, Yüzdelik Platform Bedeli ve Google Play Hazırlığı**','**v1.1.1 — Bildirim İzni ve Zil Sesi Düzeltmesi**');
+          if(!readme.includes('## v1.1.1 düzeltmeleri')) readme=readme.replace('## v1.1.0 ile yapılanlar','## v1.1.1 düzeltmeleri\n\n- Android bildirim izni açma akışındaki native yöntem hatası giderildi.\n- Tüm zil sesleri Supabase tercih kaydında kabul edilir.\n- Android bildirim kanalları temiz `v6` kimlikleriyle yeniden oluşturulur.\n\n## v1.1.0 ile yapılanlar');
+          fs.writeFileSync('README.md',readme);
+
+          let handoff=fs.readFileSync('docs/PROJECT_HANDOFF_V0.8.2.md','utf8');
+          handoff=handoff.replace('**Güncel geliştirme sürümü:** `v1.1.0`','**Güncel geliştirme sürümü:** `v1.1.1`');
+          fs.writeFileSync('docs/PROJECT_HANDOFF_V0.8.2.md',handoff);
+          NODE
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+
+      - name: Verify notification fix contract
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const app=require('./app.json').expo;
+          const pkg=require('./package.json');
+          const lock=require('./package-lock.json');
+          if(app.version!=='1.1.1'||pkg.version!=='1.1.1'||lock.version!=='1.1.1'||lock.packages?.['']?.version!=='1.1.1') throw new Error('v1.1.1 sürüm sözleşmesi bozuk');
+          if(app.android.versionCode!==1) throw new Error('versionCode 1 kalmalı');
+          if(app.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-notifications')?.[1]?.defaultChannel!=='draborngarage-system-default-v6') throw new Error('v6 kanal eksik');
+          const permissions=fs.readFileSync('src/notifications/notificationPermissions.ts','utf8');
+          if(permissions.includes('deleteNotificationChannelAsync(id).catch')) throw new Error('Güvensiz catch kaldı');
+          if(!permissions.includes("typeof api.setNotificationChannelAsync !== 'function'")) throw new Error('Native yöntem koruması eksik');
+          const migration=fs.readFileSync('supabase/migrations/20260716193000_v1_1_1_notification_permission_sound_fix.sql','utf8');
+          for(const sound of ['system_loud','garage_chime','garage_pulse','garage_alert','garage_bell','garage_siren','garage_turbo','garage_metal','garage_digital','garage_retro','silent']) if(!migration.includes(sound)) throw new Error(`Eksik ses: ${sound}`);
+          NODE
+
+      - name: Commit tested v1.1.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -f .github/workflows/_temporary-v111-notification-fix.yml || true
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app.json package.json package-lock.json README.md docs/PROJECT_HANDOFF_V0.8.2.md src/notifications/notificationPermissions.ts supabase/migrations/20260716193000_v1_1_1_notification_permission_sound_fix.sql
+          git commit -m "fix: finalize notification permission and sound selection v1.1.1"
+          git push origin HEAD:fix/v1.1.1-notification-permission-sounds
