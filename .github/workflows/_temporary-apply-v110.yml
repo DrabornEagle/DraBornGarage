@@ -8,10 +8,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: draborngarage-v1.1.0-persist
+  cancel-in-progress: true
 
 jobs:
-  apply-test-package:
+  apply-test-persist-source:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'agent/v1.1.0-notifications-platform-policy'
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -35,18 +39,13 @@ jobs:
           cache: npm
 
       - name: Decode and apply v1.1.0 patch
-        id: patch
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p .runtime
           cat scripts/.v110_payload_* | base64 --decode | gzip --decompress > /tmp/v110_upgrade.py
           python3 scripts/.v110_fix.py
-          set +e
-          python3 /tmp/v110_upgrade.py > .runtime/v110-patch.log 2>&1
-          status=$?
-          set -e
-          cat .runtime/v110-patch.log
-          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          python3 /tmp/v110_upgrade.py 2>&1 | tee .runtime/v110-patch.log
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
       - name: Install locked dependencies and generate sounds
@@ -106,19 +105,16 @@ jobs:
           include-hidden-files: true
           retention-days: 2
 
-      - name: Prepare tested v1.1.0 source
+      - name: Persist tested application source
         shell: bash
         run: |
           set -euo pipefail
-          rm -f scripts/.v110_payload_* scripts/.v110_fix.py .github/workflows/_temporary-apply-v110.yml docs/.pr-trigger
+          git checkout -- .github/workflows/release-apk.yml .github/workflows/release-aab.yml
+          rm -f scripts/.v110_payload_* scripts/.v110_fix.py docs/.pr-trigger
           rm -rf .runtime node_modules dist
-          tar --exclude=.git -czf /tmp/DraBornGarage-v1.1.0-tested-source.tar.gz .
-
-      - name: Upload tested v1.1.0 source
-        uses: actions/upload-artifact@v4
-        with:
-          name: DraBornGarage-v1.1.0-tested-source
-          path: /tmp/DraBornGarage-v1.1.0-tested-source.tar.gz
-          if-no-files-found: error
-          retention-days: 3
-          compression-level: 0
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'feat: prepare DraBornGarage v1.1.0 application source'
+          git pull --rebase origin agent/v1.1.0-notifications-platform-policy
+          git push origin HEAD:agent/v1.1.0-notifications-platform-policy
