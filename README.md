@@ -4,15 +4,24 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel geliştirme sürümü
 
-**v1.1.1 — Bildirim İzni ve Zil Sesi Düzeltmesi**
+**v1.1.2 — Kapalı Uygulama Pushu ve Randevu Bildirim Düzeltmesi**
 
-- Geliştirme/test sürümleri: `v1.1.0`, ardından `v1.1.1`, `v1.1.2`…
+- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, ardından `v1.1.2`…
 - AAB alınana kadar Android `versionCode` sabit: `1`
 - Expo: küçük arayüz ve işlev testleri
 - Native bildirim ve gerçek cihaz testleri: **DraBornGarage Release APK**
 - Google Play paketi: **DraBornGarage Release AAB**
 - İlk Google Play yayını: uygulama `versionName` **1.0**, `versionCode` **1**
 - İlk Play yayınından sonra her mağaza güncellemesinde hem sürüm hem `versionCode` artırılır.
+
+## v1.1.2 düzeltmeleri
+
+- Android’in gerçek FCM cihaz tokenı alınarak Expo push tokenına açıkça bağlanır.
+- Uygulama kapalıyken bildirim için cihaz kaydı yeniden tasarlandı ve aşama bazlı hata gösterimi eklendi.
+- Zil sesi seçildiğinde seçilen kanal bir saniyelik bildirimle otomatik önizlenir.
+- `owner_mechanic` rolündeki işletme ortakları yeni müşteri randevusu, saat değişikliği ve durum bildirimlerini alır.
+- Atanmış usta aynı zamanda işletme ortağıysa aynı randevu hareketi çift bildirim oluşturmaz.
+- Kaçırılmış aktif müşteri randevularının işletme sahibi bildirimleri yeniden oluşturuldu.
 
 ## v1.1.1 düzeltmeleri
 
