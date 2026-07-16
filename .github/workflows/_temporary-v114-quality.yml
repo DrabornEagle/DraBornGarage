@@ -1,0 +1,98 @@
+name: Temporary DraBornGarage v1.1.4 Quality
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draborngarage-v114-quality
+  cancel-in-progress: true
+
+jobs:
+  apply-test-persist:
+    if: github.event.pull_request.head.ref == 'feature/v1.1.4-final-preplay-fixes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+      EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v1.1.4-final-preplay-fixes
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply v1.1.4 patch
+        run: python3 scripts/apply_v114_final_preplay.py
+
+      - name: Refresh package lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+
+      - name: Verify v1.1.4 release contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const app=require('./app.json').expo;
+          const pkg=require('./package.json');
+          const lock=require('./package-lock.json');
+          if(app.version!=='1.1.4'||pkg.version!=='1.1.4'||lock.version!=='1.1.4'||lock.packages?.['']?.version!=='1.1.4') throw new Error('v1.1.4 metadata uyuşmuyor');
+          if(app.android.versionCode!==1||app.ios.buildNumber!=='1') throw new Error('Test build kodu 1 değil');
+          const plugin=app.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-notifications')?.[1];
+          if(plugin?.defaultChannel!=='draborngarage-system-default-v7') throw new Error('v7 varsayılan kanal eksik');
+          for(const path of [
+            'src/notifications/NotificationContextV114.tsx',
+            'src/notifications/notificationPermissions.ts',
+            'src/notifications/NotificationCenterScreen.tsx',
+            'src/screens/SettingsScreen.tsx',
+            'src/screens/CustomerMemoryScreen.tsx',
+            'src/screens/CustomersScreen.tsx',
+            'supabase/migrations/20260716230000_v1_1_4_notification_channels_v7.sql',
+            'supabase/rollback/20260716230000_v1_1_4_notification_channels_v7_rollback.sql'
+          ]) if(!fs.existsSync(path)) throw new Error(`Eksik dosya: ${path}`);
+          const context=fs.readFileSync('src/notifications/NotificationContextV114.tsx','utf8');
+          if(!context.includes('UUID_V4_PATTERN')||context.includes('garage-${Date.now()}')) throw new Error('UUID düzeltmesi eksik');
+          const settings=fs.readFileSync('src/screens/SettingsScreen.tsx','utf8');
+          if(settings.includes('v1.0.8 Production')||!settings.includes('backup/v1.1.3-before-v1.1.4-20260716')) throw new Error('Eski geri alma etiketi kaldı');
+          NODE
+          test "$(find .github/workflows -maxdepth 1 -type f -name '*.yml' | wc -l)" -ge 3
+
+      - name: Persist tested source to feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f scripts/apply_v114_final_preplay.py
+          rm -rf node_modules dist
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'feat: prepare DraBornGarage v1.1.4 final pre-Play fixes'
+          git pull --rebase origin feature/v1.1.4-final-preplay-fixes
+          git push origin HEAD:feature/v1.1.4-final-preplay-fixes
