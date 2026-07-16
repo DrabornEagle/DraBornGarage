@@ -7,14 +7,96 @@ on:
       - .github/workflows/_temporary-dispatch-release-apk.yml
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
+concurrency:
+  group: draborngarage-v110-apk-dispatch
+  cancel-in-progress: true
+
 jobs:
-  dispatch:
+  dispatch-watch-record:
     runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Dispatch real DraBornGarage Release APK workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run release-apk.yml --repo "${{ github.repository }}" --ref main -f publish_github_release=false
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find or dispatch real DraBornGarage Release APK workflow
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_sha="$(git rev-parse HEAD)"
+          previous_sha="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          run_id="$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow release-apk.yml \
+            --event workflow_dispatch \
+            --branch main \
+            --limit 20 \
+            --json databaseId,headSha,createdAt,status \
+            --jq ".[] | select(.headSha == \"$current_sha\" or .headSha == \"$previous_sha\") | .databaseId" \
+            | head -n 1)"
+
+          if [ -z "$run_id" ]; then
+            before_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --event workflow_dispatch --branch main --limit 1 --json databaseId --jq '.[0].databaseId // 0')"
+            gh workflow run release-apk.yml --repo "$GITHUB_REPOSITORY" --ref main -f publish_github_release=false
+            for attempt in $(seq 1 40); do
+              sleep 5
+              candidate="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --event workflow_dispatch --branch main --limit 1 --json databaseId --jq '.[0].databaseId // 0')"
+              if [ "$candidate" != "0" ] && [ "$candidate" != "$before_id" ]; then
+                run_id="$candidate"
+                break
+              fi
+            done
+          fi
+
+          [ -n "$run_id" ] || { echo 'Release APK run kimliği bulunamadı'; exit 1; }
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Release APK run: $run_id"
+
+      - name: Watch Release APK workflow
+        id: watch
+        continue-on-error: true
+        shell: bash
+        run: gh run watch "${{ steps.release.outputs.run_id }}" --repo "$GITHUB_REPOSITORY" --exit-status --interval 10
+
+      - name: Record run and artifact result in repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="${{ steps.release.outputs.run_id }}"
+          run_json="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json status,conclusion,url,headSha,createdAt,updatedAt)"
+          status="$(printf '%s' "$run_json" | jq -r '.status')"
+          conclusion="$(printf '%s' "$run_json" | jq -r '.conclusion // "unknown"')"
+          url="$(printf '%s' "$run_json" | jq -r '.url')"
+          head_sha="$(printf '%s' "$run_json" | jq -r '.headSha')"
+          artifacts="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" --jq '.artifacts[].name' | paste -sd ', ' -)"
+          [ -n "$artifacts" ] || artifacts="Henüz artifact yok"
+
+          mkdir -p docs
+          cat > docs/BUILD_STATUS_V1.1.0.md <<EOF
+          # DraBornGarage v1.1.0 Release APK Durumu
+
+          - Workflow: DraBornGarage Release APK
+          - Run ID: \`$run_id\`
+          - Durum: \`$status\`
+          - Sonuç: \`$conclusion\`
+          - Commit: \`$head_sha\`
+          - Artifact: $artifacts
+          - GitHub Actions: $url
+          - Kayıt zamanı: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          EOF
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/BUILD_STATUS_V1.1.0.md
+          git commit -m "build: record DraBornGarage v1.1.0 Release APK result"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+          [ "$conclusion" = "success" ] || exit 1
