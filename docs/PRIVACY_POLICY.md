@@ -1,7 +1,7 @@
 # DraBornGarage Gizlilik Politikası
 
 **Yürürlük tarihi:** 16 Temmuz 2026  
-**Sürüm:** 1.2 — DraBornGarage v1.1.0
+**Politika sürümü:** 1.3 — DraBornGarage v1.1.4
 
 DraBornGarage; motosiklet ve araç servis işletmelerinin müşteri, servis, randevu, tahsilat, alacak ve platform hizmet bedeli süreçlerini yönetmesine yardımcı olan rol tabanlı bir mobil uygulamadır.
 
@@ -22,7 +22,7 @@ Uygulamadaki rolüne ve kullandığın özelliklere göre aşağıdaki veriler i
 - Servis: randevu, iş emri, teşhis, işlem, parça, fiyat, onay, durum ve servis geçmişi.
 - Finansal kayıt: nakit/IBAN yöntemi, tahsilat, alacak/veresiye, ödeme sözü ve platform hizmet bedeli kayıtları.
 - Usta ödeme bilgisi: Usta özelliği isteğe bağlı açarsa banka adı, hesap sahibi ve IBAN.
-- Bildirim: bildirim tercihleri, okundu/arşivlendi bilgisi, push tokenı ve zamanlı hatırlatmalar.
+- Bildirim: bildirim tercihleri, okundu/arşivlendi bilgisi, push tokenı, cihaz kurulum kimliği ve zamanlı hatırlatmalar.
 - Dosya: yalnız kullanıcı sistem fotoğraf seçicisinden tek bir dosya seçerse platform ödeme dekontu.
 - Teknik güvenlik: oturum, kullanıcı kimliği, uygulama sürümü, cihaz platformu, hata ve güvenlik denetimi için gerekli teknik kayıtlar.
 
@@ -72,9 +72,11 @@ DraBornGarage yalnız gerekli izinleri ister:
 
 Konum, mikrofon, rehber, telefon araması ve SMS izinleri kullanılmaz ve Android yapılandırmasında engellenir.
 
+DraBornGarage telefonun genel bildirim ses düzeyini habersiz veya zorla değiştirmez. Bildirim kanalı sesi ve ses seviyesi Android kullanıcı ayarları tarafından yönetilir.
+
 ## 7. Altyapı ve veri paylaşımı
 
-Supabase; kimlik doğrulama, veritabanı, dosya depolama, erişim kontrolü ve canlı güncelleme altyapısı olarak kullanılır. Expo Push Service yalnız bildirim izni veren cihazlara bildirim ulaştırmak için push tokenını işler.
+Supabase; kimlik doğrulama, veritabanı, dosya depolama, erişim kontrolü ve canlı güncelleme altyapısı olarak kullanılır. Expo Push Service yalnız bildirim izni veren cihazlara bildirim ulaştırmak için push tokenını ve rastgele oluşturulan uygulama kurulum kimliğini işler.
 
 Yetkili servis işletmesi ve rol kapsamındaki personel yalnız hizmetin yürütülmesi için gerekli verilere erişebilir. İsteğe bağlı Usta IBAN bilgisi, yalnız yukarıdaki Motor Hazır koşulları gerçekleştiğinde ilgili müşteriyle paylaşılır.
 
@@ -86,6 +88,7 @@ Yetkili servis işletmesi ve rol kapsamındaki personel yalnız hizmetin yürüt
 - Talepler en geç 30 gün içinde incelenir.
 - Açık servis, alacak, işletme sorumluluğu veya yasal saklama zorunluluğu bulunan kayıtlar doğrudan silinmek yerine erişimi sınırlandırılarak gerekli süre boyunca tutulabilir.
 - Silinmesi mümkün kişisel bağlantılar kaldırılır veya anonimleştirilir.
+- Kullanıcının push tokenı ve uygulama kurulum kimliği hesap silme işlemi kapsamında silinir veya anonimleştirilir.
 
 ## 9. Güvenlik
 
