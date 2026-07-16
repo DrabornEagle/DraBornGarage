@@ -1,0 +1,106 @@
+name: Temporary Run v1.0.0 Final Candidate Patch
+
+on:
+  push:
+    branches:
+      - feature/v1.0.0-final-candidate
+    paths:
+      - .github/workflows/_temporary-run-v100-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-persist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+      EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v1.0.0-final-candidate
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply transparent source patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/v100_patch_part1_safe.py
+          python3 scripts/v100_patch_part2.py
+          python3 scripts/v100_patch_part3.py
+          sed -i 's/v0\.9\.3 TAKVİM/RANDEVU TAKVİMİ/g' src/screens/AppointmentsScreen.tsx
+          sed -i 's/v0\.6 Rapor Merkezi/Rapor Merkezi/g' src/components/ReportsDashboard.tsx
+          sed -i 's/v0\.4 SERVİS TAKİBİ/SERVİS TAKİBİ/g' src/customer/CustomerServicesScreen.tsx
+
+      - name: Normalize bundled notification sounds
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct, wave
+          for path in map(Path, ['assets/sounds/garage_chime.wav','assets/sounds/garage_pulse.wav','assets/sounds/garage_alert.wav']):
+              with wave.open(str(path),'rb') as src:
+                  params=src.getparams(); raw=src.readframes(src.getnframes())
+              if params.sampwidth != 2:
+                  raise SystemExit(f'{path}: only 16-bit PCM supported')
+              values=list(struct.unpack('<'+'h'*(len(raw)//2),raw))
+              peak=max(1,max(abs(v) for v in values))
+              gain=min(5.0, 32000/peak)
+              boosted=[max(-32767,min(32767,round(v*gain))) for v in values]
+              with wave.open(str(path),'wb') as dst:
+                  dst.setparams(params)
+                  dst.writeframes(struct.pack('<'+'h'*len(boosted),*boosted))
+              print(path, 'peak', max(abs(v) for v in boosted), 'gain', round(gain,2))
+          PY
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Expo Doctor
+        run: npx expo-doctor
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+
+      - name: Verify final candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs'),a=require('./app.json').expo,p=require('./package.json'),l=require('./package-lock.json');
+          if(a.version!=='1.0.0'||a.android.versionCode!==1||a.ios.buildNumber!=='1') throw new Error('Version metadata invalid');
+          if(p.version!==a.version||l.version!==a.version||l.packages[''].version!==a.version) throw new Error('Package versions mismatch');
+          const notification=a.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-notifications')?.[1];
+          if(notification?.defaultChannel!=='draborngarage-system-loud-v4'||notification?.sounds?.length!==3) throw new Error('Notification plugin invalid');
+          for(const file of notification.sounds) if(fs.statSync(file).size<20000) throw new Error(`${file} is invalid`);
+          NODE
+          grep -q 'Tamir Başladı • Ücreti Belirle' src/screens/WorkOrderDetailV04.tsx
+          grep -q 'Ücret Kaydedildi' src/screens/WorkOrderDetailV04.tsx
+          grep -q 'useSmartAutoRefresh' src/screens/WorkOrderDetailV04.tsx
+          grep -q "!\['orders', 'appointments', 'receivables', 'settings'\].includes(tab)" src/AppShellV102.tsx
+          grep -q 'Kapalı Uygulama Bildirim Testi' src/notifications/NotificationCenterScreen.tsx
+          grep -q 'notification_schedule_closed_app_test' supabase/migrations/20260716040000_v1_0_0_final_candidate_notifications_refresh.sql
+          ! grep -RInE 'v1\.0\.[1-9]|v0\.[0-9]|Expo Test Adayı|Son net ücret girilmeden Motor Hazır' src --include='*.tsx' --include='*.ts'
+
+      - name: Persist tested final candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_temporary-run-v100-patch.yml
+          git rm -f .github/workflows/_temporary-feature-tree-info.yml .runtime/feature-tree-info.txt .runtime/v100-payload/part-00 || true
+          git rm scripts/v100_patch_part1_safe.py scripts/v100_patch_part2.py scripts/v100_patch_part3.py
+          git add app.json package.json package-lock.json assets/sounds src supabase/migrations/20260716040000_v1_0_0_final_candidate_notifications_refresh.sql
+          git commit -m 'feat: prepare DraBornGarage v1.0.0 final candidate'
+          git push origin HEAD:feature/v1.0.0-final-candidate
