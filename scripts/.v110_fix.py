@@ -18,5 +18,5 @@ replacement = '''
 text, count = re.subn(pattern, lambda _: replacement, text, count=1)
 if count != 1:
     raise SystemExit(f'v1.1.0 fixer expected one workflow block, found {count}')
-text = text.replace('icon="percent"', 'icon="pie-chart"')
+text = text.replace('icon=\\"percent\\"', 'icon=\\"pie-chart\\"')
 path.write_text(text)
