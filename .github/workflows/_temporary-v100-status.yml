@@ -1,0 +1,32 @@
+name: Temporary v1.0.0 Status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-v100-status.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture validation run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .runtime
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow "Temporary Run v1.0.0 Final Candidate Patch" --limit 3 --json databaseId,status,conclusion,headBranch,headSha,url > .runtime/v100-validation-status.json
+      - name: Persist status
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_temporary-v100-status.yml
+          git add .runtime/v100-validation-status.json
+          git commit -m 'chore: publish v1.0.0 validation status'
+          git pull --rebase origin main
+          git push origin HEAD:main
