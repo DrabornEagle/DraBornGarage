@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { useSmartAutoRefresh } from '../hooks/useSmartAutoRefresh';
 import {
   ExtraApprovalMethod,
   ExtraWorkRequest,
@@ -79,6 +80,8 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const [events, setEvents] = useState<WorkOrderEvent[]>([]);
   const [saving, setSaving] = useState(false);
   const [readyPaymentPromptVisible, setReadyPaymentPromptVisible] = useState(false);
+  const [repairPricePromptVisible, setRepairPricePromptVisible] = useState(false);
+  const [priceSavedVisible, setPriceSavedVisible] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ status: true, price: false, extras: false, services: false, parts: false, notes: false, history: false, receivables: false });
   const scrollRef = useRef<ScrollView>(null);
   const [priceType, setPriceType] = useState<PriceType>('fixed');
@@ -110,7 +113,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
   const toggleSection = (key: string) => setOpenSections((current) => ({ ...current, [key]: !current[key] }));
   useEffect(() => { if (extras.some((item) => item.status === 'pending')) setOpenSections((current) => current.extras ? current : ({ ...current, extras: true })); }, [extras]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (syncPriceForm = true, silent = false) => {
     if (isApprentice) return;
     const [orderResult, servicesResult, partsResult, extrasResult, notesResult, eventsResult] = await Promise.all([
       supabase.from('work_orders').select('*,customer:customers(*),motorcycle:motorcycles(*),mechanic:profiles!work_orders_assigned_mechanic_id_fkey(full_name)').eq('id', orderId).single(),
@@ -120,7 +123,7 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
       supabase.from('work_order_notes').select('*').eq('work_order_id', orderId).order('created_at', { ascending: false }),
       supabase.from('work_order_events').select('*').eq('work_order_id', orderId).order('created_at', { ascending: false }),
     ]);
-    if (orderResult.error) return Alert.alert('İş emri açılamadı', orderResult.error.message);
+    if (orderResult.error) { if (!silent) Alert.alert('İş emri açılamadı', orderResult.error.message); return; }
     const next = orderResult.data;
     setOrder(next);
     setServices(servicesResult.data ?? []);
@@ -128,20 +131,38 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     setExtras((extrasResult.data as ExtraWorkRequest[]) ?? []);
     setNotes((notesResult.data as WorkOrderNote[]) ?? []);
     setEvents((eventsResult.data as WorkOrderEvent[]) ?? []);
-    setPriceType(next.price_type ?? 'fixed');
-    setFixedPrice(next.quoted_price ? String(next.quoted_price) : '');
-    setEstimateMin(next.estimated_price_min ? String(next.estimated_price_min) : '');
-    setEstimateMax(next.estimated_price_max ? String(next.estimated_price_max) : '');
+    if (syncPriceForm) {
+      setPriceType(next.price_type ?? 'fixed');
+      setFixedPrice(next.quoted_price ? String(next.quoted_price) : '');
+      setEstimateMin(next.estimated_price_min ? String(next.estimated_price_min) : '');
+      setEstimateMax(next.estimated_price_max ? String(next.estimated_price_max) : '');
+    }
   }, [orderId, isApprentice]);
 
   useEffect(() => { load(); }, [load]);
+  useSmartAutoRefresh(() => load(false, true), 45000, !isApprentice);
+
+  useEffect(() => {
+    if (isApprentice) return;
+    const refreshSilently = () => { load(false, true).catch(() => undefined); };
+    const channel = supabase.channel(`work-order-detail-live-${orderId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `id=eq.${orderId}` }, refreshSilently)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_order_services', filter: `work_order_id=eq.${orderId}` }, refreshSilently)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_order_parts', filter: `work_order_id=eq.${orderId}` }, refreshSilently)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_order_extra_requests', filter: `work_order_id=eq.${orderId}` }, refreshSilently)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_order_notes', filter: `work_order_id=eq.${orderId}` }, refreshSilently)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_order_events', filter: `work_order_id=eq.${orderId}` }, refreshSilently)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [orderId, isApprentice, load]);
 
   const run = async (action: () => PromiseLike<{ error: any }>, fallback: string) => {
     setSaving(true);
     const result = await action();
     setSaving(false);
-    if (result.error) return Alert.alert(fallback, result.error.message);
-    await load();
+    if (result.error) { Alert.alert(fallback, result.error.message); return false; }
+    await load(false, true);
+    return true;
   };
 
   const openReceivableFlow = () => {
@@ -153,7 +174,10 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     const { error } = await supabase.rpc('update_work_order_status', { p_work_order_id: orderId, p_status: status });
     if (error) return Alert.alert('Durum değiştirilemedi', error.message);
     if (isApprentice) setOrder((current: any) => ({ ...current, status }));
-    else await load();
+    else await load(false, true);
+    if (status === 'repair_started' && !isApprentice && Number(order.quoted_price || 0) <= 0 && Number(order.estimated_price_min || 0) <= 0) {
+      setRepairPricePromptVisible(true);
+    }
     if (status === 'ready' && !isApprentice) {
       setReadyPaymentPromptVisible(true);
     }
@@ -186,13 +210,14 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     const max = Number(estimateMax.replace(',', '.'));
     if (priceType === 'fixed' && fixed <= 0) return Alert.alert('Geçerli net fiyat gir');
     if (priceType === 'estimated' && (min <= 0 || max < min)) return Alert.alert('Tahmini fiyat aralığını kontrol et');
-    await run(() => supabase.from('work_orders').update({
+    const saved = await run(() => supabase.from('work_orders').update({
       price_type: priceType,
       quoted_price: priceType === 'fixed' ? fixed : null,
       estimated_price_min: priceType === 'estimated' ? min : null,
       estimated_price_max: priceType === 'estimated' ? max : null,
       status: ['opened', 'received', 'queued', 'waiting', 'precheck'].includes(order.status) ? 'price_entered' : order.status,
     }).eq('id', orderId), 'Ücret kaydedilemedi');
+    if (saved) setPriceSavedVisible(true);
   };
 
   const createExtra = async () => {
@@ -343,6 +368,20 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
     <GlassCard style={styles.listCard}>{events.length === 0 ? <Empty text="Hareket kaydı yok." /> : events.map((item, index) => <View key={item.id} style={[styles.eventRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={[styles.eventDot, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="pulse" size={15} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>{eventLabel[item.event_type] || item.event_type}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{item.old_status && item.new_status ? `${statusLabels[item.old_status]} → ${statusLabels[item.new_status]} • ` : ''}{dateTime(item.created_at)}</Text>{item.note && <Text style={[styles.bodySmall, { color: colors.textSoft }]}>{item.note}</Text>}</View></View>)}</GlassCard>
     </DetailAccordion>
     </ScrollView>
+    <PriceGuideModal
+      visible={repairPricePromptVisible}
+      onClose={() => setRepairPricePromptVisible(false)}
+      onOpenPrice={() => {
+        setRepairPricePromptVisible(false);
+        setOpenSections((current) => ({ ...current, price: true }));
+        setTimeout(() => scrollRef.current?.scrollTo({ y: 610, animated: true }), 180);
+      }}
+    />
+    <PriceSavedModal
+      visible={priceSavedVisible}
+      summary={priceType === 'fixed' ? money(Number(fixedPrice.replace(',', '.'))) : `${money(Number(estimateMin.replace(',', '.')))} – ${money(Number(estimateMax.replace(',', '.')))}`}
+      onClose={() => setPriceSavedVisible(false)}
+    />
     <ReadyPaymentModal
       visible={readyPaymentPromptVisible}
       total={Number(order.total_amount || order.quoted_price || 0)}
@@ -354,6 +393,32 @@ export function WorkOrderDetailV04({ orderId, apprenticeData, onBack }: { orderI
       }}
     />
   </>;
+}
+
+function PriceGuideModal({ visible, onClose, onOpenPrice }: { visible: boolean; onClose: () => void; onOpenPrice: () => void }) {
+  const { colors } = useTheme();
+  return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <View style={styles.readyOverlay}><View style={[styles.readyModal, { backgroundColor: colors.cardStrong, borderColor: `${colors.orange}55` }]}>
+      <View style={[styles.readyIcon, { backgroundColor: `${colors.orange}18`, borderColor: `${colors.orange}45` }]}><Ionicons name="pricetag" size={34} color={colors.orange} /></View>
+      <Text style={[styles.readyTitle, { color: colors.text }]}>Tamir Başladı • Ücreti Belirle</Text>
+      <Text style={[styles.readyText, { color: colors.textMuted }]}>Müşteriye net bilgi vermek için şimdi Net Fiyat veya Tahmini Fiyat kaydedebilirsin. Bu adım zorunlu değildir; tahsilat veya borç tutarı daha sonra otomatik Net Fiyat olabilir.</Text>
+      <AnimatedPressable onPress={onOpenPrice} style={[styles.readyPrimary, { backgroundColor: colors.orange }]}><Ionicons name="arrow-forward" size={20} color="#07131B" /><Text style={styles.readyPrimaryText}>Ücret Alanına Git</Text></AnimatedPressable>
+      <AnimatedPressable onPress={onClose} style={[styles.readySecondary, { borderColor: colors.border }]}><Text style={[styles.readySecondaryText, { color: colors.textMuted }]}>Şimdilik Sonra</Text></AnimatedPressable>
+    </View></View>
+  </Modal>;
+}
+
+function PriceSavedModal({ visible, summary, onClose }: { visible: boolean; summary: string; onClose: () => void }) {
+  const { colors } = useTheme();
+  return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <View style={styles.readyOverlay}><View style={[styles.readyModal, { backgroundColor: colors.cardStrong, borderColor: `${colors.green}55` }]}>
+      <View style={[styles.readyIcon, { backgroundColor: `${colors.green}18`, borderColor: `${colors.green}45` }]}><Ionicons name="checkmark-done" size={34} color={colors.green} /></View>
+      <Text style={[styles.readyTitle, { color: colors.text }]}>Ücret Kaydedildi</Text>
+      <Text style={[styles.readyText, { color: colors.textMuted }]}>Servis kaydı, müşteri görünümü ve tahsilat hesapları güncellendi.</Text>
+      <View style={[styles.readyAmountCard, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}><View><Text style={[styles.readyAmountLabel, { color: colors.textMuted }]}>KAYDEDİLEN TUTAR</Text><Text style={[styles.readyAmount, { color: colors.green }]}>{summary}</Text></View></View>
+      <AnimatedPressable onPress={onClose} style={[styles.readyPrimary, { backgroundColor: colors.green }]}><Ionicons name="checkmark" size={20} color="#07131B" /><Text style={styles.readyPrimaryText}>Tamam</Text></AnimatedPressable>
+    </View></View>
+  </Modal>;
 }
 
 function ReadyPaymentModal({ visible, total, received, onClose, onOpenFinance }: { visible: boolean; total: number; received: number; onClose: () => void; onOpenFinance: () => void }) {

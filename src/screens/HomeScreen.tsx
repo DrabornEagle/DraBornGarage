@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money, shortDate, todayIsoStart } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { useSmartAutoRefresh } from '../hooks/useSmartAutoRefresh';
 import { DashboardStats, ServiceType, WorkOrderListItem, WORKER_ROLES } from '../types';
 
 export type PanelMode = 'business' | 'mechanic';
@@ -99,6 +100,7 @@ export function HomeScreen({
   }, [workshop, membership, panelMode, canWork, isApprentice]);
 
   useEffect(() => { load(); }, [load]);
+  useSmartAutoRefresh(load, 60000, Boolean(workshop && membership));
 
   useEffect(() => {
     if (!workshop?.id || isApprentice) return;

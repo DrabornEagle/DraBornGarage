@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { useSmartAutoRefresh } from '../hooks/useSmartAutoRefresh';
 import { WorkOrderListItem, WorkOrderStatus } from '../types';
 import { WorkOrderDetailV04 } from './WorkOrderDetailV04';
 
@@ -28,7 +29,7 @@ export function WorkOrdersScreen({ onNewOrder, allowNewOrder }: { onNewOrder: ()
   const [selected, setSelected] = useState<any | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!workshop || !membership) return;
 
     if (isApprentice) {
@@ -47,11 +48,20 @@ export function WorkOrdersScreen({ onNewOrder, allowNewOrder }: { onNewOrder: ()
 
     if (membership.role === 'mechanic' || membership.role === 'owner_mechanic') query = query.eq('assigned_mechanic_id', membership.user_id);
     const { data, error } = await query;
-    if (error) Alert.alert('Servis kayıtları alınamadı', error.message);
+    if (error && !silent) Alert.alert('Servis kayıtları alınamadı', error.message);
     setOrders((data as unknown as WorkOrderListItem[]) ?? []);
   }, [workshop, membership, isApprentice]);
 
   useEffect(() => { load(); }, [load]);
+  useSmartAutoRefresh(() => load(true), 55000, Boolean(workshop && membership && !selected));
+  useEffect(() => {
+    if (!workshop?.id || selected) return;
+    const refreshSilently = () => { load(true).catch(() => undefined); };
+    const channel = supabase.channel(`work-orders-live-${workshop.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `workshop_id=eq.${workshop.id}` }, refreshSilently)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, selected, load]);
 
   const visible = useMemo(() => orders.filter((order) => {
     if (filter === 'all') return true;
@@ -71,7 +81,7 @@ export function WorkOrdersScreen({ onNewOrder, allowNewOrder }: { onNewOrder: ()
 
   return <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
     <ScreenHeader
-      eyebrow={isApprentice ? 'KISITLI ÇIRAK PANELİ' : 'v0.4 SERVİS YÖNETİMİ'}
+      eyebrow={isApprentice ? 'KISITLI ÇIRAK PANELİ' : 'SERVİS YÖNETİMİ'}
       title={isApprentice ? 'Atölye Görevleri' : 'İş Emirleri'}
       subtitle={isApprentice ? 'Finansal bilgiler gizlidir. Sadece sıra, motor ve görev detayları gösterilir.' : 'Servis, ek işlem onayı, parça, not ve test sürecini tek merkezden yönet.'}
       actionIcon={!isApprentice && allowNewOrder ? 'add' : undefined}

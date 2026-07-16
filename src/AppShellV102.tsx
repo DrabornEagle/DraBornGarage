@@ -132,7 +132,7 @@ export function AppShellV102() {
 
   return <PremiumBackground>
     <View style={[styles.flex, { paddingBottom: reservedBottom }]}>{screen}</View>
-    {!['orders', 'appointments', 'customers', 'receivables', 'settings'].includes(tab) && <NotificationBell />}
+    {!['orders', 'appointments', 'receivables', 'settings'].includes(tab) && <NotificationBell />}
     {['appointments', 'settings'].includes(tab) && <PrivacyCenter />}
     <View style={[styles.navWrap, { bottom: navBottom, borderColor: `${colors.primary}32`, shadowColor: colors.primary }]}> 
       <BlurView intensity={Platform.OS === 'android' ? 42 : 62} tint={resolvedMode} style={styles.navBlur}>

@@ -9,6 +9,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { useTheme } from '../context/ThemeContext';
 import { NOTIFICATION_SOUND_OPTIONS, useNotifications } from './NotificationContext';
 import { GarageNotification, NotificationCategory, NotificationPreferences, NotificationSoundKey } from './types';
+import { APP_VERSION_LABEL } from '../lib/appVersion';
 
 type CenterTab = 'all' | 'unread' | 'upcoming' | 'settings';
 
@@ -75,6 +76,7 @@ export function NotificationCenterScreen() {
     requestLocalNotifications,
     registerPushNotifications,
     sendTestNotification,
+    sendClosedAppTestNotification,
   } = useNotifications();
   const [tab, setTab] = useState<CenterTab>('all');
   const [saving, setSaving] = useState(false);
@@ -136,6 +138,15 @@ export function NotificationCenterScreen() {
       : 'Bildirim izni veya cihaz bildirim servisi kullanılamıyor.');
   };
 
+  const testClosedApp = async () => {
+    setSaving(true);
+    const ok = await sendClosedAppTestNotification();
+    setSaving(false);
+    Alert.alert(ok ? 'Kapalı uygulama testi planlandı' : 'Push testi planlanamadı', ok
+      ? 'Uygulamayı şimdi tamamen kapat. Yaklaşık 45–90 saniye içinde telefon bildirim alanına yüksek öncelikli test bildirimi gelmeli.'
+      : 'Cihaz push kaydı veya FCM V1 bağlantısı henüz hazır değil. Bildirim ayarını açık tutup tekrar dene.');
+  };
+
   return (
     <Modal visible={open} animationType="slide" presentationStyle="fullScreen" onRequestClose={closeCenter} statusBarTranslucent>
       <View style={[styles.page, { backgroundColor: colors.background, paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -144,7 +155,7 @@ export function NotificationCenterScreen() {
 
         <View style={styles.header}>
           <View style={styles.copy}>
-            <Text style={[styles.eyebrow, { color: colors.primary }]}>v1.0.6 RC • FIREBASE BİLDİRİM MERKEZİ</Text>
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>{APP_VERSION_LABEL} • BİLDİRİM MERKEZİ</Text>
             <Text style={[styles.title, { color: colors.text }]}>Bildirimler</Text>
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>Servis, randevu, ödeme, alacak ve platform hareketleri tek akışta.</Text>
           </View>
@@ -185,7 +196,7 @@ export function NotificationCenterScreen() {
             </GlassCard>
 
             {permissionStatus !== 'granted' && <PrimaryButton title="Telefon Bildirimlerini Aç" onPress={enableLocal} loading={saving} />}
-            {permissionStatus === 'granted' && <PrimaryButton title="Test Bildirimi Gönder" onPress={testLocal} loading={saving} secondary />}
+            {permissionStatus === 'granted' && <><PrimaryButton title="Test Bildirimi Gönder" onPress={testLocal} loading={saving} secondary /><PrimaryButton title="Kapalı Uygulama Bildirim Testi" onPress={testClosedApp} loading={saving} secondary /></>}
 
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Bildirim sesi</Text>
             <View style={styles.soundGrid}>

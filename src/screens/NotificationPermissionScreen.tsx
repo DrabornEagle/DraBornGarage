@@ -7,6 +7,7 @@ import { GlassCard } from '../components/GlassCard';
 import { PremiumBackground } from '../components/PremiumBackground';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useTheme } from '../context/ThemeContext';
+import { APP_VERSION_LABEL } from '../lib/appVersion';
 import {
   markNotificationIntroCompleted,
   openNotificationSettings,
@@ -60,7 +61,7 @@ export function NotificationPermissionScreen({ onComplete }: { onComplete: () =>
         <View style={[styles.mainIcon, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}48` }]}>
           <Ionicons name="notifications" size={44} color={colors.primary} />
         </View>
-        <Text style={[styles.eyebrow, { color: colors.green }]}>DraBornGarage • v1.0.6</Text>
+        <Text style={[styles.eyebrow, { color: colors.green }]}>DraBornGarage • {APP_VERSION_LABEL}</Text>
         <Text style={[styles.title, { color: colors.text }]}>Önemli gelişmeleri kaçırma</Text>
         <Text style={[styles.subtitle, { color: colors.textMuted }]}>Bildirim izni yalnız servis ve hesap hareketlerini zamanında göstermek için kullanılır. Reklam bildirimi gönderilmez.</Text>
       </View>

@@ -148,7 +148,7 @@ export function ReportsDashboard() {
   return <View style={styles.root}>
     <View style={styles.sectionHeader}>
       <View style={styles.copy}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>v0.6 Rapor Merkezi</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Rapor Merkezi</Text>
         <Text style={[styles.sectionSubtitle, { color: colors.textMuted }]}>Kayıtlı işlem tutarları, tahsilatlar, alacaklar ve usta iş geçmişi.</Text>
       </View>
       <AnimatedPressable onPress={load} style={[styles.refresh, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}40` }]}><Ionicons name="refresh" size={18} color={colors.primary} /></AnimatedPressable>
