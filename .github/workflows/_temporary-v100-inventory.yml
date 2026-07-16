@@ -1,0 +1,62 @@
+name: Temporary v1.0.0 Source Inventory
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-v100-inventory.yml
+
+permissions:
+  contents: write
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build source inventory
+        shell: bash
+        run: |
+          mkdir -p .runtime
+          {
+            echo '=== APP METADATA ==='
+            cat app.json
+            echo
+            echo '=== PACKAGE METADATA ==='
+            sed -n '1,80p' package.json
+            echo
+            echo '=== WORKFLOWS ==='
+            find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort
+            echo
+            echo '=== SOURCE FILES ==='
+            find src -type f | sort
+            echo
+            echo '=== SERVICE / PRICE / READY MATCHES ==='
+            grep -RInE 'Motor Hazır|Tamire Başlandı|Tamire Baslandı|Ücreti Kaydet|Ucreti Kaydet|Tahmini Fiyat|Net Fiyat|service_update_status|service_set_price|price' src --include='*.ts' --include='*.tsx' | head -n 500 || true
+            echo
+            echo '=== CUSTOMER MEMORY / BELL MATCHES ==='
+            grep -RInE 'Müşteri Hafızası|Musteri Hafizasi|Müşteriler|Musteriler|openCenter|unreadCount|notifications' src --include='*.ts' --include='*.tsx' | head -n 500 || true
+            echo
+            echo '=== REFRESH / REALTIME MATCHES ==='
+            grep -RInE 'refresh|setInterval|AppState|postgres_changes|subscribe\(' src --include='*.ts' --include='*.tsx' | head -n 700 || true
+            echo
+            echo '=== VERSION STRINGS ==='
+            grep -RInE 'v1\.|1\.0\.|Expo Test|RC|Sürüm|Surum|backup/' src App.tsx app.json package.json --include='*.ts' --include='*.tsx' --include='*.json' | head -n 500 || true
+            echo
+            echo '=== SOUND ASSETS ==='
+            find assets -maxdepth 3 -type f | sort | grep -Ei '\.(wav|mp3|ogg|m4a)$' || true
+            echo
+            echo '=== SUPABASE MIGRATIONS ==='
+            find supabase -maxdepth 3 -type f 2>/dev/null | sort | tail -n 120 || true
+          } > .runtime/v100-inventory.txt
+      - name: Persist inventory
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_temporary-v100-inventory.yml
+          git add .runtime/v100-inventory.txt
+          git commit -m 'chore: capture v1.0.0 final candidate inventory'
+          git push origin HEAD:main
