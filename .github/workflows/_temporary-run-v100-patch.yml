@@ -85,21 +85,44 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node - <<'NODE'
-          const fs=require('fs'),a=require('./app.json').expo,p=require('./package.json'),l=require('./package-lock.json');
-          if(a.version!=='1.0.0'||a.android.versionCode!==1||a.ios.buildNumber!=='1') throw new Error('Version metadata invalid');
-          if(p.version!==a.version||l.version!==a.version||l.packages[''].version!==a.version) throw new Error('Package versions mismatch');
-          const notification=a.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-notifications')?.[1];
-          if(notification?.defaultChannel!=='draborngarage-system-loud-v4'||notification?.sounds?.length!==3) throw new Error('Notification plugin invalid');
-          for(const file of notification.sounds) if(fs.statSync(file).size<80000) throw new Error(`${file} is invalid`);
-          NODE
-          grep -q 'Tamir Başladı • Ücreti Belirle' src/screens/WorkOrderDetailV04.tsx
-          grep -q 'Ücret Kaydedildi' src/screens/WorkOrderDetailV04.tsx
-          grep -q 'useSmartAutoRefresh' src/screens/WorkOrderDetailV04.tsx
-          grep -q "!\['orders', 'appointments', 'receivables', 'settings'\].includes(tab)" src/AppShellV102.tsx
-          grep -q 'Kapalı Uygulama Bildirim Testi' src/notifications/NotificationCenterScreen.tsx
-          grep -q 'notification_schedule_closed_app_test' supabase/migrations/20260716040000_v1_0_0_final_candidate_notifications_refresh.sql
-          ! grep -RInE 'v1\.0\.4 RC|v1\.0\.6 RC|v0\.[0-9]|Expo Test Adayı|Son net ücret girilmeden Motor Hazır' src --include='*.tsx' --include='*.ts'
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          app=json.loads(Path('app.json').read_text())['expo']
+          package=json.loads(Path('package.json').read_text())
+          lock=json.loads(Path('package-lock.json').read_text())
+          assert app['version']=='1.0.0'
+          assert app['android']['versionCode']==1
+          assert app['ios']['buildNumber']=='1'
+          assert package['version']==app['version']==lock['version']==lock['packages']['']['version']
+          notification=next(item[1] for item in app['plugins'] if isinstance(item,list) and item[0]=='expo-notifications')
+          assert notification['defaultChannel']=='draborngarage-system-loud-v4'
+          assert len(notification['sounds'])==3
+          for file in notification['sounds']:
+              assert Path(file).stat().st_size >= 80000, file
+
+          literal_checks={
+              'src/screens/WorkOrderDetailV04.tsx': ['Tamir Başladı • Ücreti Belirle','Ücret Kaydedildi','useSmartAutoRefresh'],
+              'src/AppShellV102.tsx': ["!['orders', 'appointments', 'receivables', 'settings'].includes(tab)"],
+              'src/notifications/NotificationCenterScreen.tsx': ['Kapalı Uygulama Bildirim Testi'],
+              'supabase/migrations/20260716040000_v1_0_0_final_candidate_notifications_refresh.sql': ['notification_schedule_closed_app_test'],
+          }
+          for file,needles in literal_checks.items():
+              text=Path(file).read_text()
+              for needle in needles:
+                  assert needle in text, f'{file}: {needle}'
+
+          forbidden=re.compile(r'v1\.0\.4 RC|v1\.0\.6 RC|v0\.[0-9]|Expo Test Adayı|Son net ücret girilmeden Motor Hazır')
+          violations=[]
+          for file in Path('src').rglob('*'):
+              if file.suffix not in ('.ts','.tsx'): continue
+              for number,line in enumerate(file.read_text(errors='ignore').splitlines(),1):
+                  if forbidden.search(line): violations.append(f'{file}:{number}:{line.strip()}')
+          if violations:
+              raise SystemExit('Outdated UI labels:\n'+'\n'.join(violations))
+          print('v1.0.0 final candidate source verification passed')
+          PY
 
       - name: Persist tested final candidate
         shell: bash
