@@ -72,22 +72,3 @@ diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json
 +  primaryGradient: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, primaryText: { color: '#fff', fontSize: 14, fontWeight: '900' },
 +  secondary: { width: '100%', minHeight: 48, borderWidth: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 9 }, secondaryText: { fontSize: 13, fontWeight: '900' },
 +});
-+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/components/ReportsDashboard.tsx DraBornGarage-v115-src/src/components/ReportsDashboard.tsx
-+--- v115-orig/src/components/ReportsDashboard.tsx	2026-07-16 21:27:34.000000000 +0000
-++++ DraBornGarage-v115-src/src/components/ReportsDashboard.tsx	2026-07-16 21:49:47.569926660 +0000
-+@@ -155,8 +155,8 @@
-+     </View>
-+ 
-+     {isOwner && isMechanic && <View style={styles.modeSwitch}>
-+-      <ModeButton active={viewMode === 'business'} title="İşletme Raporu" subtitle="Ekip, tahsilat ve servis özeti" icon="business" accent={colors.cyan} onPress={() => setViewMode('business')} />
-+       <ModeButton active={viewMode === 'personal'} title="Usta Raporu" subtitle="Kendi işlerin ve kayıtların" icon="person" accent={colors.orange} onPress={() => setViewMode('personal')} />
-++      <ModeButton active={viewMode === 'business'} title="İşletme Raporu" subtitle="Ekip, tahsilat ve servis özeti" icon="business" accent={colors.cyan} onPress={() => setViewMode('business')} />
-+     </View>}
-+ 
-+     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periods}>
-+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/notifications/NotificationContext.tsx DraBornGarage-v115-src/src/notifications/NotificationContext.tsx
-+--- v115-orig/src/notifications/NotificationContext.tsx	2026-07-16 21:27:34.000000000 +0000
-++++ DraBornGarage-v115-src/src/notifications/NotificationContext.tsx	2026-07-16 21:49:47.569607640 +0000
-+@@ -1 +1 @@
-+-export * from './NotificationContextV114';
-++export * from './NotificationContextV115';
