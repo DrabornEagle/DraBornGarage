@@ -1,97 +1,90 @@
 # DraBornGarage — Teslim ve Devam Dosyası
 
 **Son güncelleme:** 16 Temmuz 2026  
-**Güncel geliştirme sürümü:** `v1.1.1`  
+**Güncel geliştirme sürümü:** `v1.1.3`  
 **Android test versionCode:** `1`  
 **İlk Google Play sürümü:** `v1.0 / versionCode 1`  
 **GitHub:** `DrabornEagle/DraBornGarage`  
 **Supabase:** `xpdiwyxnnrmyvpcqwuyb`
 
-> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.0 ile günceldir.
+> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.3 ile günceldir.
 
-## Bağlayıcı sürüm standardı
+## Sürüm standardı
 
-- Geliştirme çizgisi `v1.1.0` ile başlar.
-- Sonraki her güncelleme `v1.1.1`, `v1.1.2`, `v1.1.3` şeklinde ilerler.
-- İlk AAB alınana kadar `versionCode=1` sabit kalır; yalnız geliştirme sürümü artırılır.
-- Küçük testler Expo Go üzerinden yapılır.
-- Bildirim, Firebase, native izin ve gerçek cihaz testleri Release APK ile yapılır.
-- Test APK workflow: **DraBornGarage Release APK**.
-- Google Play AAB workflow: **DraBornGarage Release AAB**.
-- İlk Play AAB, geliştirme sürümünden bağımsız olarak `versionName=1.0`, `versionCode=1` üretir.
-- Play’e ilk yüklemeden sonra her yeni mağaza sürümünde sürüm adı ve versionCode birlikte artırılır.
-- Her güncellemede README, bu dosya, migration/rollback ve Termux komutları güncel tutulur.
+- Geliştirme sürümleri `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3` şeklinde ilerler.
+- İlk AAB alınana kadar Android `versionCode=1` sabit kalır.
+- Küçük testler Expo Go ile yapılır.
+- Native bildirim ve gerçek cihaz testleri **DraBornGarage Release APK** workflow’u ile yapılır.
+- Google Play paketi **DraBornGarage Release AAB** workflow’u ile oluşturulur.
+- İlk Play paketi `versionName=1.0`, `versionCode=1` ile başlar.
+- İlk mağaza yayınından sonra sürüm adı ve versionCode birlikte artırılır.
 
-## v1.1.0 kapsamı
+## v1.1.3 — Push token modülü düzeltmesi
 
-### Bildirimler
+- v1.1.2 fiziksel cihaz testinde `getDevicePushTokenAsync kullanılamıyor` hatası görüldü.
+- APK incelemesinde native `ExpoPushTokenManager` sınıfı ve FCM token metodu APK içinde doğrulandı.
+- Sorunun Firebase veya native derleme değil, `expo-notifications` ana export nesnesinden fonksiyona erişim olduğu belirlendi.
+- SDK 54 token modülleri doğrudan kullanılır:
+  - `expo-notifications/build/getDevicePushTokenAsync`
+  - `expo-notifications/build/getExpoPushTokenAsync`
+- Android FCM tokenı doğrulanır, ardından EAS proje kimliği ve uygulama kimliğiyle Expo push tokenı oluşturulur.
+- Expo tokenı Supabase’e kaydedilmeden kapalı uygulama testi açılmaz.
+- Hatalar izin, FCM, Expo servisi ve Supabase kayıt aşamalarına göre ayrı gösterilir.
+- `package.json`, `app.json` ve `package-lock.json` sürümü `1.1.3` olarak eşitlendi.
+- Android `versionCode` değeri `1` olarak korundu.
 
-- Canlı veritabanındaki cron dağıtıcısı her dakika çalışmaktadır.
-- Tespit edilen kök neden: native cihaz tokenı `notification_push_tokens` tablosuna kaydolmuyordu.
-- Native push etkinliği artık Expo Go dışında, geçerli EAS proje kimliği varsa otomatik açılır.
-- Token kaydı başarısız olduğunda hata kullanıcıdan saklanmaz.
-- Kapalı uygulama testi token kaydı doğrulandıktan sonra planlanır.
-- Android kanal kimlikleri `v5` olarak yenilendi; böylece eski değiştirilemeyen ses ayarları taşınmaz.
-- Telefon varsayılan sesi, sessiz seçenek ve dokuz farklı özel ses bulunur.
+## v1.1.2 — Bildirim teslimatı
 
-### Platform hizmet bedeli
+- Zil sesi seçilince seçilen ses yerel bildirimle önizlenir.
+- `owner_mechanic` rolündeki ortaklar yeni müşteri randevusu ve randevu durum bildirimlerini alır.
+- Aynı kişi hem ortak hem atanmış ustaysa çift bildirim engellenir.
+- Canlı Supabase’de kaçırılmış aktif randevu bildirimleri yeniden oluşturuldu.
 
-- Varsayılan hesaplama türü: yüzde.
-- Varsayılan oran: `%10`.
-- Sabit hesaplama seçeneğinin varsayılanı: `50 TL`.
-- Admin global varsayılanı ve her işletmenin özel hesaplama türünü değiştirebilir.
-- Yüzde hesabı: `servis toplam tutarı × oran / 100`.
-- Ücret, servis tamamlanınca iki ondalık haneye yuvarlanarak kaydedilir.
-- Geçmiş ücret kayıtları sonradan topluca yeniden hesaplanmaz.
-- Aynı servis kaydının kesin toplamı değiştirilirse o servise ait henüz güncel ücret kaydı yeniden hesaplanır.
+## Platform hizmet bedeli
 
-### Google Play hazırlığı
-
-- Gereksiz mikrofon, konum, rehber, telefon, SMS ve geniş medya/depolama izinleri engellenir.
-- Kamera yalnız QR tarama için opsiyonel donanım olarak kalır.
-- Dekont seçiminde Android sistem fotoğraf seçicisi kullanılır.
-- Uygulama içi gizlilik merkezi ve hesap silme talebi korunur.
-- Harici gizlilik ve hesap silme sayfaları GitHub üzerinde herkese açık tutulur.
-- AAB workflow manifest, imza, izin, target SDK, TypeScript, bundle ve lint kontrolleri yapar.
-- 31 Ağustos 2026’dan itibaren Google Play için API 36 zorunluluğu kontrol edilmelidir.
+- Varsayılan hesaplama türü yüzde, varsayılan oran `%10`.
+- Sabit seçenek varsayılanı `50 TL`.
+- Admin global veya işletmeye özel yüzde/sabit hesaplama seçebilir.
+- Yüzde hesabı `servis toplamı × oran / 100` şeklindedir.
+- Geçmiş ücret kayıtları topluca değiştirilmez.
 
 ## Kalıcı ürün kararları
 
-- Sistem çok işletmelidir; işletme verileri Supabase RLS ile ayrılır.
+- Sistem çok işletmelidir ve işletme verileri Supabase RLS ile ayrılır.
 - Roller: Admin, İşletme Sahibi, İşletme Sahibi + Usta, Usta, Çırak, Müşteri.
 - Bir işletmede birden fazla ortak sahip olabilir.
 - Usta yalnız kendi kişisel iş ve kayıtlı tutar geçmişini görür.
 - Maaş, prim, komisyon, ortak payı veya net kâr hesaplanmaz.
-- Müşteri tamir ödemesi yalnız Nakit veya IBAN olarak işletmede teslim sırasında kaydedilir.
-- Platform ödemeleri işletme bildirimi ve Admin onayıyla takip edilir.
+- Müşteri ödemesi Nakit veya IBAN olarak teslim sırasında kaydedilir.
 
 ## Her güncellemede zorunlu işlem
 
-1. Eski yerel klasörü sürüm adıyla yedekle.
+1. Yerel proje klasörünü sürüm ve tarih bilgisiyle yedekle.
 2. Güncel `main` ZIP’ini indir.
 3. `.env` dosyasını koru ve geri yükle.
-4. `npm ci` çalıştır; bildirim sesleri otomatik üretilir.
-5. TypeScript kontrolü yap.
-6. Expo testi başlat.
-7. Native değişiklik varsa **DraBornGarage Release APK** workflow’unu çalıştır ve temiz kurulumla test et.
-8. Google Play paketi gerektiğinde **DraBornGarage Release AAB** workflow’unu çalıştır.
-9. Supabase değişikliği varsa migration ve rollback dosyalarını birlikte sakla.
+4. `npm ci` ve TypeScript kontrolünü çalıştır.
+5. Expo testini temiz önbellekle başlat.
+6. Native değişiklikte Release APK workflow’unu çalıştır.
+7. Supabase değişikliği varsa migration ve rollback dosyasını birlikte sakla.
 
-## v1.1.0 Termux yedek + kurulum
+## v1.1.3 Termux yedek + kurulum
 
 ```bash
 cd "$HOME"
-KURULAN_SURUM="v1.1.0"
-YEDEKLENEN_SURUM="v1.0.0"
-YEDEK_KLASORU="$HOME/DraBornGarage-${YEDEKLENEN_SURUM}-local-backup"
+KURULAN_SURUM="v1.1.3"
+YEDEKLENEN_SURUM="v1.1.2"
+TARIH="$(date +%Y%m%d-%H%M%S)"
+YEDEK_KLASORU="$HOME/DraBornGarage-${YEDEKLENEN_SURUM}-local-backup-${TARIH}"
 ZIP_DOSYASI="$HOME/DraBornGarage-${KURULAN_SURUM}.zip"
-ENV_YEDEGI="$HOME/DraBornGarage-env-backup"
+ENV_YEDEGI="$HOME/DraBornGarage-env-backup-${TARIH}"
 
-rm -rf "$YEDEK_KLASORU" "$HOME/DraBornGarage-main" "$ENV_YEDEGI"
-rm -f "$ZIP_DOSYASI"
+if [ -f "$HOME/DraBornGarage/.env" ]; then
+  cp "$HOME/DraBornGarage/.env" "$ENV_YEDEGI"
+fi
 
-if [ -f "$HOME/DraBornGarage/.env" ]; then cp "$HOME/DraBornGarage/.env" "$ENV_YEDEGI"; fi
-if [ -d "$HOME/DraBornGarage" ]; then mv "$HOME/DraBornGarage" "$YEDEK_KLASORU"; fi
+if [ -d "$HOME/DraBornGarage" ]; then
+  mv "$HOME/DraBornGarage" "$YEDEK_KLASORU"
+fi
 
 curl -L --fail --retry 10 --retry-delay 3 --connect-timeout 30 --max-time 900 \
   "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/main.zip" \
@@ -101,7 +94,10 @@ unzip -o "$ZIP_DOSYASI" -d "$HOME"
 mv "$HOME/DraBornGarage-main" "$HOME/DraBornGarage"
 rm -f "$ZIP_DOSYASI"
 
-if [ -f "$ENV_YEDEGI" ]; then mv "$ENV_YEDEGI" "$HOME/DraBornGarage/.env"; fi
+if [ -f "$ENV_YEDEGI" ]; then
+  cp "$ENV_YEDEGI" "$HOME/DraBornGarage/.env"
+fi
+
 cd "$HOME/DraBornGarage"
 npm ci --no-audit --no-fund
 npm run typecheck
@@ -110,11 +106,4 @@ npx expo start -c --go
 
 ## Yerel geri alma
 
-```bash
-cd "$HOME"
-rm -rf "$HOME/DraBornGarage"
-mv "$HOME/DraBornGarage-v1.0.0-local-backup" "$HOME/DraBornGarage"
-cd "$HOME/DraBornGarage"
-npm ci --no-audit --no-fund
-npx expo start -c --go
-```
+Yeni klasörü silmek yerine hata durumunda ayrı bir adla taşı ve oluşturulan `v1.1.2` yedek klasörünü tekrar `DraBornGarage` adına getir. Ardından `npm ci` ve `npx expo start -c --go` çalıştır.
