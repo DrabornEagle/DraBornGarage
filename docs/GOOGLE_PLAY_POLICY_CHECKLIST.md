@@ -11,9 +11,16 @@
 - Dekont seçimi tek dosyalık Android sistem seçicisiyle yapılır.
 - Uygulama içinde erişilebilir Gizlilik ve Hesap merkezi vardır.
 - Kullanıcı uygulama içinden hesap silme talebi oluşturabilir ve talebi takip edebilir.
-- Gizlilik politikası ve hesap silme açıklaması herkese açık URL’de tutulur.
 - Push tokenı, bildirim tercihi, isteğe bağlı dekont ve finansal kayıtların kullanım amaçları gizlilik politikasında açıklanır.
 - APK/AAB workflow’ları yasak izin, imza, target SDK ve sürüm metadata kontrolleri yapar.
+- Platform bedeli kullanıcı ödemesi olarak uygulama içinde tahsil edilmez; işletme ile Admin arasındaki kayıt/takip akışıdır.
+
+## Play Console’a girilecek herkese açık bağlantılar
+
+- Gizlilik politikası: `https://github.com/DrabornEagle/DraBornGarage/blob/main/docs/PRIVACY_POLICY.md`
+- Hesap ve veri silme: `https://github.com/DrabornEagle/DraBornGarage/blob/main/docs/ACCOUNT_DELETION.md`
+
+Bu bağlantılar Play Console’a girilmeden önce çıkış yapılmış tarayıcıda açılıp herkese açık oldukları doğrulanmalıdır. Hesap silme sayfası uygulama adını, silme talebi yolunu ve uygulamaya erişemeyen kullanıcı için e-posta başvuru yöntemini içerir.
 
 ## Play Console’da manuel tamamlanacaklar
 
@@ -28,18 +35,23 @@
 
 ## Target SDK zaman çizgisi
 
-- 16 Temmuz 2026 itibarıyla workflow en az API 35 hedefini doğrular.
-- 31 Ağustos 2026 ve sonrasında yapılacak yeni uygulama/güncelleme yüklemelerinde Google Play’in o tarihte istediği API seviyesi yeniden kontrol edilmelidir; workflow alt sınırı gerektiğinde API 36’ya çıkarılacaktır.
+- 16 Temmuz 2026 itibarıyla yeni mobil uygulama ve güncellemelerde en az Android 15 / API 35 hedefi geçerlidir.
+- **31 Ağustos 2026’dan itibaren** yeni mobil uygulama ve güncellemeler Android 16 / API 36 veya üstünü hedeflemelidir.
+- İlk AAB 31 Ağustos 2026’dan önce alınacaksa workflow’daki API 35 alt sınırı uygundur.
+- 31 Ağustos 2026 veya sonrasında AAB alınacaksa Expo/React Native araç zinciri API 36’ya yükseltilmeden production yüklemesi yapılmamalıdır.
+- Gerekirse Play Console üzerinden 1 Kasım 2026’ya kadar uzatma yalnız Google’ın sunduğu uygun hesaplarda talep edilebilir; kalıcı çözüm API 36’dır.
 
 ## Yayın kapısı
 
 Aşağıdakiler tamamlanmadan production AAB yüklenmez:
 
 1. Temiz kurulumda kayıt, giriş ve rol geçişleri.
-2. Uygulama tamamen kapalıyken push bildirimi ve farklı kanal sesleri.
-3. Bildirim izni reddetme/açma senaryoları.
-4. Yüzde %10 ve sabit 50 TL platform bedeli örnek hesapları.
-5. İşletmeye özel oran değişikliğinin yalnız yeni ücretlere uygulanması.
-6. Hesap silme talebi ve harici sayfa bağlantıları.
-7. APK/AAB manifest ve imza raporlarının temiz olması.
-8. Play Console Veri Güvenliği beyanının gizlilik politikasıyla birebir eşleşmesi.
+2. Release APK kurulduktan sonra Bildirim Merkezi’nde push cihaz kaydı durumunun **Kayıtlı** görünmesi.
+3. Uygulama tamamen kapalıyken push bildirimi ve farklı kanal sesleri.
+4. Bildirim izni reddetme/açma senaryoları.
+5. Yüzde %10 ve sabit 50 TL platform bedeli örnek hesapları.
+6. İşletmeye özel oran değişikliğinin yalnız yeni ücretlere uygulanması.
+7. Hesap silme talebi ve harici sayfa bağlantıları.
+8. APK/AAB manifest ve imza raporlarının temiz olması.
+9. Play Console Veri Güvenliği beyanının gizlilik politikasıyla birebir eşleşmesi.
+10. AAB’nin üretildiği tarihte yürürlükteki target API alt sınırının doğrulanması.
