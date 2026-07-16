@@ -2,18 +2,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
 
-export const SYSTEM_NOTIFICATION_CHANNEL_ID = 'draborngarage-system-default-v5';
-export const CHIME_NOTIFICATION_CHANNEL_ID = 'draborngarage-appointment-chime-v5';
-export const PULSE_NOTIFICATION_CHANNEL_ID = 'draborngarage-workshop-pulse-v5';
-export const ALERT_NOTIFICATION_CHANNEL_ID = 'draborngarage-urgent-alert-v5';
-export const BELL_NOTIFICATION_CHANNEL_ID = 'draborngarage-classic-bell-v5';
-export const SIREN_NOTIFICATION_CHANNEL_ID = 'draborngarage-siren-v5';
-export const TURBO_NOTIFICATION_CHANNEL_ID = 'draborngarage-turbo-v5';
-export const METAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-metal-v5';
-export const DIGITAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-digital-v5';
-export const RETRO_NOTIFICATION_CHANNEL_ID = 'draborngarage-retro-v5';
-export const SILENT_NOTIFICATION_CHANNEL_ID = 'draborngarage-silent-v5';
-export const NOTIFICATION_INTRO_STORAGE_KEY = '@draborngarage/notification-intro-v110';
+export const SYSTEM_NOTIFICATION_CHANNEL_ID = 'draborngarage-system-default-v6';
+export const CHIME_NOTIFICATION_CHANNEL_ID = 'draborngarage-appointment-chime-v6';
+export const PULSE_NOTIFICATION_CHANNEL_ID = 'draborngarage-workshop-pulse-v6';
+export const ALERT_NOTIFICATION_CHANNEL_ID = 'draborngarage-urgent-alert-v6';
+export const BELL_NOTIFICATION_CHANNEL_ID = 'draborngarage-classic-bell-v6';
+export const SIREN_NOTIFICATION_CHANNEL_ID = 'draborngarage-siren-v6';
+export const TURBO_NOTIFICATION_CHANNEL_ID = 'draborngarage-turbo-v6';
+export const METAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-metal-v6';
+export const DIGITAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-digital-v6';
+export const RETRO_NOTIFICATION_CHANNEL_ID = 'draborngarage-retro-v6';
+export const SILENT_NOTIFICATION_CHANNEL_ID = 'draborngarage-silent-v6';
+export const NOTIFICATION_INTRO_STORAGE_KEY = '@draborngarage/notification-intro-v111';
 
 const LEGACY_CHANNELS = [
   'draborngarage-system-loud-v4',
@@ -21,11 +21,41 @@ const LEGACY_CHANNELS = [
   'draborngarage-workshop-pulse-v4',
   'draborngarage-urgent-alert-v4',
   'draborngarage-silent-v4',
+  'draborngarage-system-default-v5',
+  'draborngarage-appointment-chime-v5',
+  'draborngarage-workshop-pulse-v5',
+  'draborngarage-urgent-alert-v5',
+  'draborngarage-classic-bell-v5',
+  'draborngarage-siren-v5',
+  'draborngarage-turbo-v5',
+  'draborngarage-metal-v5',
+  'draborngarage-digital-v5',
+  'draborngarage-retro-v5',
+  'draborngarage-silent-v5',
 ];
+
+function notificationMethodError(method: string) {
+  return new Error(`Android bildirim modülü hazır değil: ${method}`);
+}
 
 export async function ensureDraBornNotificationChannels() {
   if (Platform.OS !== 'android') return;
-  await Promise.all(LEGACY_CHANNELS.map((id) => Notifications.deleteNotificationChannelAsync(id).catch(() => undefined)));
+  const api = Notifications as typeof Notifications & Record<string, unknown>;
+
+  if (typeof api.deleteNotificationChannelAsync === 'function') {
+    for (const id of LEGACY_CHANNELS) {
+      try {
+        await Promise.resolve(Notifications.deleteNotificationChannelAsync(id));
+      } catch {
+        // Eski kanal yoksa veya cihaz üreticisi silmeye izin vermiyorsa yeni kanallar yine oluşturulur.
+      }
+    }
+  }
+
+  if (typeof api.setNotificationChannelAsync !== 'function') {
+    throw notificationMethodError('setNotificationChannelAsync');
+  }
+
   const common = {
     importance: Notifications.AndroidImportance.MAX,
     enableVibrate: true,
@@ -35,6 +65,7 @@ export async function ensureDraBornNotificationChannels() {
     showBadge: true,
     bypassDnd: false,
   };
+
   const definitions: Array<[string, Notifications.NotificationChannelInput]> = [
     [SYSTEM_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Telefonun Varsayılan Sesi', description: 'Android sisteminde seçili varsayılan bildirim sesini kullanır.', sound: 'default', vibrationPattern: [0, 280, 100, 430] }],
     [CHIME_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Randevu Çağrısı', description: 'Üç notalı melodik randevu çağrısı.', sound: 'garage_chime.wav', vibrationPattern: [0, 220, 100, 220, 100, 450] }],
@@ -48,19 +79,40 @@ export async function ensureDraBornNotificationChannels() {
     [RETRO_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Retro Oyun', description: 'Klasik oyun konsolu tarzında melodi.', sound: 'garage_retro.wav', vibrationPattern: [0, 100, 60, 100, 60, 320] }],
     [SILENT_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Sessiz', description: 'Ses olmadan titreşim ve bildirim alanı uyarısı.', importance: Notifications.AndroidImportance.HIGH, sound: null, vibrationPattern: [0, 220, 120, 220] }],
   ];
-  for (const [id, definition] of definitions) await Notifications.setNotificationChannelAsync(id, definition);
+
+  for (const [id, definition] of definitions) {
+    await Promise.resolve(Notifications.setNotificationChannelAsync(id, definition));
+  }
 }
 
 export async function requestDeviceNotificationPermission() {
+  const api = Notifications as typeof Notifications & Record<string, unknown>;
   await ensureDraBornNotificationChannels();
-  const current = await Notifications.getPermissionsAsync();
+
+  if (typeof api.getPermissionsAsync !== 'function') {
+    throw notificationMethodError('getPermissionsAsync');
+  }
+  const current = await Promise.resolve(Notifications.getPermissionsAsync());
   if (current.status === 'granted') return current;
-  return Notifications.requestPermissionsAsync();
+
+  if (typeof api.requestPermissionsAsync !== 'function') {
+    throw notificationMethodError('requestPermissionsAsync');
+  }
+  return Promise.resolve(Notifications.requestPermissionsAsync());
 }
 
 export async function shouldShowNotificationIntro() {
-  const permission = await Notifications.getPermissionsAsync().catch(() => null);
+  const api = Notifications as typeof Notifications & Record<string, unknown>;
+  if (typeof api.getPermissionsAsync !== 'function') return true;
+
+  let permission: Notifications.NotificationPermissionsStatus | null = null;
+  try {
+    permission = await Promise.resolve(Notifications.getPermissionsAsync());
+  } catch {
+    permission = null;
+  }
   if (permission?.status === 'granted') return false;
+
   const seen = await AsyncStorage.getItem(NOTIFICATION_INTRO_STORAGE_KEY);
   return seen !== 'completed';
 }
@@ -69,4 +121,6 @@ export async function markNotificationIntroCompleted() {
   await AsyncStorage.setItem(NOTIFICATION_INTRO_STORAGE_KEY, 'completed');
 }
 
-export async function openNotificationSettings() { await Linking.openSettings(); }
+export async function openNotificationSettings() {
+  await Linking.openSettings();
+}
