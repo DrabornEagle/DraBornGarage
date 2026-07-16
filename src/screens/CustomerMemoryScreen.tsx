@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { useSmartAutoRefresh } from '../hooks/useSmartAutoRefresh';
 import { Customer, Motorcycle, WorkOrderStatus } from '../types';
 import { CustomersScreen as LegacyCustomersScreen } from './CustomersScreen';
 
@@ -134,7 +135,7 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
 
   useEffect(() => { setMode(initialTab === 'claims' ? 'management' : 'memory'); }, [initialTab]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!workshop) return;
     const [customerResult, motorcycleResult, orderResult] = await Promise.all([
       supabase.from('customers').select('*').eq('workshop_id', workshop.id).order('full_name'),
@@ -145,7 +146,7 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
         .order('arrived_at', { ascending: false }),
     ]);
     if (customerResult.error || motorcycleResult.error || orderResult.error) {
-      Alert.alert('Müşteri hafızası açılamadı', customerResult.error?.message || motorcycleResult.error?.message || orderResult.error?.message || 'Bilinmeyen hata');
+      if (!silent) Alert.alert('Müşteri hafızası açılamadı', customerResult.error?.message || motorcycleResult.error?.message || orderResult.error?.message || 'Bilinmeyen hata');
       return;
     }
     const nextOrders = (orderResult.data as unknown as HistoryOrder[]) ?? [];
@@ -175,6 +176,17 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
   }, [workshop]);
 
   useEffect(() => { load(); }, [load]);
+  useSmartAutoRefresh(() => load(true), 60000, Boolean(workshop));
+  useEffect(() => {
+    if (!workshop?.id) return;
+    const refreshSilently = () => { load(true).catch(() => undefined); };
+    const channel = supabase.channel(`customer-memory-live-${workshop.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: `workshop_id=eq.${workshop.id}` }, refreshSilently)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'motorcycles', filter: `workshop_id=eq.${workshop.id}` }, refreshSilently)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `workshop_id=eq.${workshop.id}` }, refreshSilently)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, load]);
 
   const visibleCustomers = useMemo(() => {
     const value = query.trim().toLocaleLowerCase('tr-TR');
@@ -227,7 +239,7 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}
     showsVerticalScrollIndicator={false}
   >
-    <ScreenHeader eyebrow="v1.0.1 MÜŞTERİ HAFIZASI" title="Müşteriler" subtitle="Motorun kilometreli servis geçmişi, yapılan işlemler, parçalar ve ustanın sonraki geliş notları." />
+    <ScreenHeader eyebrow="MÜŞTERİ HAFIZASI" title="Müşteriler" subtitle="Motorun kilometreli servis geçmişi, yapılan işlemler, parçalar ve ustanın sonraki geliş notları." />
 
     <View style={[styles.modeTabs, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>
       <ModeButton active label="Müşteri Hafızası" icon="time" onPress={() => undefined} />

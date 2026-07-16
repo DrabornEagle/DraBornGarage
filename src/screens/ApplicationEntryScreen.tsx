@@ -9,6 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { useSmartAutoRefresh } from '../hooks/useSmartAutoRefresh';
+import { APP_VERSION_LABEL } from '../lib/appVersion';
 import { BusinessApplication, MechanicApplication } from '../types';
 
 type EntryTab = 'application' | 'account';
@@ -61,9 +63,8 @@ export function ApplicationEntryScreen() {
     setAccessRequests((data as WorkshopAccessRequest[] | null) ?? []);
   }, []);
 
-  useEffect(() => {
-    loadAccessRequests();
-  }, [loadAccessRequests]);
+  useEffect(() => { loadAccessRequests(); }, [loadAccessRequests]);
+  useSmartAutoRefresh(loadAccessRequests, 60000, Boolean(profile?.id));
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -127,7 +128,7 @@ export function ApplicationEntryScreen() {
           <View style={[styles.heroIcon, { backgroundColor: `${colors.orange}18`, borderColor: `${colors.orange}48` }]}>
             <Ionicons name="document-text" size={34} color={colors.orange} />
           </View>
-          <Text style={[styles.eyebrow, { color: colors.orange }]}>DraBornGarage • v1.0.4 RC</Text>
+          <Text style={[styles.eyebrow, { color: colors.orange }]}>DraBornGarage • {APP_VERSION_LABEL}</Text>
           <Text style={[styles.title, { color: colors.text }]}>Merhaba, {profile?.full_name?.split(' ')[0] || 'Kullanıcı'}</Text>
           <Text style={[styles.subtitle, { color: colors.textMuted }]}>İşletme veya Usta başvurun sonuçlanana kadar bu ekrandan güncel durumunu takip edebilirsin.</Text>
           <View style={[styles.statusPill, { backgroundColor: `${pendingCount > 0 ? colors.orange : colors.green}14`, borderColor: `${pendingCount > 0 ? colors.orange : colors.green}45` }]}>

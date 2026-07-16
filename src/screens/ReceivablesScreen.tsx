@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { useSmartAutoRefresh } from '../hooks/useSmartAutoRefresh';
 
 type ReceivableFilter = 'open' | 'today' | 'overdue' | 'partial' | 'paid' | 'cancelled' | 'all';
 type ReceivableStatus = 'not_set' | 'open' | 'closed' | 'cancelled';
@@ -156,21 +157,31 @@ export function ReceivablesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const canView = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic' || membership?.role === 'mechanic';
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!workshop || !canView) { setItems([]); setSummary(EMPTY_SUMMARY); return; }
     const [listResult, summaryResult] = await Promise.all([
       supabase.rpc('staff_get_receivables', { p_workshop_id: workshop.id, p_filter: filter, p_search: search.trim() || null }),
       supabase.rpc('staff_get_receivable_summary', { p_workshop_id: workshop.id }),
     ]);
-    if (listResult.error) Alert.alert('Alacaklar alınamadı', listResult.error.message);
+    if (listResult.error && !silent) Alert.alert('Alacaklar alınamadı', listResult.error.message);
     else setItems((listResult.data as ReceivableItem[] | null) ?? []);
     if (!summaryResult.error && summaryResult.data) setSummary(summaryResult.data as ReceivableSummary);
   }, [workshop, canView, filter, search]);
 
   useEffect(() => {
-    const timer = setTimeout(load, 260);
+    const timer = setTimeout(() => load(), 260);
     return () => clearTimeout(timer);
   }, [load]);
+  useSmartAutoRefresh(() => load(true), 60000, Boolean(workshop && canView && !selectedId));
+  useEffect(() => {
+    if (!workshop?.id || !canView || selectedId) return;
+    const refreshSilently = () => { load(true).catch(() => undefined); };
+    const channel = supabase.channel(`receivables-live-${workshop.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders', filter: `workshop_id=eq.${workshop.id}` }, refreshSilently)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `workshop_id=eq.${workshop.id}` }, refreshSilently)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workshop?.id, canView, selectedId, load]);
 
   const refresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
@@ -179,7 +190,7 @@ export function ReceivablesScreen() {
   if (selectedId) return <ReceivableDetailView orderId={selectedId} onBack={() => { setSelectedId(null); load(); }} />;
 
   return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
-    <ScreenHeader eyebrow="v0.5 ALACAK TAKİBİ" title="Alacaklar" subtitle={`${workshop?.name ?? 'DraBornGarage'} • Borç, kısmi ödeme ve söz tarihi merkezi`} actionIcon="refresh" onAction={load} />
+    <ScreenHeader eyebrow="ALACAK TAKİBİ" title="Alacaklar" subtitle={`${workshop?.name ?? 'DraBornGarage'} • Borç, kısmi ödeme ve söz tarihi merkezi`} actionIcon="refresh" onAction={load} />
 
     <LinearGradient colors={[colors.primary, colors.primary2, colors.cyan]} style={styles.hero}>
       <View><Text style={styles.heroLabel}>AÇIK ALACAK</Text><Text style={styles.heroValue}>{money(summary.open_amount)}</Text><Text style={styles.heroMeta}>{summary.open_count} açık kayıt</Text></View>
@@ -231,7 +242,7 @@ function ReceivableDetailView({ orderId, onBack }: { orderId: string; onBack: ()
   const [newNote, setNewNote] = useState('');
   const [noteVisibility, setNoteVisibility] = useState<NoteVisibility>('staff');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     const { data, error } = await supabase.rpc('staff_get_receivable_detail', { p_work_order_id: orderId });
     if (error) return Alert.alert('Alacak detayı alınamadı', error.message);
     const next = data as ReceivableDetail;

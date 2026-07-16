@@ -17,7 +17,7 @@ import { AccountMode, WorkshopSearchResult } from '../types';
 
 type BusinessEntryMode = 'new' | 'existing';
 
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.6';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 export function AuthScreen() {
   const { colors } = useTheme();

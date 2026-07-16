@@ -5,7 +5,8 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import { AppState, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ensureDraBornNotificationChannels, LOUD_NOTIFICATION_CHANNEL_ID, requestDeviceNotificationPermission, SILENT_NOTIFICATION_CHANNEL_ID } from './notificationPermissions';
+import { APP_VERSION } from '../lib/appVersion';
+import { ALERT_NOTIFICATION_CHANNEL_ID, CHIME_NOTIFICATION_CHANNEL_ID, ensureDraBornNotificationChannels, LOUD_NOTIFICATION_CHANNEL_ID, PULSE_NOTIFICATION_CHANNEL_ID, requestDeviceNotificationPermission, SILENT_NOTIFICATION_CHANNEL_ID } from './notificationPermissions';
 import {
   GarageNotification,
   NotificationCenterPayload,
@@ -33,19 +34,29 @@ const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID
   || Constants.easConfig?.projectId
   || null;
 const NATIVE_PUSH_ENABLED = process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED === 'true' && Boolean(EAS_PROJECT_ID);
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.7';
 
 export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: string; subtitle: string; icon: 'musical-notes' | 'volume-mute' }[] = [
-  { key: 'system_loud', label: 'Telefon Bildirim Sesi', subtitle: 'Telefonunun bildirim sesi ve ses seviyesini kullanır', icon: 'musical-notes' },
+  { key: 'system_loud', label: 'Telefon Bildirim Sesi', subtitle: 'Telefonunun bildirim sesini ve ses seviyesini kullanır', icon: 'musical-notes' },
+  { key: 'garage_chime', label: 'Randevu Çağrısı', subtitle: 'Müşteri ve randevular için melodik yüksek çağrı', icon: 'musical-notes' },
+  { key: 'garage_pulse', label: 'Atölye Nabzı', subtitle: 'Servis hareketleri için güçlü çift darbeli uyarı', icon: 'musical-notes' },
+  { key: 'garage_alert', label: 'Acil Garaj Alarmı', subtitle: 'Önemli hareketler için en dikkat çekici alarm', icon: 'musical-notes' },
   { key: 'silent', label: 'Sessiz', subtitle: 'Ses olmadan güçlü titreşim', icon: 'volume-mute' },
 ];
 
-function soundFile(sound: NotificationSoundKey): 'default' | false {
-  return sound === 'silent' ? false : 'default';
+function soundFile(sound: NotificationSoundKey): 'default' | 'garage_chime.wav' | 'garage_pulse.wav' | 'garage_alert.wav' | false {
+  if (sound === 'silent') return false;
+  if (sound === 'garage_chime') return 'garage_chime.wav';
+  if (sound === 'garage_pulse') return 'garage_pulse.wav';
+  if (sound === 'garage_alert') return 'garage_alert.wav';
+  return 'default';
 }
 
 function channelId(sound: NotificationSoundKey) {
-  return sound === 'silent' ? SILENT_NOTIFICATION_CHANNEL_ID : LOUD_NOTIFICATION_CHANNEL_ID;
+  if (sound === 'silent') return SILENT_NOTIFICATION_CHANNEL_ID;
+  if (sound === 'garage_chime') return CHIME_NOTIFICATION_CHANNEL_ID;
+  if (sound === 'garage_pulse') return PULSE_NOTIFICATION_CHANNEL_ID;
+  if (sound === 'garage_alert') return ALERT_NOTIFICATION_CHANNEL_ID;
+  return LOUD_NOTIFICATION_CHANNEL_ID;
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -85,6 +96,7 @@ interface NotificationContextValue {
   requestLocalNotifications: () => Promise<boolean>;
   registerPushNotifications: () => Promise<boolean>;
   sendTestNotification: () => Promise<boolean>;
+  sendClosedAppTestNotification: () => Promise<boolean>;
   consumeNavigationTarget: () => NotificationNavigationTarget | null;
 }
 
@@ -560,6 +572,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [permissionStatus, requestLocalNotifications, preferences.notification_sound]);
 
+  const sendClosedAppTestNotification = useCallback(async () => {
+    if (!session?.user || !NATIVE_PUSH_ENABLED) return false;
+    try {
+      const { data, error } = await supabase.rpc('notification_schedule_closed_app_test', { p_delay_seconds: 45 });
+      if (error) throw error;
+      await refresh();
+      return Boolean(data);
+    } catch {
+      return false;
+    }
+  }, [session?.user, refresh]);
+
   const consumeNavigationTarget = useCallback(() => {
     const current = navigationTarget;
     setNavigationTarget(null);
@@ -569,8 +593,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const value = useMemo<NotificationContextValue>(() => ({
     open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget,
     openCenter: () => setOpen(true), closeCenter: () => setOpen(false), refresh, markRead, markAllRead, archive, deleteNotification,
-    openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, consumeNavigationTarget,
-  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, consumeNavigationTarget]);
+    openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, sendClosedAppTestNotification, consumeNavigationTarget,
+  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, sendClosedAppTestNotification, consumeNavigationTarget]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

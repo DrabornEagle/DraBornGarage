@@ -1,0 +1,29 @@
+name: Temporary Feature Tree Info
+
+on:
+  push:
+    branches:
+      - feature/v1.0.0-final-candidate
+    paths:
+      - .github/workflows/_temporary-feature-tree-info.yml
+
+permissions:
+  contents: write
+
+jobs:
+  tree:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Store parent and tree
+        shell: bash
+        run: |
+          mkdir -p .runtime
+          printf 'parent=%s\ntree=%s\n' "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})" > .runtime/feature-tree-info.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .runtime/feature-tree-info.txt
+          git commit -m 'chore: publish feature tree info'
+          git push origin HEAD:feature/v1.0.0-final-candidate

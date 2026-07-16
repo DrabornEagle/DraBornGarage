@@ -13,6 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../notifications/NotificationContext';
 import { ThemeMode } from '../types';
+import { APP_VERSION_LABEL } from '../lib/appVersion';
 
 interface DemoStatus { active: boolean; customer_count: number; work_order_count: number; workshop_count?: number; }
 type ThemeOption = { value: ThemeMode; title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; preview: [string, string] };
@@ -52,7 +53,7 @@ export function SettingsScreen() {
   }, [workshop, isOwner]);
   useEffect(() => { loadDemo(); }, [loadDemo]);
 
-  const createDemo = () => workshop && Alert.alert('v0.9 pilot verileri yüklensin mi?', 'Hızlı servis, randevu, alacak, platform bedeli, rapor ve bildirim senaryoları için geçici kayıtlar eklenir.', [{ text: 'Vazgeç' }, { text: 'Yükle', onPress: async () => {
+  const createDemo = () => workshop && Alert.alert('Pilot test verileri yüklensin mi?', 'Hızlı servis, randevu, alacak, platform bedeli, rapor ve bildirim senaryoları için geçici kayıtlar eklenir.', [{ text: 'Vazgeç' }, { text: 'Yükle', onPress: async () => {
     setLoading(true);
     const runners = [
       ['Temel demo', 'create_demo_data'],
@@ -70,7 +71,7 @@ export function SettingsScreen() {
     await refreshWorkspace(workshop.id);
     await loadDemo();
     await refreshNotifications();
-    Alert.alert('v0.9 pilot ortamı hazır', 'Ana servis ve bildirim senaryoları geçici test verileriyle hazırlandı.');
+    Alert.alert('Pilot ortamı hazır', 'Ana servis ve bildirim senaryoları geçici test verileriyle hazırlandı.');
   } }]);
 
   const clearDemo = () => workshop && Alert.alert('Pilot verileri temizlensin mi?', 'Gerçek kayıtlar etkilenmez. Demo bildirimleri de temizlenir.', [{ text: 'Vazgeç' }, { text: 'Temizle', style: 'destructive', onPress: async () => { setLoading(true); const { data, error } = await supabase.rpc('clear_demo_data', { p_workshop_id: workshop.id }); setLoading(false); if (error) return Alert.alert('Temizlenemedi', error.message); await refreshWorkspace((data as any)?.root_workshop_id ?? null); setDemo(EMPTY_DEMO); await refreshNotifications(); } }]);
@@ -101,7 +102,7 @@ export function SettingsScreen() {
     </SettingsAccordion>
 
     {isOwner && <SettingsAccordion title="Pilot Test Atölyesi" subtitle={demo.active ? `${demo.customer_count} müşteri • ${demo.work_order_count} servis` : 'Geçici pilot verileri kapalı'} icon="flask" accent={demo.active ? colors.green : colors.orange} open={openSection === 'demo'} onToggle={() => toggleSection('demo')}>
-      <GlassCard style={styles.demoCard}><View style={styles.demoHeader}><Ionicons name="flask" size={28} color={demo.active ? colors.green : colors.orange} /><View style={styles.copy}><Text style={[styles.demoTitle, { color: colors.text }]}>v0.9 Ana Akış Testleri</Text><Text style={[styles.demoText, { color: colors.textMuted }]}>{demo.customer_count} müşteri • {demo.work_order_count} servis • Hızlı servis, randevu, alacak, platform ve bildirim</Text></View></View>{demo.active ? <PrimaryButton title="Pilot Verilerini Temizle" onPress={clearDemo} loading={loading} secondary /> : <PrimaryButton title="Pilot Verilerini Yükle" onPress={createDemo} loading={loading} />}<PrimaryButton title="Pilot Kontrol Listesini Aç" onPress={() => Linking.openURL(TEST_CHECKLIST_URL)} secondary /></GlassCard>
+      <GlassCard style={styles.demoCard}><View style={styles.demoHeader}><Ionicons name="flask" size={28} color={demo.active ? colors.green : colors.orange} /><View style={styles.copy}><Text style={[styles.demoTitle, { color: colors.text }]}>Ana Akış Testleri</Text><Text style={[styles.demoText, { color: colors.textMuted }]}>{demo.customer_count} müşteri • {demo.work_order_count} servis • Hızlı servis, randevu, alacak, platform ve bildirim</Text></View></View>{demo.active ? <PrimaryButton title="Pilot Verilerini Temizle" onPress={clearDemo} loading={loading} secondary /> : <PrimaryButton title="Pilot Verilerini Yükle" onPress={createDemo} loading={loading} />}<PrimaryButton title="Pilot Kontrol Listesini Aç" onPress={() => Linking.openURL(TEST_CHECKLIST_URL)} secondary /></GlassCard>
     </SettingsAccordion>}
 
     <SettingsAccordion title="İşletme ve Randevu" subtitle={workshop?.name || 'Aktif işletme seçilmedi'} icon="business" accent={colors.cyan} open={openSection === 'business'} onToggle={() => toggleSection('business')}>
@@ -118,8 +119,8 @@ export function SettingsScreen() {
       <PrimaryButton title="Gizlilik Politikasını Aç" onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} secondary />
     </SettingsAccordion>
 
-    <SettingsAccordion title="Uygulama" subtitle="v1.0.4 RC • Başvuru merkezi ve erişim düzeni" icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
-      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value="v1.0.4 RC • Expo Test Adayı" /><Info icon="shield-checkmark" label="Motor Hazır kuralı" value="Son net ücret girilmeden Motor Hazır yapılamaz" /><Info icon="key" label="Şifre güvenliği" value="En az 6 karakter • basit kayıt şifresi" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v1.0.2-before-v1.0.4-20260715" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v1.0.2 RC" /><Info icon="phone-portrait" label="Test yöntemi" value="Expo Go + GitHub kalite testleri" /><Info icon="storefront" label="Mağaza durumu" value="Expo testinde • sonraki adım Test APK" /></GlassCard>
+    <SettingsAccordion title="Uygulama" subtitle={`${APP_VERSION_LABEL} • Google Play Final Adayı`} icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
+      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value={`${APP_VERSION_LABEL} • Google Play Final Adayı`} /><Info icon="shield-checkmark" label="Motor Hazır kuralı" value="Ücret isteğe bağlı • Tahsilat veya borç tutarı Net Fiyat olabilir" /><Info icon="key" label="İmza güvenliği" value="Kalıcı DraBornGarage production upload keystore" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v1.0.8-production-before-v1.0.0-final-20260716" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v1.0.8 Production" /><Info icon="phone-portrait" label="Test yöntemi" value="Gerçek keystore imzalı Production APK" /><Info icon="storefront" label="Mağaza durumu" value="Son cihaz testleri • sonraki adım v1.0 Final AAB" /></GlassCard>
     </SettingsAccordion>
 
     <AnimatedPressable onPress={() => Alert.alert('Çıkış yapılsın mı?', '', [{ text: 'Vazgeç' }, { text: 'Çıkış', style: 'destructive', onPress: signOut }])} style={[styles.logout, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}35` }]}><Ionicons name="log-out-outline" size={21} color={colors.red} /><Text style={[styles.logoutText, { color: colors.red }]}>Hesaptan Çıkış Yap</Text></AnimatedPressable>

@@ -121,7 +121,7 @@ export function AppointmentsScreen() {
   const openEdit = (item: Appointment) => { setEditing(item); setTab('new'); };
 
   return <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
-    <ScreenHeader eyebrow="v0.9.3 TAKVİM" title="Randevu ve Müsaitlik" subtitle={`${workshop?.name ?? 'DraBornGarage'} • Takvim, yeni randevu ve çalışma saatlerini tek merkezden yönet.`} />
+    <ScreenHeader eyebrow="RANDEVU TAKVİMİ" title="Randevu ve Müsaitlik" subtitle={`${workshop?.name ?? 'DraBornGarage'} • Takvim, yeni randevu ve çalışma saatlerini tek merkezden yönet.`} />
 
     <View style={styles.modeGrid}>
       <AppointmentModeCard active={tab === 'calendar'} title="Takvim" subtitle="Günlük randevuları gör, onayla ve yönet" icon="calendar" accent={colors.cyan} onPress={() => { setTab('calendar'); setEditing(null); }} />
