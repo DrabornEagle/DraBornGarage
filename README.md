@@ -4,15 +4,23 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel geliştirme sürümü
 
-**v1.1.2 — Kapalı Uygulama Pushu ve Randevu Bildirim Düzeltmesi**
+**v1.1.3 — Expo SDK 54 Push Token Modülü Düzeltmesi**
 
-- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, ardından `v1.1.2`…
+- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, `v1.1.2`, ardından `v1.1.3`…
 - AAB alınana kadar Android `versionCode` sabit: `1`
 - Expo: küçük arayüz ve işlev testleri
 - Native bildirim ve gerçek cihaz testleri: **DraBornGarage Release APK**
 - Google Play paketi: **DraBornGarage Release AAB**
 - İlk Google Play yayını: uygulama `versionName` **1.0**, `versionCode` **1**
 - İlk Play yayınından sonra her mağaza güncellemesinde hem sürüm hem `versionCode` artırılır.
+
+## v1.1.3 düzeltmeleri
+
+- Expo SDK 54 içindeki `getDevicePushTokenAsync` ve `getExpoPushTokenAsync` modülleri paket ana export nesnesi yerine doğrudan yüklenir.
+- APK içinde bulunan native `ExpoPushTokenManager` sınıfına doğrudan SDK modülü üzerinden erişilir.
+- Android FCM tokenı biçim ve uzunluk açısından doğrulandıktan sonra Expo push tokenı oluşturulur.
+- Token kaydı aşamaları ayrı hata mesajlarıyla gösterilir: izin, FCM, Expo servisi ve Supabase kaydı.
+- Fiziksel cihazdaki `getDevicePushTokenAsync kullanılamıyor` ana-export hatası kaldırılır.
 
 ## v1.1.2 düzeltmeleri
 

@@ -3,7 +3,7 @@
     "name": "DraBornGarage",
     "slug": "draborngarage",
     "scheme": "draborngarage",
-    "version": "1.1.2",
+    "version": "1.1.3",
     "icon": "./assets/draborngarage-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
