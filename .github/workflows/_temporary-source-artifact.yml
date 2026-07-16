@@ -1,0 +1,40 @@
+name: Temporary Source Artifact
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-source-artifact.yml
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Package repository snapshot
+        run: |
+          mkdir output
+          git archive --format=zip --output=output/DraBornGarage-v1.0.0-source.zip HEAD
+          git rev-parse HEAD > output/SOURCE_COMMIT.txt
+          sha256sum output/DraBornGarage-v1.0.0-source.zip > output/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DraBornGarage-v1.0.0-Source
+          path: output/
+          retention-days: 30
+      - name: Record run and remove temporary workflow
+        run: |
+          mkdir -p .runtime
+          echo "$GITHUB_RUN_ID" > .runtime/v100-source-run.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_temporary-source-artifact.yml
+          git add .runtime/v100-source-run.txt
+          git commit -m 'chore: record v1.0.0 source artifact run'
+          git pull --rebase origin main
+          git push origin HEAD:main
