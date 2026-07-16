@@ -1,4 +1,4 @@
-name: Release APK
+name: DraBornGarage Release APK
 
 on:
   workflow_dispatch:
@@ -190,8 +190,11 @@ jobs:
           android='{http://schemas.android.com/apk/res/android}'
           root=ET.parse(manifest).getroot()
           permissions={n.attrib.get(android+'name') for n in root.findall('uses-permission')}
-          blocked={'android.permission.RECORD_AUDIO','android.permission.ACCESS_FINE_LOCATION','android.permission.ACCESS_COARSE_LOCATION','android.permission.READ_CONTACTS','android.permission.WRITE_CONTACTS','android.permission.CALL_PHONE','android.permission.READ_PHONE_STATE','android.permission.READ_SMS','android.permission.SEND_SMS'}
+          blocked={'android.permission.RECORD_AUDIO','android.permission.ACCESS_FINE_LOCATION','android.permission.ACCESS_COARSE_LOCATION','android.permission.READ_CONTACTS','android.permission.WRITE_CONTACTS','android.permission.CALL_PHONE','android.permission.READ_PHONE_STATE','android.permission.READ_SMS','android.permission.SEND_SMS','android.permission.READ_MEDIA_IMAGES','android.permission.READ_EXTERNAL_STORAGE','android.permission.WRITE_EXTERNAL_STORAGE'}
           if blocked & permissions: raise SystemExit(f'Engellenen izinler bulundu: {sorted(blocked & permissions)}')
+          uses_sdk=root.find('uses-sdk')
+          target_sdk=int(uses_sdk.attrib.get(android+'targetSdkVersion','0') or 0) if uses_sdk is not None else 0
+          if target_sdk<35: raise SystemExit(f'Target SDK çok düşük veya bulunamadı: {target_sdk}')
           for required in ('android.permission.CAMERA','android.permission.POST_NOTIFICATIONS'):
               if required not in permissions: raise SystemExit(f'{required} bulunamadı')
           PY
