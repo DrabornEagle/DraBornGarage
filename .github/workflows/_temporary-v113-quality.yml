@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/_temporary-v113-quality.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
