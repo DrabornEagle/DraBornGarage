@@ -1,0 +1,32 @@
+name: Temporary v1.0.0 Failed Log
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-v100-failed-log.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture exact failed step log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .runtime
+          gh run view 29463827376 --repo "$GITHUB_REPOSITORY" --log-failed 2>&1 | tail -n 240 > .runtime/v100-validation-failure.txt
+      - name: Persist log
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_temporary-v100-failed-log.yml
+          git add .runtime/v100-validation-failure.txt
+          git commit -m 'chore: capture exact v1.0.0 validation failure'
+          git pull --rebase origin main
+          git push origin HEAD:main
