@@ -8,10 +8,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply-test-clean:
+  apply-test-package:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'agent/v1.1.0-notifications-platform-policy'
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -106,15 +106,19 @@ jobs:
           include-hidden-files: true
           retention-days: 2
 
-      - name: Persist tested v1.1.0 and remove temporary files
+      - name: Prepare tested v1.1.0 source
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           rm -f scripts/.v110_payload_* scripts/.v110_fix.py .github/workflows/_temporary-apply-v110.yml docs/.pr-trigger
-          rm -rf .runtime
-          git add -A
-          git commit -m 'feat: prepare DraBornGarage v1.1.0 notifications platform fee and Play policy'
-          git pull --rebase origin agent/v1.1.0-notifications-platform-policy
-          git push origin HEAD:agent/v1.1.0-notifications-platform-policy
+          rm -rf .runtime node_modules dist
+          tar --exclude=.git --exclude=DraBornGarage-v1.1.0-tested-source.tar.gz -czf DraBornGarage-v1.1.0-tested-source.tar.gz .
+
+      - name: Upload tested v1.1.0 source
+        uses: actions/upload-artifact@v4
+        with:
+          name: DraBornGarage-v1.1.0-tested-source
+          path: DraBornGarage-v1.1.0-tested-source.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
