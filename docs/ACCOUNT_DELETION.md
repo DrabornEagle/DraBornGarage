@@ -1,13 +1,13 @@
 # DraBornGarage Hesap ve Veri Silme
 
-**Son güncelleme:** 14 Temmuz 2026
+**Son güncelleme:** 16 Temmuz 2026
 
 DraBornGarage hesabını ve hesabınla ilişkilendirilen kişisel verileri silme talebi oluşturabilirsin.
 
 ## Uygulama içinden talep
 
 1. DraBornGarage hesabına giriş yap.
-2. Ekranın sol üstündeki **kalkan** simgesine dokun.
+2. Ekrandaki **kalkan** simgesine dokun.
 3. **Gizlilik ve Hesap** ekranını aç.
 4. **Hesap Silme Talebi Oluştur** düğmesine dokun.
 5. Onay penceresindeki bilgileri okuyup talebi onayla.

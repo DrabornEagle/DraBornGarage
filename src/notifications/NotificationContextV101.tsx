@@ -6,7 +6,7 @@ import { AppState, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { APP_VERSION } from '../lib/appVersion';
-import { ALERT_NOTIFICATION_CHANNEL_ID, CHIME_NOTIFICATION_CHANNEL_ID, ensureDraBornNotificationChannels, LOUD_NOTIFICATION_CHANNEL_ID, PULSE_NOTIFICATION_CHANNEL_ID, requestDeviceNotificationPermission, SILENT_NOTIFICATION_CHANNEL_ID } from './notificationPermissions';
+import { ALERT_NOTIFICATION_CHANNEL_ID, BELL_NOTIFICATION_CHANNEL_ID, CHIME_NOTIFICATION_CHANNEL_ID, DIGITAL_NOTIFICATION_CHANNEL_ID, ensureDraBornNotificationChannels, METAL_NOTIFICATION_CHANNEL_ID, PULSE_NOTIFICATION_CHANNEL_ID, requestDeviceNotificationPermission, RETRO_NOTIFICATION_CHANNEL_ID, SILENT_NOTIFICATION_CHANNEL_ID, SIREN_NOTIFICATION_CHANNEL_ID, SYSTEM_NOTIFICATION_CHANNEL_ID, TURBO_NOTIFICATION_CHANNEL_ID } from './notificationPermissions';
 import {
   GarageNotification,
   NotificationCenterPayload,
@@ -33,30 +33,54 @@ const EAS_PROJECT_ID = process.env.EXPO_PUBLIC_EAS_PROJECT_ID
   || Constants.expoConfig?.extra?.eas?.projectId
   || Constants.easConfig?.projectId
   || null;
-const NATIVE_PUSH_ENABLED = process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED === 'true' && Boolean(EAS_PROJECT_ID);
+const NATIVE_PUSH_ENABLED = !IS_EXPO_GO && Boolean(EAS_PROJECT_ID) && process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED !== 'false';
 
 export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: string; subtitle: string; icon: 'musical-notes' | 'volume-mute' }[] = [
-  { key: 'system_loud', label: 'Telefon Bildirim Sesi', subtitle: 'Telefonunun bildirim sesini ve ses seviyesini kullanır', icon: 'musical-notes' },
-  { key: 'garage_chime', label: 'Randevu Çağrısı', subtitle: 'Müşteri ve randevular için melodik yüksek çağrı', icon: 'musical-notes' },
-  { key: 'garage_pulse', label: 'Atölye Nabzı', subtitle: 'Servis hareketleri için güçlü çift darbeli uyarı', icon: 'musical-notes' },
-  { key: 'garage_alert', label: 'Acil Garaj Alarmı', subtitle: 'Önemli hareketler için en dikkat çekici alarm', icon: 'musical-notes' },
+  { key: 'system_loud', label: 'Telefonun Varsayılan Sesi', subtitle: 'Android ayarlarında seçili sistem bildirim sesini kullanır', icon: 'musical-notes' },
+  { key: 'garage_chime', label: 'Randevu Çağrısı', subtitle: 'Üç notalı melodik müşteri çağrısı', icon: 'musical-notes' },
+  { key: 'garage_pulse', label: 'Atölye Nabzı', subtitle: 'Kalın ve çift darbeli servis uyarısı', icon: 'musical-notes' },
+  { key: 'garage_alert', label: 'Acil Garaj Alarmı', subtitle: 'Yükselen, dikkat çekici acil alarm', icon: 'musical-notes' },
+  { key: 'garage_bell', label: 'Klasik Zil', subtitle: 'Uzun kuyruklu metalik zil', icon: 'musical-notes' },
+  { key: 'garage_siren', label: 'Garaj Sireni', subtitle: 'Yükselip alçalan güçlü siren', icon: 'musical-notes' },
+  { key: 'garage_turbo', label: 'Turbo', subtitle: 'Motor devri gibi hızlanan uyarı', icon: 'musical-notes' },
+  { key: 'garage_metal', label: 'Metal Vuruş', subtitle: 'Atölye karakterli sert vuruş', icon: 'musical-notes' },
+  { key: 'garage_digital', label: 'Dijital Uyarı', subtitle: 'Kısa ve net dijital dizi', icon: 'musical-notes' },
+  { key: 'garage_retro', label: 'Retro Oyun', subtitle: 'Klasik oyun konsolu melodisi', icon: 'musical-notes' },
   { key: 'silent', label: 'Sessiz', subtitle: 'Ses olmadan güçlü titreşim', icon: 'volume-mute' },
 ];
 
-function soundFile(sound: NotificationSoundKey): 'default' | 'garage_chime.wav' | 'garage_pulse.wav' | 'garage_alert.wav' | false {
+function soundFile(sound: NotificationSoundKey): string | false {
   if (sound === 'silent') return false;
-  if (sound === 'garage_chime') return 'garage_chime.wav';
-  if (sound === 'garage_pulse') return 'garage_pulse.wav';
-  if (sound === 'garage_alert') return 'garage_alert.wav';
-  return 'default';
+  if (sound === 'system_loud') return 'default';
+  const files: Partial<Record<NotificationSoundKey, string>> = {
+    garage_chime: 'garage_chime.wav',
+    garage_pulse: 'garage_pulse.wav',
+    garage_alert: 'garage_alert.wav',
+    garage_bell: 'garage_bell.wav',
+    garage_siren: 'garage_siren.wav',
+    garage_turbo: 'garage_turbo.wav',
+    garage_metal: 'garage_metal.wav',
+    garage_digital: 'garage_digital.wav',
+    garage_retro: 'garage_retro.wav',
+  };
+  return files[sound] ?? 'default';
 }
 
 function channelId(sound: NotificationSoundKey) {
-  if (sound === 'silent') return SILENT_NOTIFICATION_CHANNEL_ID;
-  if (sound === 'garage_chime') return CHIME_NOTIFICATION_CHANNEL_ID;
-  if (sound === 'garage_pulse') return PULSE_NOTIFICATION_CHANNEL_ID;
-  if (sound === 'garage_alert') return ALERT_NOTIFICATION_CHANNEL_ID;
-  return LOUD_NOTIFICATION_CHANNEL_ID;
+  const channels: Record<NotificationSoundKey, string> = {
+    system_loud: SYSTEM_NOTIFICATION_CHANNEL_ID,
+    garage_chime: CHIME_NOTIFICATION_CHANNEL_ID,
+    garage_pulse: PULSE_NOTIFICATION_CHANNEL_ID,
+    garage_alert: ALERT_NOTIFICATION_CHANNEL_ID,
+    garage_bell: BELL_NOTIFICATION_CHANNEL_ID,
+    garage_siren: SIREN_NOTIFICATION_CHANNEL_ID,
+    garage_turbo: TURBO_NOTIFICATION_CHANNEL_ID,
+    garage_metal: METAL_NOTIFICATION_CHANNEL_ID,
+    garage_digital: DIGITAL_NOTIFICATION_CHANNEL_ID,
+    garage_retro: RETRO_NOTIFICATION_CHANNEL_ID,
+    silent: SILENT_NOTIFICATION_CHANNEL_ID,
+  };
+  return channels[sound];
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -83,6 +107,7 @@ interface NotificationContextValue {
   preferences: NotificationPreferences;
   permissionStatus: string;
   pushStatus: PushRegistrationStatus;
+  pushError: string | null;
   navigationTarget: NotificationNavigationTarget | null;
   openCenter: () => void;
   closeCenter: () => void;
@@ -138,6 +163,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
   const [permissionStatus, setPermissionStatus] = useState<string>('undetermined');
   const [pushStatus, setPushStatus] = useState<PushRegistrationStatus>('idle');
+  const [pushError, setPushError] = useState<string | null>(null);
   const [navigationTarget, setNavigationTarget] = useState<NotificationNavigationTarget | null>(null);
   const refreshingRef = useRef(false);
   const mountedRef = useRef(true);
@@ -287,12 +313,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const registerPushNotifications = useCallback(async () => {
     if (!session?.user || !preferencesRef.current.push_notifications_enabled) return false;
-    if (!NATIVE_PUSH_ENABLED) {
-      setPushStatus('missing_project');
+    setPushError(null);
+    if (IS_EXPO_GO) {
+      setPushStatus('expo_go');
+      setPushError('Expo Go uzaktan push tokenı oluşturmaz. Kapalı uygulama testi için Release APK kurmalısın.');
       return false;
     }
-    if (Platform.OS === 'android' && IS_EXPO_GO) {
-      setPushStatus('expo_go');
+    if (!NATIVE_PUSH_ENABLED || !EAS_PROJECT_ID) {
+      setPushStatus('missing_project');
+      setPushError('EAS proje kimliği native uygulama yapılandırmasına eklenmemiş.');
       return false;
     }
     try {
@@ -302,10 +331,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (mountedRef.current) setPermissionStatus(permission.status);
       if (permission.status !== 'granted') {
         setPushStatus('denied');
-        return false;
-      }
-      if (!EAS_PROJECT_ID) {
-        setPushStatus('missing_project');
+        setPushError('Android bildirim izni verilmedi. Telefon ayarlarından bildirimi aç.');
         return false;
       }
       let deviceId = await AsyncStorage.getItem(DEVICE_ID_STORAGE_KEY);
@@ -313,19 +339,25 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         deviceId = `garage-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
         await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
       }
-      const token = (await Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID })).data;
-      const { error } = await supabase.rpc('notification_register_push_token', {
+      const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID });
+      const token = tokenResult.data?.trim();
+      if (!token || !/^Expo(nent)?PushToken\[[^\]]+\]$/.test(token)) throw new Error('Geçerli Expo push tokenı alınamadı');
+      const { data, error } = await supabase.rpc('notification_register_push_token', {
         p_expo_push_token: token,
         p_device_id: deviceId,
         p_platform: Platform.OS,
         p_app_version: APP_VERSION,
       });
       if (error) throw error;
+      if (!(data as { registered?: boolean } | null)?.registered) throw new Error('Push tokenı sunucuda doğrulanamadı');
       await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
       setPushStatus('registered');
+      setPushError(null);
       return true;
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Push cihaz kaydı tamamlanamadı';
       setPushStatus('error');
+      setPushError(message);
       return false;
     }
   }, [session?.user]);
@@ -409,6 +441,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setUpcomingCount(0);
       setPreferences(DEFAULT_PREFERENCES);
       setPushStatus('idle');
+      setPushError(null);
       cancelGarageSchedules();
       Notifications.setBadgeCountAsync(0).catch(() => false);
       return;
@@ -573,16 +606,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [permissionStatus, requestLocalNotifications, preferences.notification_sound]);
 
   const sendClosedAppTestNotification = useCallback(async () => {
-    if (!session?.user || !NATIVE_PUSH_ENABLED) return false;
+    if (!session?.user) return false;
+    const registered = pushStatusRef.current === 'registered' || await registerPushNotifications();
+    if (!registered) return false;
     try {
       const { data, error } = await supabase.rpc('notification_schedule_closed_app_test', { p_delay_seconds: 45 });
       if (error) throw error;
       await refresh();
-      return Boolean(data);
-    } catch {
+      return Boolean((data as { scheduled?: boolean } | null)?.scheduled);
+    } catch (error) {
+      setPushError(error instanceof Error ? error.message : 'Kapalı uygulama testi planlanamadı');
       return false;
     }
-  }, [session?.user, refresh]);
+  }, [session?.user, refresh, registerPushNotifications]);
 
   const consumeNavigationTarget = useCallback(() => {
     const current = navigationTarget;
@@ -591,10 +627,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [navigationTarget]);
 
   const value = useMemo<NotificationContextValue>(() => ({
-    open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget,
+    open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, pushError, navigationTarget,
     openCenter: () => setOpen(true), closeCenter: () => setOpen(false), refresh, markRead, markAllRead, archive, deleteNotification,
     openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, sendClosedAppTestNotification, consumeNavigationTarget,
-  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, sendClosedAppTestNotification, consumeNavigationTarget]);
+  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, pushError, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, sendClosedAppTestNotification, consumeNavigationTarget]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }

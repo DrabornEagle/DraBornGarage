@@ -66,6 +66,7 @@ export function NotificationCenterScreen() {
     preferences,
     permissionStatus,
     pushStatus,
+    pushError,
     closeCenter,
     refresh,
     markAllRead,
@@ -203,6 +204,8 @@ export function NotificationCenterScreen() {
               {NOTIFICATION_SOUND_OPTIONS.map((option) => <SoundChoice key={option.key} active={preferences.notification_sound === option.key} label={option.label} subtitle={option.subtitle} icon={option.icon} onPress={() => selectSound(option.key)} />)}
             </View>
             <Text style={[styles.soundHint, { color: colors.textMuted }]}>{IS_EXPO_GO_TEXT(pushStatus)}</Text>
+            {pushError && <GlassCard style={styles.permissionCard}><Ionicons name="warning" size={24} color={colors.orange} /><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>Telefon push kaydı tamamlanmadı</Text><Text style={[styles.cardText, { color: colors.textMuted }]}>{pushError}</Text></View></GlassCard>}
+            {pushStatus !== 'registered' && pushStatus !== 'expo_go' && <PrimaryButton title="Telefonu Push Sistemine Kaydet" onPress={enablePush} loading={saving} secondary />}
 
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Bildirim tercihleri</Text>
             <GlassCard style={styles.settingsCard}>

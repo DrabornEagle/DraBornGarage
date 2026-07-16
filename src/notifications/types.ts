@@ -1,6 +1,17 @@
 export type NotificationCategory = 'service' | 'appointments' | 'payments' | 'receivables' | 'platform' | 'customer_links' | 'system';
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
-export type NotificationSoundKey = 'system_loud' | 'garage_chime' | 'garage_pulse' | 'garage_alert' | 'silent';
+export type NotificationSoundKey =
+  | 'system_loud'
+  | 'garage_chime'
+  | 'garage_pulse'
+  | 'garage_alert'
+  | 'garage_bell'
+  | 'garage_siren'
+  | 'garage_turbo'
+  | 'garage_metal'
+  | 'garage_digital'
+  | 'garage_retro'
+  | 'silent';
 export type PushRegistrationStatus = 'idle' | 'registered' | 'expo_go' | 'missing_project' | 'denied' | 'error';
 
 export interface GarageNotification {

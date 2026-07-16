@@ -1,7 +1,7 @@
 # DraBornGarage Gizlilik Politikası
 
-**Yürürlük tarihi:** 14 Temmuz 2026  
-**Sürüm:** 1.1 — DraBornGarage v0.9.3
+**Yürürlük tarihi:** 16 Temmuz 2026  
+**Sürüm:** 1.2 — DraBornGarage v1.1.0
 
 DraBornGarage; motosiklet ve araç servis işletmelerinin müşteri, servis, randevu, tahsilat, alacak ve platform hizmet bedeli süreçlerini yönetmesine yardımcı olan rol tabanlı bir mobil uygulamadır.
 
@@ -23,7 +23,7 @@ Uygulamadaki rolüne ve kullandığın özelliklere göre aşağıdaki veriler i
 - Finansal kayıt: nakit/IBAN yöntemi, tahsilat, alacak/veresiye, ödeme sözü ve platform hizmet bedeli kayıtları.
 - Usta ödeme bilgisi: Usta özelliği isteğe bağlı açarsa banka adı, hesap sahibi ve IBAN.
 - Bildirim: bildirim tercihleri, okundu/arşivlendi bilgisi, push tokenı ve zamanlı hatırlatmalar.
-- Dosya: yalnız kullanıcı seçerse platform ödeme dekontu.
+- Dosya: yalnız kullanıcı sistem fotoğraf seçicisinden tek bir dosya seçerse platform ödeme dekontu.
 - Teknik güvenlik: oturum, kullanıcı kimliği, uygulama sürümü, cihaz platformu, hata ve güvenlik denetimi için gerekli teknik kayıtlar.
 
 DraBornGarage kredi kartı bilgisi toplamaz, uygulama içinde tamir ödemesi işlemez, para tutmaz ve banka hesabına bağlanmaz.
@@ -67,7 +67,7 @@ Veriler reklam amacıyla satılmaz.
 DraBornGarage yalnız gerekli izinleri ister:
 
 - **Kamera:** servis QR kodu taramak için.
-- **Fotoğraflar:** kullanıcı isterse platform ödeme dekontu seçmek için.
+- **Fotoğraf seçici:** kullanıcı isterse Android sistem seçicisinden tek bir platform ödeme dekontu seçmek için; geniş galeri/depolama erişimi istenmez.
 - **Bildirimler:** servis, randevu, alacak ve platform hatırlatmalarını göstermek için.
 
 Konum, mikrofon, rehber, telefon araması ve SMS izinleri kullanılmaz ve Android yapılandırmasında engellenir.

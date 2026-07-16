@@ -15,6 +15,7 @@ import { PrimaryButton } from './PrimaryButton';
 type PlatformStatus = 'disabled' | 'open' | 'due_today' | 'overdue' | 'payment_reported' | 'partially_paid' | 'paid';
 type ReportStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 type BillingCycle = 'weekly' | 'monthly';
+type FeeMode = 'percentage' | 'fixed';
 type PlatformAccordionKey = 'paymentInfo' | 'paymentForm' | 'paymentReports' | 'periods' | 'charges';
 
 type PlatformSummary = {
@@ -40,6 +41,8 @@ type PlatformSummary = {
 type PlatformSettings = {
   workshop_id: string;
   fee_per_order: number;
+  fee_mode?: FeeMode;
+  fee_percentage?: number;
   billing_cycle: BillingCycle;
   weekly_due_day: number;
   monthly_due_day: number;
@@ -49,6 +52,8 @@ type PlatformSettings = {
 
 type GlobalSettings = {
   default_fee_per_order: number;
+  default_fee_mode?: FeeMode;
+  default_fee_percentage?: number;
   bank_name?: string | null;
   account_holder?: string | null;
   iban?: string | null;
@@ -89,6 +94,9 @@ type ChargeRow = {
   work_order_id: string;
   amount: number;
   fee_per_order: number;
+  fee_mode?: FeeMode;
+  fee_percentage?: number;
+  order_total_amount?: number;
   charge_date: string;
   source_status: string;
   voided_at?: string | null;
@@ -175,6 +183,9 @@ const reportLabel: Record<ReportStatus, string> = {
 };
 
 function number(value: unknown) { return Number(value || 0); }
+function feeDescription(value: { fee_mode?: FeeMode; fee_percentage?: number; fee_per_order?: number }) {
+  return value.fee_mode === 'percentage' ? `%${number(value.fee_percentage).toLocaleString('tr-TR')} / işlem tutarı` : `${money(number(value.fee_per_order))} / işlem`;
+}
 function todayText() { return new Date().toISOString().slice(0, 10); }
 function dateText(value?: string | null) {
   if (!value) return '-';
@@ -197,13 +208,17 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
   const [paymentNote, setPaymentNote] = useState('');
   const [receipt, setReceipt] = useState<ReceiptAsset | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
-  const [fee, setFee] = useState('20');
+  const [feeMode, setFeeMode] = useState<FeeMode>('percentage');
+  const [fee, setFee] = useState('50');
+  const [feePercentage, setFeePercentage] = useState('10');
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
   const [weeklyDueDay, setWeeklyDueDay] = useState(1);
   const [monthlyDueDay, setMonthlyDueDay] = useState(1);
   const [startsOn, setStartsOn] = useState(todayText());
   const [enabled, setEnabled] = useState(false);
-  const [defaultFee, setDefaultFee] = useState('20');
+  const [defaultFeeMode, setDefaultFeeMode] = useState<FeeMode>('percentage');
+  const [defaultFee, setDefaultFee] = useState('50');
+  const [defaultFeePercentage, setDefaultFeePercentage] = useState('10');
   const [bankName, setBankName] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
   const [iban, setIban] = useState('');
@@ -221,27 +236,39 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
   const load = useCallback(async () => {
     if (!workshop) return;
     setLoading(true);
-    const calls = [supabase.rpc('platform_get_dashboard', { p_workshop_id: workshop.id })];
+    const calls = [
+      supabase.rpc('platform_get_dashboard', { p_workshop_id: workshop.id }),
+      supabase.rpc('platform_get_fee_configuration', { p_workshop_id: workshop.id }),
+    ];
     if (isAdmin) calls.push(supabase.rpc('admin_get_platform_overview'));
     const results = await Promise.all(calls);
     setLoading(false);
     const selected = results[0];
     if (selected.error) return Alert.alert('Platform raporu alınamadı', selected.error.message);
     const data = selected.data as Dashboard;
+    const configResult = results[1];
+    if (configResult.error) return Alert.alert('Platform ücret türü alınamadı', configResult.error.message);
+    const config = configResult.data as { settings?: Partial<PlatformSettings>; global_settings?: Partial<GlobalSettings> };
+    data.settings = { ...data.settings, ...(config.settings || {}) };
+    data.global_settings = { ...data.global_settings, ...(config.global_settings || {}) };
     setDashboard(data);
-    setFee(String(data.settings.fee_per_order ?? 20));
+    setFeeMode(data.settings.fee_mode ?? 'percentage');
+    setFee(String(data.settings.fee_per_order ?? 50));
+    setFeePercentage(String(data.settings.fee_percentage ?? 10));
     setCycle(data.settings.billing_cycle ?? 'monthly');
     setWeeklyDueDay(number(data.settings.weekly_due_day) || 1);
     setMonthlyDueDay(number(data.settings.monthly_due_day));
     setStartsOn(data.settings.starts_on || todayText());
     setEnabled(Boolean(data.settings.is_enabled));
-    setDefaultFee(String(data.global_settings.default_fee_per_order ?? 20));
+    setDefaultFeeMode(data.global_settings.default_fee_mode ?? 'percentage');
+    setDefaultFee(String(data.global_settings.default_fee_per_order ?? 50));
+    setDefaultFeePercentage(String(data.global_settings.default_fee_percentage ?? 10));
     setBankName(data.global_settings.bank_name || '');
     setAccountHolder(data.global_settings.account_holder || '');
     setIban(data.global_settings.iban || '');
     setGlobalNote(data.global_settings.payment_note || '');
     if (isAdmin) {
-      const adminResult = results[1];
+      const adminResult = results[2];
       if (adminResult.error) Alert.alert('Admin özeti alınamadı', adminResult.error.message);
       else setOverview(adminResult.data as Overview);
     }
@@ -265,9 +292,7 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
   }, [dashboard?.summary.status, colors]);
 
   const pickReceipt = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return Alert.alert('Galeri izni gerekli', 'Dekont seçebilmek için fotoğraf erişimine izin ver.');
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 0.82 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 0.82, selectionLimit: 1 });
     if (!result.canceled && result.assets[0]) setReceipt(result.assets[0]);
   };
 
@@ -318,7 +343,9 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
 
   const saveGlobal = async () => {
     setSaving(true);
-    const { error } = await supabase.rpc('admin_update_platform_global_settings', {
+    const { error } = await supabase.rpc('admin_update_platform_global_settings_v110', {
+      p_default_fee_mode: defaultFeeMode,
+      p_default_fee_percentage: Number(defaultFeePercentage.replace(',', '.')),
       p_default_fee_per_order: Number(defaultFee.replace(',', '.')),
       p_bank_name: bankName.trim() || null,
       p_account_holder: accountHolder.trim() || null,
@@ -334,8 +361,10 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
   const saveWorkshopSettings = async () => {
     if (!workshop) return;
     setSaving(true);
-    const { error } = await supabase.rpc('admin_update_workshop_platform_settings', {
+    const { error } = await supabase.rpc('admin_update_workshop_platform_settings_v110', {
       p_workshop_id: workshop.id,
+      p_fee_mode: feeMode,
+      p_fee_percentage: Number(feePercentage.replace(',', '.')),
       p_fee_per_order: Number(fee.replace(',', '.')),
       p_billing_cycle: cycle,
       p_weekly_due_day: weeklyDueDay,
@@ -381,7 +410,7 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
     {isAdmin && overview && <AdminOverview overview={overview} selectedId={workshop.id} onSelect={async (id) => { await selectWorkshop(id); }} />}
 
     <View style={styles.sectionHeader}>
-      <View style={styles.copy}><Text style={[styles.sectionTitle, { color: colors.text }]}>Seçili İşletme Platform Hesabı</Text><Text style={[styles.sectionSub, { color: colors.textMuted }]}>{workshop.name} • işlem başı {money(number(dashboard.settings.fee_per_order))}</Text></View>
+      <View style={styles.copy}><Text style={[styles.sectionTitle, { color: colors.text }]}>Seçili İşletme Platform Hesabı</Text><Text style={[styles.sectionSub, { color: colors.textMuted }]}>{workshop.name} • {feeDescription(dashboard.settings)}</Text></View>
       <AnimatedPressable onPress={load} style={[styles.refresh, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}><Ionicons name="refresh" size={18} color={colors.primary} /></AnimatedPressable>
     </View>
 
@@ -408,7 +437,7 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
       <Metric icon="send" label="Bildirilebilir" value={money(number(s.available_to_report))} accent={colors.primary2} />
     </View>
 
-    {!dashboard.settings.is_enabled && <GlassCard style={[styles.notice, { borderColor: `${colors.orange}45` }]}><Ionicons name="pause-circle" size={25} color={colors.orange} /><View style={styles.copy}><Text style={[styles.noticeTitle, { color: colors.text }]}>Platform bedeli bu işletmede kapalı</Text><Text style={[styles.noticeText, { color: colors.textMuted }]}>Admin etkinleştirdiğinde tamamlanan her servis için belirlenen işlem bedeli otomatik kaydedilir.</Text></View></GlassCard>}
+    {!dashboard.settings.is_enabled && <GlassCard style={[styles.notice, { borderColor: `${colors.orange}45` }]}><Ionicons name="pause-circle" size={25} color={colors.orange} /><View style={styles.copy}><Text style={[styles.noticeTitle, { color: colors.text }]}>Platform bedeli bu işletmede kapalı</Text><Text style={[styles.noticeText, { color: colors.textMuted }]}>Admin etkinleştirdiğinde tamamlanan her servis için belirlenen yüzde veya sabit bedel otomatik kaydedilir.</Text></View></GlassCard>}
 
     <AccordionSection
       title="Platform Ödeme Bilgileri"
@@ -448,7 +477,7 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
       <Text style={[styles.listTitle, { color: colors.text }]}>Admin Platform Ayarları</Text>
       <GlassCard style={styles.formCard}>
         <View style={styles.formTitleRow}><Ionicons name="card" size={26} color={colors.cyan} /><View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>Platform IBAN ve Varsayılan Bedel</Text><Text style={[styles.formText, { color: colors.textMuted }]}>Yeni işletmelerin varsayılan işlem bedeli ve işletmelere gösterilecek ödeme bilgileri.</Text></View></View>
-        <FormField label="Varsayılan işlem başı bedel" value={defaultFee} onChangeText={setDefaultFee} keyboardType="decimal-pad" />
+        <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>VARSAYILAN HESAPLAMA TÜRÜ</Text><View style={styles.segment}><Choice active={defaultFeeMode === 'percentage'} label="Yüzde (%)" icon="pie-chart" onPress={() => setDefaultFeeMode('percentage')} /><Choice active={defaultFeeMode === 'fixed'} label="Sabit Tutar" icon="cash" onPress={() => setDefaultFeeMode('fixed')} /></View>{defaultFeeMode === 'percentage' ? <FormField label="Varsayılan platform oranı (%)" value={defaultFeePercentage} onChangeText={setDefaultFeePercentage} keyboardType="decimal-pad" /> : <FormField label="Varsayılan sabit işlem bedeli" value={defaultFee} onChangeText={setDefaultFee} keyboardType="decimal-pad" />}
         <FormField label="Banka adı" value={bankName} onChangeText={setBankName} />
         <FormField label="Hesap sahibi" value={accountHolder} onChangeText={setAccountHolder} />
         <FormField label="IBAN" value={iban} onChangeText={setIban} autoCapitalize="characters" />
@@ -459,7 +488,7 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
       <GlassCard style={styles.formCard}>
         <View style={styles.formTitleRow}><Ionicons name="options" size={26} color={colors.orange} /><View style={styles.copy}><Text style={[styles.formTitle, { color: colors.text }]}>İşletmeye Özel Bedel ve Periyot</Text><Text style={[styles.formText, { color: colors.textMuted }]}>Mevcut ücret kayıtları değişmez; yeni işlem bedeli yalnız sonraki tamamlanan servislerde kullanılır.</Text></View></View>
         <View style={[styles.toggleRow, { backgroundColor: colors.surfaceSoft }]}><View style={styles.copy}><Text style={[styles.toggleTitle, { color: colors.text }]}>Platform bedeli aktif</Text><Text style={[styles.toggleText, { color: colors.textMuted }]}>Tamamlanan servislerde otomatik ücret kaydı oluştur.</Text></View><Switch value={enabled} onValueChange={setEnabled} trackColor={{ false: colors.border, true: `${colors.green}80` }} thumbColor={enabled ? colors.green : colors.textMuted} /></View>
-        <FormField label="İşlem başı özel bedel" value={fee} onChangeText={setFee} keyboardType="decimal-pad" />
+        <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>İŞLETMEYE ÖZEL HESAPLAMA</Text><View style={styles.segment}><Choice active={feeMode === 'percentage'} label="Yüzde (%)" icon="pie-chart" onPress={() => setFeeMode('percentage')} /><Choice active={feeMode === 'fixed'} label="Sabit Tutar" icon="cash" onPress={() => setFeeMode('fixed')} /></View>{feeMode === 'percentage' ? <FormField label="İşletmeye özel platform oranı (%)" value={feePercentage} onChangeText={setFeePercentage} keyboardType="decimal-pad" /> : <FormField label="İşletmeye özel sabit bedel" value={fee} onChangeText={setFee} keyboardType="decimal-pad" />}
         <FormField label="Takip başlangıç tarihi • YYYY-MM-DD" value={startsOn} onChangeText={setStartsOn} autoCapitalize="none" />
         <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>ÖDEME PERİYODU</Text>
         <View style={styles.segment}><Choice active={cycle === 'weekly'} label="Haftalık" icon="calendar" onPress={() => setCycle('weekly')} /><Choice active={cycle === 'monthly'} label="Aylık" icon="calendar-number" onPress={() => setCycle('monthly')} /></View>
@@ -492,7 +521,7 @@ export function PlatformFeesDashboard({ focusPaymentReportId }: { focusPaymentRe
 
     <AccordionSection
       title="İşlem Başı Ücret Kayıtları"
-      subtitle={dashboard.charges.length + ' kayıt • İşlem başı ' + money(number(dashboard.settings.fee_per_order))}
+      subtitle={dashboard.charges.length + ' kayıt • ' + feeDescription(dashboard.settings)}
       icon="receipt"
       accent={colors.primary}
       open={expandedSections.charges}
