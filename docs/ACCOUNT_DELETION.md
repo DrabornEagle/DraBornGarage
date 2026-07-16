@@ -1,6 +1,7 @@
 # DraBornGarage Hesap ve Veri Silme
 
-**Son güncelleme:** 16 Temmuz 2026
+**Son güncelleme:** 16 Temmuz 2026  
+**Uygulama sürümü:** v1.1.4
 
 DraBornGarage hesabını ve hesabınla ilişkilendirilen kişisel verileri silme talebi oluşturabilirsin.
 
@@ -44,7 +45,7 @@ Duruma göre aşağıdaki kişisel bağlantılar silinir veya anonimleştirilir:
 - Profil ve hesap erişimi
 - Aktif oturumlar
 - Müşteri/araç bağlantıları
-- Bildirim tercihleri ve kişisel bildirim kayıtları
+- Bildirim tercihleri, kişisel bildirim kayıtları, push tokenı ve uygulama kurulum kimliği
 - Usta veya personel üyelik bağlantıları
 - Silinmesi mümkün başvuru ve geçici test kayıtları
 
