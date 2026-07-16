@@ -112,13 +112,13 @@ jobs:
           set -euo pipefail
           rm -f scripts/.v110_payload_* scripts/.v110_fix.py .github/workflows/_temporary-apply-v110.yml docs/.pr-trigger
           rm -rf .runtime node_modules dist
-          tar --exclude=.git --exclude=DraBornGarage-v1.1.0-tested-source.tar.gz -czf DraBornGarage-v1.1.0-tested-source.tar.gz .
+          tar --exclude=.git -czf /tmp/DraBornGarage-v1.1.0-tested-source.tar.gz .
 
       - name: Upload tested v1.1.0 source
         uses: actions/upload-artifact@v4
         with:
           name: DraBornGarage-v1.1.0-tested-source
-          path: DraBornGarage-v1.1.0-tested-source.tar.gz
+          path: /tmp/DraBornGarage-v1.1.0-tested-source.tar.gz
           if-no-files-found: error
           retention-days: 3
           compression-level: 0
