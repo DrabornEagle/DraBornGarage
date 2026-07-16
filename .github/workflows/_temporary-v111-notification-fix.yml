@@ -1,0 +1,553 @@
+name: Temporary DraBornGarage v1.1.1 Notification Fix
+
+on:
+  push:
+    branches: [fix/v1.1.1-notification-permission-sounds]
+    paths:
+      - .github/workflows/_temporary-v111-notification-fix.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draborngarage-v111-notification-fix
+  cancel-in-progress: true
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+      EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/v1.1.1-notification-permission-sounds
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply v1.1.1 source and migration fixes
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          function writeJson(path, value) {
+            fs.writeFileSync(path, JSON.stringify(value, null, 2) + '\n');
+          }
+          function replaceSection(text, start, end, replacement, file) {
+            const startIndex = text.indexOf(start);
+            const endIndex = text.indexOf(end, startIndex + start.length);
+            if (startIndex < 0 || endIndex < 0) throw new Error(`${file}: bölüm işaretçisi bulunamadı`);
+            return text.slice(0, startIndex) + replacement + text.slice(endIndex);
+          }
+          function replaceRequired(text, from, to, file) {
+            if (!text.includes(from)) throw new Error(`${file}: beklenen metin bulunamadı: ${from}`);
+            return text.replace(from, to);
+          }
+
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.version = '1.1.1';
+          writeJson('package.json', pkg);
+
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          lock.version = '1.1.1';
+          lock.packages[''].version = '1.1.1';
+          writeJson('package-lock.json', lock);
+
+          const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          app.expo.version = '1.1.1';
+          app.expo.android.versionCode = 1;
+          const notificationPlugin = app.expo.plugins.find((item) => Array.isArray(item) && item[0] === 'expo-notifications');
+          if (!notificationPlugin) throw new Error('expo-notifications plugin bulunamadı');
+          notificationPlugin[1].defaultChannel = 'draborngarage-system-default-v6';
+          writeJson('app.json', app);
+
+          fs.writeFileSync('src/notifications/notificationPermissions.ts', `import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
+import { Linking, Platform } from 'react-native';
+
+export const SYSTEM_NOTIFICATION_CHANNEL_ID = 'draborngarage-system-default-v6';
+export const CHIME_NOTIFICATION_CHANNEL_ID = 'draborngarage-appointment-chime-v6';
+export const PULSE_NOTIFICATION_CHANNEL_ID = 'draborngarage-workshop-pulse-v6';
+export const ALERT_NOTIFICATION_CHANNEL_ID = 'draborngarage-urgent-alert-v6';
+export const BELL_NOTIFICATION_CHANNEL_ID = 'draborngarage-classic-bell-v6';
+export const SIREN_NOTIFICATION_CHANNEL_ID = 'draborngarage-siren-v6';
+export const TURBO_NOTIFICATION_CHANNEL_ID = 'draborngarage-turbo-v6';
+export const METAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-metal-v6';
+export const DIGITAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-digital-v6';
+export const RETRO_NOTIFICATION_CHANNEL_ID = 'draborngarage-retro-v6';
+export const SILENT_NOTIFICATION_CHANNEL_ID = 'draborngarage-silent-v6';
+export const NOTIFICATION_INTRO_STORAGE_KEY = '@draborngarage/notification-intro-v111';
+
+const LEGACY_CHANNELS = [
+  'draborngarage-system-loud-v4',
+  'draborngarage-appointment-chime-v4',
+  'draborngarage-workshop-pulse-v4',
+  'draborngarage-urgent-alert-v4',
+  'draborngarage-silent-v4',
+  'draborngarage-system-default-v5',
+  'draborngarage-appointment-chime-v5',
+  'draborngarage-workshop-pulse-v5',
+  'draborngarage-urgent-alert-v5',
+  'draborngarage-classic-bell-v5',
+  'draborngarage-siren-v5',
+  'draborngarage-turbo-v5',
+  'draborngarage-metal-v5',
+  'draborngarage-digital-v5',
+  'draborngarage-retro-v5',
+  'draborngarage-silent-v5',
+];
+
+function unavailable(method: string) {
+  return new Error(\`Android bildirim modülü hazır değil: \${method}\`);
+}
+
+export async function ensureDraBornNotificationChannels() {
+  if (Platform.OS !== 'android') return;
+  const api = Notifications as typeof Notifications & Record<string, unknown>;
+
+  if (typeof api.deleteNotificationChannelAsync === 'function') {
+    for (const id of LEGACY_CHANNELS) {
+      try {
+        await Promise.resolve(Notifications.deleteNotificationChannelAsync(id));
+      } catch {
+        // Eski kanal yoksa veya üretici ROM'u silmeye izin vermiyorsa yeni kanallar yine oluşturulur.
+      }
+    }
+  }
+
+  if (typeof api.setNotificationChannelAsync !== 'function') throw unavailable('setNotificationChannelAsync');
+
+  const common = {
+    importance: Notifications.AndroidImportance.MAX,
+    enableVibrate: true,
+    enableLights: true,
+    lightColor: '#7C5CFF',
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    showBadge: true,
+    bypassDnd: false,
+  };
+  const definitions: Array<[string, Notifications.NotificationChannelInput]> = [
+    [SYSTEM_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Telefonun Varsayılan Sesi', description: 'Android sisteminde seçili varsayılan bildirim sesini kullanır.', sound: 'default', vibrationPattern: [0, 280, 100, 430] }],
+    [CHIME_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Randevu Çağrısı', description: 'Üç notalı melodik randevu çağrısı.', sound: 'garage_chime.wav', vibrationPattern: [0, 220, 100, 220, 100, 450] }],
+    [PULSE_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Atölye Nabzı', description: 'Kalın ve çift darbeli servis uyarısı.', sound: 'garage_pulse.wav', vibrationPattern: [0, 180, 80, 420, 120, 420] }],
+    [ALERT_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Acil Garaj Alarmı', description: 'Önemli ödeme ve gecikmeler için yükselen alarm.', sound: 'garage_alert.wav', vibrationPattern: [0, 500, 120, 500, 120, 850] }],
+    [BELL_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Klasik Zil', description: 'Uzun kuyruklu metalik zil sesi.', sound: 'garage_bell.wav', vibrationPattern: [0, 240, 90, 240] }],
+    [SIREN_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Garaj Sireni', description: 'Yükselip alçalan güçlü siren.', sound: 'garage_siren.wav', vibrationPattern: [0, 520, 100, 520] }],
+    [TURBO_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Turbo', description: 'Motor devri yükseliyormuş gibi hızlanan uyarı.', sound: 'garage_turbo.wav', vibrationPattern: [0, 150, 70, 180, 70, 500] }],
+    [METAL_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Metal Vuruş', description: 'Atölye karakterli sert metal vuruş.', sound: 'garage_metal.wav', vibrationPattern: [0, 360, 80, 620] }],
+    [DIGITAL_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Dijital Uyarı', description: 'Kısa ve net dijital bildirim dizisi.', sound: 'garage_digital.wav', vibrationPattern: [0, 110, 70, 110, 70, 260] }],
+    [RETRO_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Retro Oyun', description: 'Klasik oyun konsolu tarzında melodi.', sound: 'garage_retro.wav', vibrationPattern: [0, 100, 60, 100, 60, 320] }],
+    [SILENT_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Sessiz', description: 'Ses olmadan titreşim ve bildirim alanı uyarısı.', importance: Notifications.AndroidImportance.HIGH, sound: null, vibrationPattern: [0, 220, 120, 220] }],
+  ];
+
+  for (const [id, definition] of definitions) {
+    await Promise.resolve(Notifications.setNotificationChannelAsync(id, definition));
+  }
+}
+
+export async function requestDeviceNotificationPermission() {
+  const api = Notifications as typeof Notifications & Record<string, unknown>;
+  await ensureDraBornNotificationChannels();
+  if (typeof api.getPermissionsAsync !== 'function') throw unavailable('getPermissionsAsync');
+  const current = await Promise.resolve(Notifications.getPermissionsAsync());
+  if (current.status === 'granted') return current;
+  if (typeof api.requestPermissionsAsync !== 'function') throw unavailable('requestPermissionsAsync');
+  return Promise.resolve(Notifications.requestPermissionsAsync());
+}
+
+export async function shouldShowNotificationIntro() {
+  const api = Notifications as typeof Notifications & Record<string, unknown>;
+  if (typeof api.getPermissionsAsync !== 'function') return true;
+  let permission: Notifications.NotificationPermissionsStatus | null = null;
+  try {
+    permission = await Promise.resolve(Notifications.getPermissionsAsync());
+  } catch {
+    permission = null;
+  }
+  if (permission?.status === 'granted') return false;
+  const seen = await AsyncStorage.getItem(NOTIFICATION_INTRO_STORAGE_KEY);
+  return seen !== 'completed';
+}
+
+export async function markNotificationIntroCompleted() {
+  await AsyncStorage.setItem(NOTIFICATION_INTRO_STORAGE_KEY, 'completed');
+}
+
+export async function openNotificationSettings() {
+  await Linking.openSettings();
+}
+`);
+
+          let context = fs.readFileSync('src/notifications/NotificationContextV101.tsx', 'utf8');
+          context = replaceRequired(
+            context,
+            "const NATIVE_PUSH_ENABLED = !IS_EXPO_GO && Boolean(EAS_PROJECT_ID) && process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED !== 'false';\n",
+            "const NATIVE_PUSH_ENABLED = !IS_EXPO_GO && Boolean(EAS_PROJECT_ID) && process.env.EXPO_PUBLIC_NATIVE_PUSH_ENABLED !== 'false';\n\nfunction notificationErrorMessage(error: unknown, fallback: string) {\n  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : fallback;\n  return message === 'undefined is not a function' ? `${fallback}: Android bildirim modülü çağrısı kullanılamıyor` : message;\n}\n",
+            'NotificationContextV101.tsx',
+          );
+
+          const registerBlock = `  const registerPushNotifications = useCallback(async () => {
+    if (!session?.user || !preferencesRef.current.push_notifications_enabled) return false;
+    setPushError(null);
+    if (IS_EXPO_GO) {
+      setPushStatus('expo_go');
+      setPushError('Expo Go uzaktan push tokenı oluşturmaz. Kapalı uygulama testi için Release APK kurmalısın.');
+      return false;
+    }
+    if (!NATIVE_PUSH_ENABLED || !EAS_PROJECT_ID) {
+      setPushStatus('missing_project');
+      setPushError('EAS proje kimliği native uygulama yapılandırmasına eklenmemiş.');
+      return false;
+    }
+
+    let stage = 'Bildirim kanalları hazırlanamadı';
+    try {
+      const api = Notifications as typeof Notifications & Record<string, unknown>;
+      await ensureAndroidChannels();
+
+      stage = 'Bildirim izni okunamadı';
+      if (typeof api.getPermissionsAsync !== 'function') throw new Error('getPermissionsAsync kullanılamıyor');
+      const current = await Promise.resolve(Notifications.getPermissionsAsync());
+
+      stage = 'Bildirim izni istenemedi';
+      let permission = current;
+      if (current.status !== 'granted') {
+        if (typeof api.requestPermissionsAsync !== 'function') throw new Error('requestPermissionsAsync kullanılamıyor');
+        permission = await Promise.resolve(Notifications.requestPermissionsAsync());
+      }
+      if (mountedRef.current) setPermissionStatus(permission.status);
+      if (permission.status !== 'granted') {
+        setPushStatus('denied');
+        setPushError('Android bildirim izni verilmedi. Telefon ayarlarından DraBornGarage bildirimlerini aç.');
+        return false;
+      }
+
+      let deviceId = await AsyncStorage.getItem(DEVICE_ID_STORAGE_KEY);
+      if (!deviceId) {
+        deviceId = \`garage-\${Date.now()}-\${Math.random().toString(36).slice(2, 12)}\`;
+        await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, deviceId);
+      }
+
+      stage = 'Expo push tokenı alınamadı';
+      if (typeof api.getExpoPushTokenAsync !== 'function') throw new Error('getExpoPushTokenAsync kullanılamıyor');
+      const tokenResult = await Promise.resolve(Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID }));
+      const rawToken = (tokenResult as { data?: unknown }).data;
+      if (typeof rawToken !== 'string') throw new Error('Expo push token yanıtı metin değil');
+      const token = rawToken.trim();
+      if (!/^Expo(nent)?PushToken\\[[^\\]]+\\]$/.test(token)) throw new Error('Geçerli Expo push tokenı alınamadı');
+
+      stage = 'Push tokenı Supabase’e kaydedilemedi';
+      const { data, error } = await supabase.rpc('notification_register_push_token', {
+        p_expo_push_token: token,
+        p_device_id: deviceId,
+        p_platform: Platform.OS,
+        p_app_version: APP_VERSION,
+      });
+      if (error) throw error;
+      if (!(data as { registered?: boolean } | null)?.registered) throw new Error('Push tokenı sunucuda doğrulanamadı');
+
+      await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
+      setPushStatus('registered');
+      setPushError(null);
+      return true;
+    } catch (error) {
+      setPushStatus('error');
+      setPushError(\`${stage}: \${notificationErrorMessage(error, 'Bilinmeyen hata')}\`);
+      return false;
+    }
+  }, [session?.user]);
+
+`;
+          context = replaceSection(
+            context,
+            '  const registerPushNotifications = useCallback(async () => {',
+            '  const requestLocalNotifications = useCallback(async () => {',
+            registerBlock,
+            'NotificationContextV101.tsx',
+          );
+
+          const requestBlock = `  const requestLocalNotifications = useCallback(async () => {
+    setPushError(null);
+    try {
+      const result = await requestDeviceNotificationPermission();
+      if (mountedRef.current) setPermissionStatus(result.status);
+      if (result.status !== 'granted') {
+        setPushError('Android bildirim izni verilmedi. Telefon ayarlarından DraBornGarage bildirimlerini aç.');
+        return false;
+      }
+      const merged = { ...preferencesRef.current, local_notifications_enabled: true };
+      const { error } = await supabase.rpc('notification_update_preferences', {
+        p_local_notifications_enabled: true,
+        p_service_updates: merged.service_updates,
+        p_appointment_reminders: merged.appointment_reminders,
+        p_appointment_reminder_24h: merged.appointment_reminder_24h,
+        p_appointment_reminder_2h: merged.appointment_reminder_2h,
+        p_payment_updates: merged.payment_updates,
+        p_receivable_reminders: merged.receivable_reminders,
+        p_platform_reminders: merged.platform_reminders,
+        p_customer_link_updates: merged.customer_link_updates,
+        p_notification_sound: merged.notification_sound,
+        p_push_notifications_enabled: merged.push_notifications_enabled,
+      });
+      if (error) throw error;
+      preferencesRef.current = merged;
+      setPreferences(merged);
+      await syncFutureSchedules(upcoming, merged, unreadCount + 1);
+      if (merged.push_notifications_enabled && NATIVE_PUSH_ENABLED) await registerPushNotifications();
+      return true;
+    } catch (error) {
+      setPushError(notificationErrorMessage(error, 'Bildirim izni açılamadı'));
+      return false;
+    }
+  }, [upcoming, unreadCount, syncFutureSchedules, registerPushNotifications]);
+
+`;
+          context = replaceSection(
+            context,
+            '  const requestLocalNotifications = useCallback(async () => {',
+            '  useEffect(() => {',
+            requestBlock,
+            'NotificationContextV101.tsx',
+          );
+
+          const preferencesBlock = `  const updatePreferences = useCallback(async (patch: Partial<NotificationPreferences>) => {
+    const previous = preferencesRef.current;
+    const merged = { ...previous, ...patch };
+    preferencesRef.current = merged;
+    setPreferences(merged);
+    try {
+      const { data, error } = await supabase.rpc('notification_update_preferences', {
+        p_local_notifications_enabled: merged.local_notifications_enabled,
+        p_service_updates: merged.service_updates,
+        p_appointment_reminders: merged.appointment_reminders,
+        p_appointment_reminder_24h: merged.appointment_reminder_24h,
+        p_appointment_reminder_2h: merged.appointment_reminder_2h,
+        p_payment_updates: merged.payment_updates,
+        p_receivable_reminders: merged.receivable_reminders,
+        p_platform_reminders: merged.platform_reminders,
+        p_customer_link_updates: merged.customer_link_updates,
+        p_notification_sound: merged.notification_sound,
+        p_push_notifications_enabled: merged.push_notifications_enabled,
+      });
+      if (error) throw error;
+      const next = { ...DEFAULT_PREFERENCES, ...(data as NotificationPreferences) };
+      preferencesRef.current = next;
+      setPreferences(next);
+      if (!next.local_notifications_enabled) await cancelGarageSchedules();
+      else await syncFutureSchedules(upcoming, next, unreadCount + 1);
+      if (next.push_notifications_enabled && NATIVE_PUSH_ENABLED) await registerPushNotifications();
+      await refresh();
+      return null;
+    } catch (error) {
+      preferencesRef.current = previous;
+      setPreferences(previous);
+      return notificationErrorMessage(error, 'Bildirim tercihi kaydedilemedi');
+    }
+  }, [upcoming, unreadCount, cancelGarageSchedules, syncFutureSchedules, refresh, registerPushNotifications]);
+
+`;
+          context = replaceSection(
+            context,
+            '  const updatePreferences = useCallback(async (patch: Partial<NotificationPreferences>) => {',
+            '  const markRead = useCallback(async (notificationId: string) => {',
+            preferencesBlock,
+            'NotificationContextV101.tsx',
+          );
+          fs.writeFileSync('src/notifications/NotificationContextV101.tsx', context);
+
+          let center = fs.readFileSync('src/notifications/NotificationCenterScreen.tsx', 'utf8');
+          center = replaceRequired(center, 'Telefon push kaydı tamamlanmadı', 'Bildirim sistemi hazırlanamadı', 'NotificationCenterScreen.tsx');
+          center = replaceRequired(
+            center,
+            '  const selectSound = async (sound: NotificationSoundKey) => {\n    setSaving(true);',
+            '  const selectSound = async (sound: NotificationSoundKey) => {\n    if (saving || preferences.notification_sound === sound) return;\n    setSaving(true);',
+            'NotificationCenterScreen.tsx',
+          );
+          fs.writeFileSync('src/notifications/NotificationCenterScreen.tsx', center);
+
+          const migration = `-- DraBornGarage v1.1.1
+-- Fix notification permission runtime compatibility and accept all v1.1 sound choices.
+begin;
+
+alter table public.notification_preferences drop constraint if exists notification_preferences_sound_check;
+alter table public.notification_preferences add constraint notification_preferences_sound_check check (notification_sound = any (array[
+  'system_loud','garage_chime','garage_pulse','garage_alert','garage_bell','garage_siren','garage_turbo','garage_metal','garage_digital','garage_retro','silent'
+]::text[]));
+
+create or replace function public.notification_update_preferences(
+  p_local_notifications_enabled boolean,
+  p_service_updates boolean,
+  p_appointment_reminders boolean,
+  p_appointment_reminder_24h boolean,
+  p_appointment_reminder_2h boolean,
+  p_payment_updates boolean,
+  p_receivable_reminders boolean,
+  p_platform_reminders boolean,
+  p_customer_link_updates boolean,
+  p_notification_sound text default 'system_loud',
+  p_push_notifications_enabled boolean default true
+) returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_sound text;
+begin
+  if v_user is null then raise exception 'Oturum gerekli'; end if;
+  v_sound := case when p_notification_sound = any (array[
+    'system_loud','garage_chime','garage_pulse','garage_alert','garage_bell','garage_siren','garage_turbo','garage_metal','garage_digital','garage_retro','silent'
+  ]::text[]) then p_notification_sound else 'system_loud' end;
+
+  insert into public.notification_preferences(
+    user_id,local_notifications_enabled,service_updates,appointment_reminders,
+    appointment_reminder_24h,appointment_reminder_2h,payment_updates,
+    receivable_reminders,platform_reminders,customer_link_updates,
+    notification_sound,push_notifications_enabled
+  ) values(
+    v_user,coalesce(p_local_notifications_enabled,true),coalesce(p_service_updates,true),
+    coalesce(p_appointment_reminders,true),coalesce(p_appointment_reminder_24h,true),
+    coalesce(p_appointment_reminder_2h,true),coalesce(p_payment_updates,true),
+    coalesce(p_receivable_reminders,true),coalesce(p_platform_reminders,true),
+    coalesce(p_customer_link_updates,true),v_sound,coalesce(p_push_notifications_enabled,true)
+  )
+  on conflict(user_id) do update set
+    local_notifications_enabled=excluded.local_notifications_enabled,
+    service_updates=excluded.service_updates,
+    appointment_reminders=excluded.appointment_reminders,
+    appointment_reminder_24h=excluded.appointment_reminder_24h,
+    appointment_reminder_2h=excluded.appointment_reminder_2h,
+    payment_updates=excluded.payment_updates,
+    receivable_reminders=excluded.receivable_reminders,
+    platform_reminders=excluded.platform_reminders,
+    customer_link_updates=excluded.customer_link_updates,
+    notification_sound=excluded.notification_sound,
+    push_notifications_enabled=excluded.push_notifications_enabled,
+    updated_at=now();
+
+  if not coalesce(p_appointment_reminders,true) then
+    update public.user_notifications set archived_at=now(),updated_at=now()
+    where user_id=v_user and category='appointments' and deliver_at>now() and archived_at is null;
+  end if;
+  if not coalesce(p_receivable_reminders,true) then
+    update public.user_notifications set archived_at=now(),updated_at=now()
+    where user_id=v_user and category='receivables' and deliver_at>now() and archived_at is null;
+  end if;
+  if not coalesce(p_platform_reminders,true) then
+    update public.user_notifications set archived_at=now(),updated_at=now()
+    where user_id=v_user and category='platform' and deliver_at>now() and archived_at is null;
+  end if;
+
+  perform public.notification_refresh_reminders();
+  return (
+    select jsonb_build_object(
+      'local_notifications_enabled',local_notifications_enabled,
+      'service_updates',service_updates,
+      'appointment_reminders',appointment_reminders,
+      'appointment_reminder_24h',appointment_reminder_24h,
+      'appointment_reminder_2h',appointment_reminder_2h,
+      'payment_updates',payment_updates,
+      'receivable_reminders',receivable_reminders,
+      'platform_reminders',platform_reminders,
+      'customer_link_updates',customer_link_updates,
+      'notification_sound',notification_sound,
+      'push_notifications_enabled',push_notifications_enabled,
+      'updated_at',updated_at
+    ) from public.notification_preferences where user_id=v_user
+  );
+end;
+$$;
+
+create or replace function public.notification_channel_id(p_sound text)
+returns text language sql immutable set search_path=public as $$
+  select case p_sound
+    when 'garage_chime' then 'draborngarage-appointment-chime-v6'
+    when 'garage_pulse' then 'draborngarage-workshop-pulse-v6'
+    when 'garage_alert' then 'draborngarage-urgent-alert-v6'
+    when 'garage_bell' then 'draborngarage-classic-bell-v6'
+    when 'garage_siren' then 'draborngarage-siren-v6'
+    when 'garage_turbo' then 'draborngarage-turbo-v6'
+    when 'garage_metal' then 'draborngarage-metal-v6'
+    when 'garage_digital' then 'draborngarage-digital-v6'
+    when 'garage_retro' then 'draborngarage-retro-v6'
+    when 'silent' then 'draborngarage-silent-v6'
+    else 'draborngarage-system-default-v6'
+  end;
+$$;
+
+revoke all on function public.notification_update_preferences(boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,text,boolean) from public,anon;
+grant execute on function public.notification_update_preferences(boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,text,boolean) to authenticated;
+revoke all on function public.notification_channel_id(text) from public,anon,authenticated;
+
+commit;
+`;
+          fs.writeFileSync('supabase/migrations/20260716193000_v1_1_1_notification_permission_sound_fix.sql', migration);
+          fs.writeFileSync('supabase/rollbacks/rollback_v1_1_1_to_v1_1_0.sql', `-- Conservative rollback for DraBornGarage v1.1.1 notification channels.\nbegin;\ncreate or replace function public.notification_channel_id(p_sound text) returns text language sql immutable set search_path=public as $$\n  select case p_sound\n    when 'garage_chime' then 'draborngarage-appointment-chime-v5'\n    when 'garage_pulse' then 'draborngarage-workshop-pulse-v5'\n    when 'garage_alert' then 'draborngarage-urgent-alert-v5'\n    when 'garage_bell' then 'draborngarage-classic-bell-v5'\n    when 'garage_siren' then 'draborngarage-siren-v5'\n    when 'garage_turbo' then 'draborngarage-turbo-v5'\n    when 'garage_metal' then 'draborngarage-metal-v5'\n    when 'garage_digital' then 'draborngarage-digital-v5'\n    when 'garage_retro' then 'draborngarage-retro-v5'\n    when 'silent' then 'draborngarage-silent-v5'\n    else 'draborngarage-system-default-v5'\n  end;\n$$;\nrevoke all on function public.notification_channel_id(text) from public,anon,authenticated;\ncommit;\n`);
+
+          let readme = fs.readFileSync('README.md', 'utf8');
+          readme = readme.replace('**v1.1.0 — Bildirim Güvenilirliği, Yüzdelik Platform Bedeli ve Google Play Hazırlığı**', '**v1.1.1 — Bildirim İzni ve Ses Seçimi Düzeltmesi**');
+          readme = readme.replace('## v1.1.0 ile yapılanlar', '## v1.1.1 düzeltmeleri\n\n- Android izin açma akışındaki `undefined is not a function` hatası giderildi.\n- Native bildirim yöntemleri kullanılmadan önce doğrulanıyor ve anlaşılır hata gösteriliyor.\n- Yeni seslerin Supabase tarafından eski Randevu sesine çevrilmesi düzeltildi.\n- Ses seçimi arayüzde anında görünür ve hata olursa önceki seçime geri döner.\n- Android kanalları temiz `v6` kimlikleriyle yeniden oluşturulur.\n\n## v1.1.0 ile yapılanlar');
+          fs.writeFileSync('README.md', readme);
+
+          let handoff = fs.readFileSync('docs/PROJECT_HANDOFF_V0.8.2.md', 'utf8');
+          handoff = handoff.replace('**Güncel geliştirme sürümü:** `v1.1.0`', '**Güncel geliştirme sürümü:** `v1.1.1`');
+          handoff = handoff.replace('## v1.1.0 kapsamı', '## v1.1.1 düzeltmeleri\n\n- Android bildirim izni açma ve push kaydı native yöntem kontrolleriyle güvenli hale getirildi.\n- Tüm yeni zil sesleri Supabase tercih fonksiyonunda kabul edilir.\n- Yeni Android `v6` kanal kimlikleri eski/bozuk kanal ayarlarından bağımsız oluşturulur.\n- Bildirim sesi seçimi iyimser güncellenir; kayıt hatasında eski değer geri yüklenir.\n\n## v1.1.0 kapsamı');
+          handoff = handoff.replace('KURULAN_SURUM="v1.1.0"', 'KURULAN_SURUM="v1.1.1"');
+          handoff = handoff.replace('YEDEKLENEN_SURUM="v1.0.0"', 'YEDEKLENEN_SURUM="v1.1.0"');
+          handoff = handoff.replace('DraBornGarage-v1.0.0-local-backup', 'DraBornGarage-v1.1.0-local-backup');
+          fs.writeFileSync('docs/PROJECT_HANDOFF_V0.8.2.md', handoff);
+          NODE
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+
+      - name: Verify v1.1.1 notification contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const app=require('./app.json').expo;
+          const pkg=require('./package.json');
+          const lock=require('./package-lock.json');
+          if(app.version!=='1.1.1'||pkg.version!=='1.1.1'||lock.version!=='1.1.1') throw new Error('v1.1.1 sürüm eşleşmesi bozuk');
+          if(app.android.versionCode!==1) throw new Error('Android versionCode 1 kalmalı');
+          if(app.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-notifications')?.[1]?.defaultChannel!=='draborngarage-system-default-v6') throw new Error('v6 varsayılan kanal eksik');
+          const permissions=fs.readFileSync('src/notifications/notificationPermissions.ts','utf8');
+          if(permissions.includes('deleteNotificationChannelAsync(id).catch')) throw new Error('Güvensiz .catch çağrısı kaldı');
+          if(!permissions.includes("typeof api.setNotificationChannelAsync !== 'function'")) throw new Error('Native yöntem koruması eksik');
+          const migration=fs.readFileSync('supabase/migrations/20260716193000_v1_1_1_notification_permission_sound_fix.sql','utf8');
+          for(const sound of ['system_loud','garage_chime','garage_pulse','garage_alert','garage_bell','garage_siren','garage_turbo','garage_metal','garage_digital','garage_retro','silent']) if(!migration.includes(sound)) throw new Error(`Migration sesi eksik: ${sound}`);
+          NODE
+
+      - name: Commit fixes and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/_temporary-v111-notification-fix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app.json package.json package-lock.json README.md docs/PROJECT_HANDOFF_V0.8.2.md src/notifications/NotificationContextV101.tsx src/notifications/NotificationCenterScreen.tsx src/notifications/notificationPermissions.ts supabase/migrations/20260716193000_v1_1_1_notification_permission_sound_fix.sql supabase/rollbacks/rollback_v1_1_1_to_v1_1_0.sql
+          git commit -m "fix: repair notification permission and sound selection in v1.1.1"
+          git push origin HEAD:fix/v1.1.1-notification-permission-sounds
