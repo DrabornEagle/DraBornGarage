@@ -32,7 +32,7 @@
 - Token kaydı başarısız olduğunda hata kullanıcıdan saklanmaz.
 - Kapalı uygulama testi token kaydı doğrulandıktan sonra planlanır.
 - Android kanal kimlikleri `v5` olarak yenilendi; böylece eski değiştirilemeyen ses ayarları taşınmaz.
-- Sistem sesi, sessiz ve dokuz farklı özel ses bulunur.
+- Telefon varsayılan sesi, sessiz seçenek ve dokuz farklı özel ses bulunur.
 
 ### Platform hizmet bedeli
 
@@ -42,7 +42,8 @@
 - Admin global varsayılanı ve her işletmenin özel hesaplama türünü değiştirebilir.
 - Yüzde hesabı: `servis toplam tutarı × oran / 100`.
 - Ücret, servis tamamlanınca iki ondalık haneye yuvarlanarak kaydedilir.
-- Geçmiş ücret kayıtları sonradan yeniden hesaplanmaz.
+- Geçmiş ücret kayıtları sonradan topluca yeniden hesaplanmaz.
+- Aynı servis kaydının kesin toplamı değiştirilirse o servise ait henüz güncel ücret kaydı yeniden hesaplanır.
 
 ### Google Play hazırlığı
 
@@ -50,8 +51,9 @@
 - Kamera yalnız QR tarama için opsiyonel donanım olarak kalır.
 - Dekont seçiminde Android sistem fotoğraf seçicisi kullanılır.
 - Uygulama içi gizlilik merkezi ve hesap silme talebi korunur.
-- Harici gizlilik ve hesap silme sayfaları günceldir.
+- Harici gizlilik ve hesap silme sayfaları GitHub üzerinde herkese açık tutulur.
 - AAB workflow manifest, imza, izin, target SDK, TypeScript, bundle ve lint kontrolleri yapar.
+- 31 Ağustos 2026’dan itibaren Google Play için API 36 zorunluluğu kontrol edilmelidir.
 
 ## Kalıcı ürün kararları
 
@@ -66,13 +68,14 @@
 ## Her güncellemede zorunlu işlem
 
 1. Eski yerel klasörü sürüm adıyla yedekle.
-2. Yeni GitHub ZIP’ini indir.
+2. Güncel `main` ZIP’ini indir.
 3. `.env` dosyasını koru ve geri yükle.
 4. `npm ci` çalıştır; bildirim sesleri otomatik üretilir.
 5. TypeScript kontrolü yap.
 6. Expo testi başlat.
-7. Native değişiklik varsa Release APK al ve temiz kurulumla test et.
-8. Supabase değişikliği varsa migration ve rollback dosyalarını birlikte sakla.
+7. Native değişiklik varsa **DraBornGarage Release APK** workflow’unu çalıştır ve temiz kurulumla test et.
+8. Google Play paketi gerektiğinde **DraBornGarage Release AAB** workflow’unu çalıştır.
+9. Supabase değişikliği varsa migration ve rollback dosyalarını birlikte sakla.
 
 ## v1.1.0 Termux yedek + kurulum
 
@@ -84,16 +87,18 @@ YEDEK_KLASORU="$HOME/DraBornGarage-${YEDEKLENEN_SURUM}-local-backup"
 ZIP_DOSYASI="$HOME/DraBornGarage-${KURULAN_SURUM}.zip"
 ENV_YEDEGI="$HOME/DraBornGarage-env-backup"
 
-rm -rf "$YEDEK_KLASORU" "$HOME/DraBornGarage-agent-v1.1.0-notifications-platform-policy" "$ENV_YEDEGI"
+rm -rf "$YEDEK_KLASORU" "$HOME/DraBornGarage-main" "$ENV_YEDEGI"
 rm -f "$ZIP_DOSYASI"
 
 if [ -f "$HOME/DraBornGarage/.env" ]; then cp "$HOME/DraBornGarage/.env" "$ENV_YEDEGI"; fi
 if [ -d "$HOME/DraBornGarage" ]; then mv "$HOME/DraBornGarage" "$YEDEK_KLASORU"; fi
 
-curl -L --fail --retry 10 --retry-delay 3 --connect-timeout 30 --max-time 900   "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/agent/v1.1.0-notifications-platform-policy.zip"   -o "$ZIP_DOSYASI"
+curl -L --fail --retry 10 --retry-delay 3 --connect-timeout 30 --max-time 900 \
+  "https://github.com/DrabornEagle/DraBornGarage/archive/refs/heads/main.zip" \
+  -o "$ZIP_DOSYASI"
 
 unzip -o "$ZIP_DOSYASI" -d "$HOME"
-mv "$HOME/DraBornGarage-agent-v1.1.0-notifications-platform-policy" "$HOME/DraBornGarage"
+mv "$HOME/DraBornGarage-main" "$HOME/DraBornGarage"
 rm -f "$ZIP_DOSYASI"
 
 if [ -f "$ENV_YEDEGI" ]; then mv "$ENV_YEDEGI" "$HOME/DraBornGarage/.env"; fi
