@@ -38,6 +38,7 @@ jobs:
           python3 scripts/v100_patch_part1_safe.py
           python3 scripts/v100_patch_part2.py
           python3 scripts/v100_patch_part3.py
+          npm version 1.0.0 --no-git-tag-version --allow-same-version
           sed -i 's/v0\.9\.3 TAKVİM/RANDEVU TAKVİMİ/g' src/screens/AppointmentsScreen.tsx
           sed -i 's/v0\.6 Rapor Merkezi/Rapor Merkezi/g' src/components/ReportsDashboard.tsx
           sed -i 's/v0\.4 SERVİS TAKİBİ/SERVİS TAKİBİ/g' src/customer/CustomerServicesScreen.tsx
