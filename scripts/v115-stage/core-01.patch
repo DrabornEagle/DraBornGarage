@@ -1,0 +1,181 @@
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/.github/workflows/_temporary-source-export-v115.yml DraBornGarage-v115-src/.github/workflows/_temporary-source-export-v115.yml
+--- v115-orig/.github/workflows/_temporary-source-export-v115.yml	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/.github/workflows/_temporary-source-export-v115.yml	1970-01-01 00:00:00.000000000 +0000
+@@ -1,33 +0,0 @@
+-name: Temporary Source Export v1.1.5
+-
+-on:
+-  push:
+-    branches: [main]
+-    paths:
+-      - .github/workflows/_temporary-source-export-v115.yml
+-
+-permissions:
+-  contents: write
+-
+-jobs:
+-  export:
+-    runs-on: ubuntu-latest
+-    steps:
+-      - uses: actions/checkout@v4
+-      - name: Create source archive
+-        run: |
+-          zip -qr DraBornGarage-source-v1.1.5.zip . -x '.git/*' 'node_modules/*' 'dist/*' 'android/*'
+-      - uses: actions/upload-artifact@v4
+-        with:
+-          name: DraBornGarage-source-v1.1.5
+-          path: DraBornGarage-source-v1.1.5.zip
+-          retention-days: 7
+-      - name: Record run
+-        run: |
+-          printf '{"run_id":%s,"head_sha":"%s","artifact":"DraBornGarage-source-v1.1.5"}\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" > docs/SOURCE_EXPORT_V115.json
+-          git config user.name github-actions[bot]
+-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+-          git add docs/SOURCE_EXPORT_V115.json
+-          git commit -m 'chore: record v1.1.5 source export'
+-          git pull --rebase origin main
+-          git push origin HEAD:main
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/README.md DraBornGarage-v115-src/README.md
+--- v115-orig/README.md	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/README.md	2026-07-16 21:49:47.571146666 +0000
+@@ -4,9 +4,9 @@
+ 
+ ## Güncel geliştirme sürümü
+ 
+-**v1.1.4 — Yayın Öncesi Bildirim, Rol ve Liste Düzenlemesi**
++**v1.1.5 — Gerçek Push, Randevu Aksiyonu ve Türkçe Sesli Bildirim**
+ 
+-- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, ardından `v1.1.4`…
++- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4`, ardından `v1.1.5`…
+ - AAB alınana kadar Android `versionCode` sabit: `1`
+ - Expo: küçük arayüz ve işlev testleri
+ - Native bildirim ve gerçek cihaz testleri: **DraBornGarage Release APK**
+@@ -14,6 +14,17 @@
+ - İlk Google Play yayını: uygulama `versionName` **1.0**, `versionCode` **1**
+ - İlk Play yayınından sonra her mağaza güncellemesinde hem sürüm hem `versionCode` artırılır.
+ 
++## v1.1.5 düzeltmeleri
++
++- Gerçek Expo push cevapları doğrulanır; HTTP 200 içindeki `InvalidCredentials` artık başarı sayılmaz.
++- FCM V1 servis hesabı EAS projesine atanır ve başarısız gerçek bildirimler yeniden denenir.
++- Yeni müşteri randevusu atanmış Ustaya işlem yapılana kadar 5 dakikada bir hatırlatılır.
++- Uygulama açıldığında atanmış Ustaya modern randevu aksiyon penceresi gösterilir.
++- Türkçe Akıllı Ses seçeneği bildirim kategorisine göre konuşan ses kullanır.
++- Android bildirim kanalları temiz v8 kimliklerine taşınır.
++- Rapor Merkezi’nde Usta Raporu kartı İşletme Raporu kartından önce gösterilir.
++- Geri alma dalı `backup/v1.1.4-before-v1.1.5-20260717` olarak güncellenir.
++
+ ## v1.1.4 düzeltmeleri
+ 
+ - Expo servisinin kabul ettiği RFC 4122 UUID biçiminde kalıcı cihaz kimliği oluşturulur; eski geçersiz `garage-...` kimliği temizlenir.
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/app.json DraBornGarage-v115-src/app.json
+--- v115-orig/app.json	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/app.json	2026-07-16 21:49:47.568360323 +0000
+@@ -3,7 +3,7 @@
+     "name": "DraBornGarage",
+     "slug": "draborngarage",
+     "scheme": "draborngarage",
+-    "version": "1.1.4",
++    "version": "1.1.5",
+     "icon": "./assets/draborngarage-icon.png",
+     "orientation": "portrait",
+     "userInterfaceStyle": "automatic",
+@@ -27,7 +27,7 @@
+         "expo-notifications",
+         {
+           "color": "#7C5CFF",
+-          "defaultChannel": "draborngarage-system-default-v7",
++          "defaultChannel": "draborngarage-system-default-v8",
+           "sounds": [
+             "./assets/sounds/garage_chime.wav",
+             "./assets/sounds/garage_pulse.wav",
+@@ -37,7 +37,14 @@
+             "./assets/sounds/garage_turbo.wav",
+             "./assets/sounds/garage_metal.wav",
+             "./assets/sounds/garage_digital.wav",
+-            "./assets/sounds/garage_retro.wav"
++            "./assets/sounds/garage_retro.wav",
++            "./assets/sounds/voice_appointment.wav",
++            "./assets/sounds/voice_service.wav",
++            "./assets/sounds/voice_payment.wav",
++            "./assets/sounds/voice_receivable.wav",
++            "./assets/sounds/voice_platform.wav",
++            "./assets/sounds/voice_customer.wav",
++            "./assets/sounds/voice_system.wav"
+           ]
+         }
+       ],
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/docs/PROJECT_HANDOFF_V0.8.2.md DraBornGarage-v115-src/docs/PROJECT_HANDOFF_V0.8.2.md
+--- v115-orig/docs/PROJECT_HANDOFF_V0.8.2.md	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/docs/PROJECT_HANDOFF_V0.8.2.md	2026-07-16 21:49:47.571414980 +0000
+@@ -1,17 +1,17 @@
+ # DraBornGarage — Teslim ve Devam Dosyası
+ 
+ **Son güncelleme:** 16 Temmuz 2026  
+-**Güncel geliştirme sürümü:** `v1.1.4`  
++**Güncel geliştirme sürümü:** `v1.1.5`  
+ **Android test versionCode:** `1`  
+ **İlk Google Play sürümü:** `v1.0 / versionCode 1`  
+ **GitHub:** `DrabornEagle/DraBornGarage`  
+ **Supabase:** `xpdiwyxnnrmyvpcqwuyb`
+ 
+-> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.4 ile günceldir.
++> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.5 ile günceldir.
+ 
+ ## Sürüm standardı
+ 
+-- Geliştirme sürümleri `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4` şeklinde ilerler.
++- Geliştirme sürümleri `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4`, `v1.1.5` şeklinde ilerler.
+ - İlk AAB alınana kadar Android `versionCode=1` sabit kalır.
+ - Küçük testler Expo Go ile yapılır.
+ - Native bildirim ve gerçek cihaz testleri **DraBornGarage Release APK** workflow’u ile yapılır.
+@@ -19,6 +19,16 @@
+ - İlk Play paketi `versionName=1.0`, `versionCode=1` ile başlar.
+ - İlk mağaza yayınından sonra sürüm adı ve versionCode birlikte artırılır.
+ 
++## v1.1.5 — Randevu push ve Türkçe ses
++
++- Expo push cevabı gerçek sonuç üzerinden doğrulanır; `InvalidCredentials` başarı sayılmaz.
++- FCM V1 servis hesabı EAS projesine atanır.
++- Atanmış Ustaya bekleyen müşteri randevusu için 5 dakikalık aksiyon hatırlatması gönderilir.
++- Uygulama açılışında modern randevu popup'ı gösterilir.
++- Türkçe Akıllı Ses bildirim türüne göre konuşur.
++- Rapor kartları Usta Raporu → İşletme Raporu sırasındadır.
++- Geri alma dalı: `backup/v1.1.4-before-v1.1.5-20260717`.
++
+ ## v1.1.4 — Yayın öncesi son düzenlemeler
+ 
+ - Geçersiz cihaz kimliği yerine RFC 4122 UUID v4 kullanılır.
+@@ -78,12 +88,12 @@
+ 6. Native değişiklikte Release APK workflow’unu çalıştır.
+ 7. Supabase değişikliği varsa migration ve rollback dosyasını birlikte sakla.
+ 
+-## v1.1.4 Termux yedek + kurulum
++## v1.1.5 Termux yedek + kurulum
+ 
+ ```bash
+ cd "$HOME"
+-KURULAN_SURUM="v1.1.4"
+-YEDEKLENEN_SURUM="v1.1.3"
++KURULAN_SURUM="v1.1.5"
++YEDEKLENEN_SURUM="v1.1.4"
+ TARIH="$(date +%Y%m%d-%H%M%S)"
+ YEDEK_KLASORU="$HOME/DraBornGarage-${YEDEKLENEN_SURUM}-local-backup-${TARIH}"
+ ZIP_DOSYASI="$HOME/DraBornGarage-${KURULAN_SURUM}.zip"
+@@ -117,4 +127,4 @@
+ 
+ ## Yerel geri alma
+ 
+-Yeni klasörü silmek yerine hata durumunda ayrı bir adla taşı ve oluşturulan `v1.1.3` yedek klasörünü tekrar `DraBornGarage` adına getir. Ardından `npm ci` ve `npx expo start -c --go` çalıştır.
++Yeni klasörü silmek yerine hata durumunda ayrı bir adla taşı ve oluşturulan `v1.1.4` yedek klasörünü tekrar `DraBornGarage` adına getir. Ardından `npm ci` ve `npx expo start -c --go` çalıştır.
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/package.json DraBornGarage-v115-src/package.json
+--- v115-orig/package.json	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/package.json	2026-07-16 21:49:47.559399177 +0000
+@@ -1,6 +1,6 @@
+ {
+   "name": "draborngarage",
+-  "version": "1.1.4",
++  "version": "1.1.5",
+   "main": "index.ts",
+   "scripts": {
+     "start": "expo start",
