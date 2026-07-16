@@ -1,0 +1,70 @@
+name: Temporary Merge v1.0.0 Final Candidate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-merge-v100.yml
+
+permissions:
+  contents: write
+
+jobs:
+  merge-test-persist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+      EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Merge tested feature branch and clean temporary files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin feature/v1.0.0-final-candidate
+          git merge --no-ff origin/feature/v1.0.0-final-candidate -m 'merge: DraBornGarage v1.0.0 final candidate'
+          rm -f \
+            .github/workflows/_temporary-merge-v100.yml \
+            .github/workflows/_temporary-feature-tree-info.yml \
+            .runtime/feature-tree-info.txt \
+            .runtime/source-export-run.txt \
+            .runtime/v100-inventory.txt \
+            .runtime/v100-validation-status.json \
+            .runtime/v100-validation-status-2.json \
+            .runtime/v100-validation-status-3.json \
+            .runtime/v100-validation-status-4.json \
+            .runtime/v100-validation-status-5.json \
+            .runtime/v100-validation-failure.txt
+          git add -A
+          git commit -m 'chore: remove temporary v1.0.0 build files'
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Expo Doctor
+        run: npx expo-doctor
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+      - name: Verify clean release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const a=require('./app.json').expo,p=require('./package.json'),l=require('./package-lock.json');if(a.version!=='1.0.0'||a.android.versionCode!==1||p.version!==a.version||l.version!==a.version)process.exit(1)"
+          test "$(find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort | tr '\n' ' ')" = "release-aab.yml release-apk.yml "
+          test -f supabase/migrations/20260716040000_v1_0_0_final_candidate_notifications_refresh.sql
+      - name: Push tested merge
+        run: git push origin HEAD:main
