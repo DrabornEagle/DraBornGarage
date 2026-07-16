@@ -1,0 +1,56 @@
+name: Temporary Configure FCM V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-configure-fcm-v1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      CI: "0"
+      TERM: xterm-256color
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Prepare protected runner file
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPO_TOKEN"
+          test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
+          FCM_KEY_PATH="$RUNNER_TEMP/draborngarage-firebase-adminsdk.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$FCM_KEY_PATH"
+          chmod 600 "$FCM_KEY_PATH"
+          echo "FCM_KEY_PATH=$FCM_KEY_PATH" >> "$GITHUB_ENV"
+      - name: Install official credential tooling
+        run: |
+          npm install --no-save --ignore-scripts eas-cli@21.0.1
+          python3 -m pip install --quiet pexpect
+      - name: Configure Android FCM V1
+        run: python3 scripts/eas_fcm_menu_driver.py
+      - name: Remove protected runner file and persist proof
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$FCM_KEY_PATH"
+          test -f .runtime/eas-fcm-v1-status.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_temporary-configure-fcm-v1.yml scripts/eas_fcm_menu_driver.py
+          git add .runtime/eas-fcm-v1-status.json
+          git commit -m 'chore: confirm EAS FCM V1 credential assignment'
+          git pull --rebase origin main
+          git push origin HEAD:main
