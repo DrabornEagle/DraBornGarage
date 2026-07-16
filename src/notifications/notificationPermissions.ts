@@ -2,18 +2,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
 
-export const SYSTEM_NOTIFICATION_CHANNEL_ID = 'draborngarage-system-default-v6';
-export const CHIME_NOTIFICATION_CHANNEL_ID = 'draborngarage-appointment-chime-v6';
-export const PULSE_NOTIFICATION_CHANNEL_ID = 'draborngarage-workshop-pulse-v6';
-export const ALERT_NOTIFICATION_CHANNEL_ID = 'draborngarage-urgent-alert-v6';
-export const BELL_NOTIFICATION_CHANNEL_ID = 'draborngarage-classic-bell-v6';
-export const SIREN_NOTIFICATION_CHANNEL_ID = 'draborngarage-siren-v6';
-export const TURBO_NOTIFICATION_CHANNEL_ID = 'draborngarage-turbo-v6';
-export const METAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-metal-v6';
-export const DIGITAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-digital-v6';
-export const RETRO_NOTIFICATION_CHANNEL_ID = 'draborngarage-retro-v6';
-export const SILENT_NOTIFICATION_CHANNEL_ID = 'draborngarage-silent-v6';
-export const NOTIFICATION_INTRO_STORAGE_KEY = '@draborngarage/notification-intro-v111';
+export const SYSTEM_NOTIFICATION_CHANNEL_ID = 'draborngarage-system-default-v7';
+export const CHIME_NOTIFICATION_CHANNEL_ID = 'draborngarage-appointment-chime-v7';
+export const PULSE_NOTIFICATION_CHANNEL_ID = 'draborngarage-workshop-pulse-v7';
+export const ALERT_NOTIFICATION_CHANNEL_ID = 'draborngarage-urgent-alert-v7';
+export const BELL_NOTIFICATION_CHANNEL_ID = 'draborngarage-classic-bell-v7';
+export const SIREN_NOTIFICATION_CHANNEL_ID = 'draborngarage-siren-v7';
+export const TURBO_NOTIFICATION_CHANNEL_ID = 'draborngarage-turbo-v7';
+export const METAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-metal-v7';
+export const DIGITAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-digital-v7';
+export const RETRO_NOTIFICATION_CHANNEL_ID = 'draborngarage-retro-v7';
+export const SILENT_NOTIFICATION_CHANNEL_ID = 'draborngarage-silent-v7';
+export const NOTIFICATION_INTRO_STORAGE_KEY = '@draborngarage/notification-intro-v114';
 
 const LEGACY_CHANNELS = [
   'draborngarage-system-loud-v4',
@@ -32,6 +32,17 @@ const LEGACY_CHANNELS = [
   'draborngarage-digital-v5',
   'draborngarage-retro-v5',
   'draborngarage-silent-v5',
+  'draborngarage-system-default-v6',
+  'draborngarage-appointment-chime-v6',
+  'draborngarage-workshop-pulse-v6',
+  'draborngarage-urgent-alert-v6',
+  'draborngarage-classic-bell-v6',
+  'draborngarage-siren-v6',
+  'draborngarage-turbo-v6',
+  'draborngarage-metal-v6',
+  'draborngarage-digital-v6',
+  'draborngarage-retro-v6',
+  'draborngarage-silent-v6',
 ];
 
 function notificationMethodError(method: string) {

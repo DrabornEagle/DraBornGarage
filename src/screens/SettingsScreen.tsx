@@ -43,14 +43,16 @@ export function SettingsScreen() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [openSection, setOpenSection] = useState<SettingsSection | null>(null);
   const toggleSection = (section: SettingsSection) => setOpenSection((current) => current === section ? null : section);
-  const isOwner = isAdmin || membership?.role === 'owner' || membership?.role === 'owner_mechanic';
+  const staffRole = membership?.role ?? '';
+  const isOwnerOrMechanic = ['owner', 'owner_mechanic', 'mechanic'].includes(staffRole);
+  const showCustomerViewSwitch = !isAdmin && !isOwnerOrMechanic;
   const canConfigureReadyPayment = membership?.role === 'mechanic' || membership?.role === 'owner_mechanic';
 
   const loadDemo = useCallback(async () => {
-    if (!workshop || !isOwner) return setDemo(EMPTY_DEMO);
+    if (!workshop || !isAdmin) return setDemo(EMPTY_DEMO);
     const { data } = await supabase.rpc('demo_data_status', { p_workshop_id: workshop.id });
     if (data) setDemo(data as DemoStatus);
-  }, [workshop, isOwner]);
+  }, [workshop, isAdmin]);
   useEffect(() => { loadDemo(); }, [loadDemo]);
 
   const createDemo = () => workshop && Alert.alert('Pilot test verileri yüklensin mi?', 'Hızlı servis, randevu, alacak, platform bedeli, rapor ve bildirim senaryoları için geçici kayıtlar eklenir.', [{ text: 'Vazgeç' }, { text: 'Yükle', onPress: async () => {
@@ -90,18 +92,18 @@ export function SettingsScreen() {
   };
 
   return <ScrollView contentContainerStyle={styles.content}>
-    <ScreenHeader eyebrow="PİLOT VE YAYIN" title="Ayarlar" subtitle="Tema, bildirim, rol güvenliği, pilot test ve Google Play hazırlığı." />
+    <ScreenHeader eyebrow="AYARLAR VE YAYIN" title="Ayarlar" subtitle="Tema, bildirim, rol güvenliği ve Google Play hazırlığı." />
     <GlassCard style={styles.profile}><LinearGradient colors={[colors.primary, colors.primary2]} style={styles.avatar}><Text style={styles.avatarText}>{profile?.full_name?.charAt(0) || 'D'}</Text></LinearGradient><View style={styles.copy}><Text style={[styles.name, { color: colors.text }]}>{profile?.full_name}</Text><Text style={[styles.meta, { color: colors.textMuted }]}>{roleLabel(membership?.role, isAdmin)} • {workshop?.name || 'Müşteri hesabı'}</Text></View><Ionicons name="shield-checkmark" size={23} color={colors.green} /></GlassCard>
 
     <AnimatedPressable onPress={openCenter} style={[styles.modeCard, { backgroundColor: `${colors.orange}11`, borderColor: `${colors.orange}40` }]}><View style={[styles.modeIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="notifications" size={24} color={colors.orange} /></View><View style={styles.copy}><Text style={[styles.modeTitle, { color: colors.text }]}>Bildirim Merkezi ve tercihleri</Text><Text style={[styles.modeText, { color: colors.textMuted }]}>{unreadCount} okunmamış • {upcomingCount} yaklaşan • Telefon izni: {permissionStatus === 'granted' ? 'Açık' : 'Kapalı'}</Text></View><Ionicons name="chevron-forward" size={20} color={colors.orange} /></AnimatedPressable>
 
-    <AnimatedPressable onPress={async () => { const error = await setAccountMode('customer'); if (error) Alert.alert('Geçiş yapılamadı', error); }} style={[styles.modeCard, { backgroundColor: `${colors.cyan}11`, borderColor: `${colors.cyan}40` }]}><View style={[styles.modeIcon, { backgroundColor: `${colors.cyan}18` }]}><AnimatedMotorcycleIcon size={31} color={colors.cyan} /></View><View style={styles.copy}><Text style={[styles.modeTitle, { color: colors.text }]}>Müşteri görünümüne geç</Text><Text style={[styles.modeText, { color: colors.textMuted }]}>Randevu, ek işlem onayı, motor, servis ve müşteri bildirimlerini test et.</Text></View><Ionicons name="chevron-forward" size={20} color={colors.cyan} /></AnimatedPressable>
+    {showCustomerViewSwitch && <AnimatedPressable onPress={async () => { const error = await setAccountMode('customer'); if (error) Alert.alert('Geçiş yapılamadı', error); }} style={[styles.modeCard, { backgroundColor: `${colors.cyan}11`, borderColor: `${colors.cyan}40` }]}><View style={[styles.modeIcon, { backgroundColor: `${colors.cyan}18` }]}><AnimatedMotorcycleIcon size={31} color={colors.cyan} /></View><View style={styles.copy}><Text style={[styles.modeTitle, { color: colors.text }]}>Müşteri görünümüne geç</Text><Text style={[styles.modeText, { color: colors.textMuted }]}>Randevu, ek işlem onayı, motor, servis ve müşteri bildirimlerini test et.</Text></View><Ionicons name="chevron-forward" size={20} color={colors.cyan} /></AnimatedPressable>}
 
     <SettingsAccordion title="Garaj Temaları" subtitle={`${THEMES.length} görünüm • ${THEMES.find((item) => item.value === mode)?.title ?? 'Otomatik'}`} icon="color-palette" accent={colors.primary} open={openSection === 'themes'} onToggle={() => toggleSection('themes')}>
       <View style={styles.themeList}>{THEMES.map((item) => { const active = mode === item.value; return <AnimatedPressable key={item.value} onPress={() => setMode(item.value)} style={[styles.theme, { backgroundColor: active ? `${colors.primary}14` : colors.card, borderColor: active ? colors.primary : colors.border }]}><LinearGradient colors={item.preview} style={styles.preview}><Ionicons name={item.icon} size={22} color="#fff" /></LinearGradient><View style={styles.copy}><Text style={[styles.themeTitle, { color: colors.text }]}>{item.title}</Text><Text style={[styles.themeSub, { color: colors.textMuted }]}>{item.subtitle}</Text></View><Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={active ? colors.primary : colors.textMuted} /></AnimatedPressable>; })}</View>
     </SettingsAccordion>
 
-    {isOwner && <SettingsAccordion title="Pilot Test Atölyesi" subtitle={demo.active ? `${demo.customer_count} müşteri • ${demo.work_order_count} servis` : 'Geçici pilot verileri kapalı'} icon="flask" accent={demo.active ? colors.green : colors.orange} open={openSection === 'demo'} onToggle={() => toggleSection('demo')}>
+    {isAdmin && <SettingsAccordion title="Pilot Test Atölyesi" subtitle={demo.active ? `${demo.customer_count} müşteri • ${demo.work_order_count} servis` : 'Geçici pilot verileri kapalı'} icon="flask" accent={demo.active ? colors.green : colors.orange} open={openSection === 'demo'} onToggle={() => toggleSection('demo')}>
       <GlassCard style={styles.demoCard}><View style={styles.demoHeader}><Ionicons name="flask" size={28} color={demo.active ? colors.green : colors.orange} /><View style={styles.copy}><Text style={[styles.demoTitle, { color: colors.text }]}>Ana Akış Testleri</Text><Text style={[styles.demoText, { color: colors.textMuted }]}>{demo.customer_count} müşteri • {demo.work_order_count} servis • Hızlı servis, randevu, alacak, platform ve bildirim</Text></View></View>{demo.active ? <PrimaryButton title="Pilot Verilerini Temizle" onPress={clearDemo} loading={loading} secondary /> : <PrimaryButton title="Pilot Verilerini Yükle" onPress={createDemo} loading={loading} />}<PrimaryButton title="Pilot Kontrol Listesini Aç" onPress={() => Linking.openURL(TEST_CHECKLIST_URL)} secondary /></GlassCard>
     </SettingsAccordion>}
 
@@ -119,8 +121,8 @@ export function SettingsScreen() {
       <PrimaryButton title="Gizlilik Politikasını Aç" onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} secondary />
     </SettingsAccordion>
 
-    <SettingsAccordion title="Uygulama" subtitle={`${APP_VERSION_LABEL} • Google Play Final Adayı`} icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
-      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value={`${APP_VERSION_LABEL} • Google Play Final Adayı`} /><Info icon="shield-checkmark" label="Motor Hazır kuralı" value="Ücret isteğe bağlı • Tahsilat veya borç tutarı Net Fiyat olabilir" /><Info icon="key" label="İmza güvenliği" value="Kalıcı DraBornGarage production upload keystore" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v1.0.8-production-before-v1.0.0-final-20260716" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v1.0.8 Production" /><Info icon="phone-portrait" label="Test yöntemi" value="Gerçek keystore imzalı Production APK" /><Info icon="storefront" label="Mağaza durumu" value="Son cihaz testleri • sonraki adım v1.0 Final AAB" /></GlassCard>
+    <SettingsAccordion title="Uygulama" subtitle={`${APP_VERSION_LABEL} • Google Play Öncesi Test Adayı`} icon="information-circle" accent={colors.green} open={openSection === 'app'} onToggle={() => toggleSection('app')}>
+      <GlassCard style={styles.info}><Info icon="layers" label="Sürüm" value={`${APP_VERSION_LABEL} • Google Play Öncesi Test Adayı`} /><Info icon="shield-checkmark" label="Motor Hazır kuralı" value="Ücret isteğe bağlı • Tahsilat veya borç tutarı Net Fiyat olabilir" /><Info icon="key" label="İmza güvenliği" value="Kalıcı DraBornGarage production upload keystore" /><Info icon="archive" label="Bu sürüm öncesi yedek" value="backup/v1.1.3-before-v1.1.4-20260716" /><Info icon="refresh" label="Geri alma" value="Kod ve veritabanıyla v1.1.3" /><Info icon="phone-portrait" label="Test yöntemi" value="Gerçek keystore imzalı Production APK" /><Info icon="storefront" label="Mağaza durumu" value="Push cihaz testi ve Play Console beyanları bekleniyor" /></GlassCard>
     </SettingsAccordion>
 
     <AnimatedPressable onPress={() => Alert.alert('Çıkış yapılsın mı?', '', [{ text: 'Vazgeç' }, { text: 'Çıkış', style: 'destructive', onPress: signOut }])} style={[styles.logout, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}35` }]}><Ionicons name="log-out-outline" size={21} color={colors.red} /><Text style={[styles.logoutText, { color: colors.red }]}>Hesaptan Çıkış Yap</Text></AnimatedPressable>

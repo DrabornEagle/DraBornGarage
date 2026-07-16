@@ -17,6 +17,8 @@ import { Customer, Motorcycle, WorkOrderStatus } from '../types';
 import { CustomersScreen as LegacyCustomersScreen } from './CustomersScreen';
 
 type ScreenMode = 'memory' | 'management';
+const INITIAL_CUSTOMER_COUNT = 4;
+const CUSTOMER_PAGE_INCREMENT = 10;
 
 type MemoryMotorcycle = Motorcycle & {
   staff_note?: string | null;
@@ -122,6 +124,7 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
   const [parts, setParts] = useState<PartRow[]>([]);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [query, setQuery] = useState('');
+  const [visibleCustomerCount, setVisibleCustomerCount] = useState(INITIAL_CUSTOMER_COUNT);
   const [openCustomer, setOpenCustomer] = useState<string | null>(null);
   const [openBike, setOpenBike] = useState<string | null>(null);
   const [openOrder, setOpenOrder] = useState<string | null>(null);
@@ -134,6 +137,7 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { setMode(initialTab === 'claims' ? 'management' : 'memory'); }, [initialTab]);
+  useEffect(() => { setVisibleCustomerCount(INITIAL_CUSTOMER_COUNT); }, [query, workshop?.id]);
 
   const load = useCallback(async (silent = false) => {
     if (!workshop) return;
@@ -196,6 +200,8 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
       return motorcycles.some((bike) => bike.customer_id === customer.id && `${bike.brand} ${bike.model} ${bike.plate || ''}`.toLocaleLowerCase('tr-TR').includes(value));
     });
   }, [query, customers, motorcycles]);
+  const displayedCustomers = visibleCustomers.slice(0, visibleCustomerCount);
+  const remainingCustomers = Math.max(0, visibleCustomers.length - displayedCustomers.length);
 
   const editBike = (bike: MemoryMotorcycle) => {
     setEditingBike(bike.id);
@@ -251,7 +257,7 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
       <TextInput value={query} onChangeText={setQuery} placeholder="Ad, telefon, marka, model veya plaka ara" placeholderTextColor={colors.textMuted} style={[styles.searchInput, { color: colors.text }]} />
     </View>
 
-    {visibleCustomers.map((customer) => {
+    {displayedCustomers.map((customer) => {
       const bikes = motorcycles.filter((item) => item.customer_id === customer.id);
       const customerOrders = orders.filter((item) => item.customer_id === customer.id);
       const expanded = openCustomer === customer.id;
@@ -354,6 +360,8 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
       </GlassCard>;
     })}
 
+    {remainingCustomers > 0 && <AnimatedPressable onPress={() => setVisibleCustomerCount((count) => count + CUSTOMER_PAGE_INCREMENT)} style={[styles.moreButton, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}45` }]}><Ionicons name="chevron-down-circle" size={21} color={colors.primary} /><Text style={[styles.moreButtonText, { color: colors.primary }]}>Daha Fazla • {Math.min(CUSTOMER_PAGE_INCREMENT, remainingCustomers)} müşteri göster</Text></AnimatedPressable>}
+
     {visibleCustomers.length === 0 && <GlassCard style={styles.empty}><Ionicons name="people-outline" size={42} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Müşteri bulunamadı</Text><Text style={[styles.emptyText, { color: colors.textMuted }]}>Kayıt ve Eşleşme bölümünden müşteri ekleyebilirsin.</Text></GlassCard>}
   </ScrollView>;
 }
@@ -419,6 +427,8 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 0.7 },
   totalValue: { fontSize: 16, fontWeight: '900', marginTop: 3 },
   right: { alignItems: 'flex-end' },
+  moreButton: { minHeight: 52, borderWidth: 1, borderRadius: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  moreButtonText: { fontSize: 13, fontWeight: '900' },
   empty: { alignItems: 'center', gap: 8, paddingVertical: 30 },
   emptyTitle: { fontSize: 17, fontWeight: '900' },
   emptyText: { fontSize: 12.5, lineHeight: 18, textAlign: 'center' },

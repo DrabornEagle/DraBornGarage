@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Modal, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
 import { GlassCard } from '../components/GlassCard';
@@ -77,10 +77,13 @@ export function NotificationCenterScreen() {
     requestLocalNotifications,
     registerPushNotifications,
     sendTestNotification,
+    previewNotificationSound,
     sendClosedAppTestNotification,
   } = useNotifications();
   const [tab, setTab] = useState<CenterTab>('all');
   const [saving, setSaving] = useState(false);
+  const [soundSectionOpen, setSoundSectionOpen] = useState(false);
+  const [preferencesSectionOpen, setPreferencesSectionOpen] = useState(false);
 
   const visible = useMemo(() => {
     if (tab === 'upcoming') return upcoming;
@@ -114,9 +117,11 @@ export function NotificationCenterScreen() {
 
   const selectSound = async (sound: NotificationSoundKey) => {
     setSaving(true);
+    const previewed = await previewNotificationSound(sound);
     const error = await updatePreferences({ notification_sound: sound });
     setSaving(false);
-    if (error) Alert.alert('Bildirim sesi kaydedilemedi', error);
+    if (error) return Alert.alert('Bildirim sesi kaydedilemedi', error);
+    if (!previewed) Alert.alert('Ses seçildi', 'Bildirim izni veya Android kanal sesi kapalı olduğu için önizleme çalmadı. Android bildirim ayarından sesi açabilirsin.');
   };
 
   const enablePush = async () => {
@@ -199,15 +204,24 @@ export function NotificationCenterScreen() {
             {permissionStatus !== 'granted' && <PrimaryButton title="Telefon Bildirimlerini Aç" onPress={enableLocal} loading={saving} />}
             {permissionStatus === 'granted' && <><PrimaryButton title="Test Bildirimi Gönder" onPress={testLocal} loading={saving} secondary /><PrimaryButton title="Kapalı Uygulama Bildirim Testi" onPress={testClosedApp} loading={saving} secondary /></>}
 
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Bildirim sesi</Text>
+            <GlassCard style={[styles.infoCard, { borderColor: `${colors.orange}35` }]}>
+              <Ionicons name="volume-high" size={23} color={colors.orange} />
+              <Text style={[styles.infoText, { color: colors.textMuted }]}>DraBornGarage telefonun genel ses seviyesini habersiz değiştirmez. Kritik kanallar en yüksek Android önem düzeyi ve güçlü titreşim kullanır; duyulabilir ses seviyesi kullanıcı kontrolündedir.</Text>
+            </GlassCard>
+            <PrimaryButton title="Android Bildirim Ses Ayarını Aç" onPress={() => Linking.openSettings()} secondary />
+
+            <SettingsCategoryHeader title="Bildirim Sesi" subtitle="Seç, kaydet ve anında dinle" icon="musical-notes" open={soundSectionOpen} onPress={() => setSoundSectionOpen((value) => !value)} />
+            {soundSectionOpen && <>
             <View style={styles.soundGrid}>
               {NOTIFICATION_SOUND_OPTIONS.map((option) => <SoundChoice key={option.key} active={preferences.notification_sound === option.key} label={option.label} subtitle={option.subtitle} icon={option.icon} onPress={() => selectSound(option.key)} />)}
             </View>
             <Text style={[styles.soundHint, { color: colors.textMuted }]}>{IS_EXPO_GO_TEXT(pushStatus)}</Text>
             {pushError && <GlassCard style={styles.permissionCard}><Ionicons name="warning" size={24} color={colors.orange} /><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>Telefon push kaydı tamamlanmadı</Text><Text style={[styles.cardText, { color: colors.textMuted }]}>{pushError}</Text></View></GlassCard>}
             {pushStatus !== 'registered' && pushStatus !== 'expo_go' && <PrimaryButton title="Telefonu Push Sistemine Kaydet" onPress={enablePush} loading={saving} secondary />}
+            </>}
 
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Bildirim tercihleri</Text>
+            <SettingsCategoryHeader title="Bildirim Tercihleri" subtitle="Servis, randevu, ödeme ve hatırlatma ayarları" icon="options" open={preferencesSectionOpen} onPress={() => setPreferencesSectionOpen((value) => !value)} />
+            {preferencesSectionOpen && <>
             <GlassCard style={styles.settingsCard}>
               <SettingRow icon="phone-portrait" title="Telefon bildirimleri" subtitle="Planlı hatırlatmaları cihazda göster." value={preferences.local_notifications_enabled} onChange={(value) => updatePreference({ local_notifications_enabled: value })} disabled={saving || permissionStatus !== 'granted'} />
               <SettingRow icon="cloud-download" title="Uygulama kapalıyken bildir" subtitle={pushStatus === 'registered' ? 'Native push cihazı kayıtlı ve aktif.' : 'FCM bağlantısı tamamlandığında uygulama kapalıyken de gelir.'} value={preferences.push_notifications_enabled} onChange={(value) => value ? enablePush() : updatePreference({ push_notifications_enabled: false })} disabled={saving} />
@@ -220,6 +234,7 @@ export function NotificationCenterScreen() {
               <SettingRow icon="card" title="Platform ödemeleri" subtitle="Ödeme günü, gecikme, bildirim ve Admin onayı." value={preferences.platform_reminders} onChange={(value) => updatePreference({ platform_reminders: value })} disabled={saving} />
               <SettingRow icon="link" title="Müşteri eşleştirme" subtitle="Yeni talep, onay ve ret hareketleri." value={preferences.customer_link_updates} onChange={(value) => updatePreference({ customer_link_updates: value })} disabled={saving} last />
             </GlassCard>
+            </>}
 
             <GlassCard style={[styles.infoCard, { borderColor: `${colors.cyan}35` }]}>
               <Ionicons name="information-circle" size={23} color={colors.cyan} />
@@ -262,6 +277,15 @@ export function NotificationCenterScreen() {
       </View>
     </Modal>
   );
+}
+
+function SettingsCategoryHeader({ title, subtitle, icon, open, onPress }: { title: string; subtitle: string; icon: keyof typeof Ionicons.glyphMap; open: boolean; onPress: () => void }) {
+  const { colors } = useTheme();
+  return <AnimatedPressable onPress={onPress} style={[styles.categoryHeader, { backgroundColor: colors.card, borderColor: open ? `${colors.primary}58` : colors.border }]}>
+    <View style={[styles.categoryIcon, { backgroundColor: `${colors.primary}16` }]}><Ionicons name={icon} size={22} color={colors.primary} /></View>
+    <View style={styles.copy}><Text style={[styles.categoryTitle, { color: colors.text }]}>{title}</Text><Text style={[styles.categorySubtitle, { color: colors.textMuted }]}>{subtitle}</Text></View>
+    <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={21} color={open ? colors.primary : colors.textMuted} />
+  </AnimatedPressable>;
 }
 
 function TabButton({ active, label, icon, badge, onPress }: { active: boolean; label: string; icon: keyof typeof Ionicons.glyphMap; badge?: number; onPress: () => void }) {
@@ -360,6 +384,10 @@ function SettingRow({ icon, title, subtitle, value, onChange, disabled, nested, 
 
 const styles = StyleSheet.create({
   page: { flex: 1, paddingHorizontal: 16, overflow: 'hidden' },
+  categoryHeader: { minHeight: 76, borderWidth: 1, borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  categoryIcon: { width: 47, height: 47, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  categoryTitle: { fontSize: 16, fontWeight: '900' },
+  categorySubtitle: { fontSize: 11.5, lineHeight: 16, marginTop: 3 },
   glowOne: { position: 'absolute', top: -100, right: -80, opacity: 0.16 },
   glowTwo: { position: 'absolute', bottom: 20, left: -120, opacity: 0.11 },
   glow: { width: 260, height: 260, borderRadius: 130 },
