@@ -35,40 +35,6 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Improve push error dialog
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = 'src/notifications/NotificationCenterScreen.tsx';
-          let text = fs.readFileSync(path, 'utf8');
-          const oldBlock = `  const enablePush = async () => {
-            setSaving(true);
-            const error = await updatePreferences({ push_notifications_enabled: true });
-            const enabled = !error && await registerPushNotifications();
-            setSaving(false);
-            if (error) return Alert.alert('Push bildirimi açılamadı', error);
-            Alert.alert(enabled ? 'Uygulama kapalı bildirimleri hazır' : 'Native APK kurulumu gerekli', enabled
-              ? 'Yeni bildirimler uygulama kapalıyken de seçtiğin sesle gelebilir.'
-              : 'Expo Go Android uzaktan push alamaz. EAS ile oluşturulan APK kurulduğunda bu özellik otomatik etkinleşir.');
-          };`;
-          const newBlock = `  const enablePush = async () => {
-            setSaving(true);
-            const error = await updatePreferences({ push_notifications_enabled: true });
-            setSaving(false);
-            if (error) return Alert.alert('Push bildirimi açılamadı', error);
-            Alert.alert('Uygulama kapalı bildirimleri hazır', 'Telefon bu hesaba kaydedildi. Yeni bildirimler uygulama kapalıyken de seçtiğin sesle gelebilir.');
-          };`;
-          if (!text.includes(oldBlock)) throw new Error('enablePush bloğu bulunamadı');
-          text = text.replace(oldBlock, newBlock);
-          text = text.replace('    registerPushNotifications,\n', '');
-          text = text.replace(
-            `      : 'Cihaz push kaydı veya FCM V1 bağlantısı henüz hazır değil. Bildirim ayarını açık tutup tekrar dene.');`,
-            `      : (pushError || 'Cihaz push kaydı henüz hazır değil. Telefonu Push Sistemine Kaydet düğmesini kullan.'));`,
-          );
-          fs.writeFileSync(path, text);
-          NODE
-
       - name: Sync package lock
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
@@ -92,13 +58,13 @@ jobs:
       - name: Android JavaScript bundle
         run: npm run test:bundle
 
-      - name: Commit validated v1.1.3 files
+      - name: Commit validated lockfile
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         shell: bash
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add package-lock.json src/notifications/NotificationCenterScreen.tsx
+          git add package-lock.json
           if git diff --cached --quiet; then
             echo "No generated changes"
           else
