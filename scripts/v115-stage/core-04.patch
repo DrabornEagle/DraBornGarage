@@ -1,0 +1,63 @@
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/notifications/NotificationContextV101.tsx DraBornGarage-v115-src/src/notifications/NotificationContextV101.tsx
+--- v115-orig/src/notifications/NotificationContextV101.tsx	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/src/notifications/NotificationContextV101.tsx	2026-07-16 21:52:18.498260166 +0000
+@@ -67,7 +67,7 @@
+ }
+ 
+ function channelId(sound: NotificationSoundKey) {
+-  const channels: Record<NotificationSoundKey, string> = {
++  const channels: Partial<Record<NotificationSoundKey, string>> = {
+     system_loud: SYSTEM_NOTIFICATION_CHANNEL_ID,
+     garage_chime: CHIME_NOTIFICATION_CHANNEL_ID,
+     garage_pulse: PULSE_NOTIFICATION_CHANNEL_ID,
+@@ -80,7 +80,7 @@
+     garage_retro: RETRO_NOTIFICATION_CHANNEL_ID,
+     silent: SILENT_NOTIFICATION_CHANNEL_ID,
+   };
+-  return channels[sound];
++  return channels[sound] || SYSTEM_NOTIFICATION_CHANNEL_ID;
+ }
+ 
+ const DEFAULT_PREFERENCES: NotificationPreferences = {
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/notifications/NotificationContextV112.tsx DraBornGarage-v115-src/src/notifications/NotificationContextV112.tsx
+--- v115-orig/src/notifications/NotificationContextV112.tsx	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/src/notifications/NotificationContextV112.tsx	2026-07-16 21:52:18.498533412 +0000
+@@ -57,7 +57,7 @@
+ }
+ 
+ function channelId(sound: NotificationSoundKey) {
+-  const channels: Record<NotificationSoundKey, string> = {
++  const channels: Partial<Record<NotificationSoundKey, string>> = {
+     system_loud: SYSTEM_NOTIFICATION_CHANNEL_ID,
+     garage_chime: CHIME_NOTIFICATION_CHANNEL_ID,
+     garage_pulse: PULSE_NOTIFICATION_CHANNEL_ID,
+@@ -70,7 +70,7 @@
+     garage_retro: RETRO_NOTIFICATION_CHANNEL_ID,
+     silent: SILENT_NOTIFICATION_CHANNEL_ID,
+   };
+-  return channels[sound];
++  return channels[sound] || SYSTEM_NOTIFICATION_CHANNEL_ID;
+ }
+ 
+ function readableError(error: unknown, stage: string) {
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/notifications/NotificationContextV114.tsx DraBornGarage-v115-src/src/notifications/NotificationContextV114.tsx
+--- v115-orig/src/notifications/NotificationContextV114.tsx	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/src/notifications/NotificationContextV114.tsx	2026-07-16 21:52:18.498743950 +0000
+@@ -61,7 +61,7 @@
+ }
+ 
+ function channelId(sound: NotificationSoundKey) {
+-  const channels: Record<NotificationSoundKey, string> = {
++  const channels: Partial<Record<NotificationSoundKey, string>> = {
+     system_loud: SYSTEM_NOTIFICATION_CHANNEL_ID,
+     garage_chime: CHIME_NOTIFICATION_CHANNEL_ID,
+     garage_pulse: PULSE_NOTIFICATION_CHANNEL_ID,
+@@ -74,7 +74,7 @@
+     garage_retro: RETRO_NOTIFICATION_CHANNEL_ID,
+     silent: SILENT_NOTIFICATION_CHANNEL_ID,
+   };
+-  return channels[sound];
++  return channels[sound] || SYSTEM_NOTIFICATION_CHANNEL_ID;
+ }
+ 
+ function readableError(error: unknown, stage: string) {
