@@ -1,0 +1,32 @@
+name: Temporary Merge Status 2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-merge-status-2.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture merge runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .runtime
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow "Temporary Merge v1.0.0 Final Candidate" --limit 3 --json databaseId,status,conclusion,headSha,url,createdAt > .runtime/v100-merge-status-2.json
+      - name: Persist status
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/_temporary-merge-status-2.yml
+          git add .runtime/v100-merge-status-2.json
+          git commit -m 'chore: publish retried v1.0.0 merge status'
+          git pull --rebase origin main
+          git push origin HEAD:main
