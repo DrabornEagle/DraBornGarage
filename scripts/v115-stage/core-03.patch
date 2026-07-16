@@ -1,0 +1,93 @@
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/components/AppointmentActionPrompt.tsx DraBornGarage-v115-src/src/components/AppointmentActionPrompt.tsx
+--- v115-orig/src/components/AppointmentActionPrompt.tsx	1970-01-01 00:00:00.000000000 +0000
++++ DraBornGarage-v115-src/src/components/AppointmentActionPrompt.tsx	2026-07-16 21:49:47.570086891 +0000
+@@ -0,0 +1,70 @@
++import { Ionicons } from '@expo/vector-icons';
++import { LinearGradient } from 'expo-linear-gradient';
++import React, { useCallback, useEffect, useState } from 'react';
++import { AppState, Modal, StyleSheet, Text, View } from 'react-native';
++import { useAuth } from '../context/AuthContext';
++import { useTheme } from '../context/ThemeContext';
++import { formatAppointmentDate, formatAppointmentTime } from '../lib/calendar';
++import { supabase } from '../lib/supabase';
++import { Appointment } from '../types';
++import { AnimatedPressable } from './AnimatedPressable';
++
++export function AppointmentActionPrompt({ onOpen }: { onOpen: (appointment: Appointment) => void }) {
++  const { colors } = useTheme();
++  const { workshop, membership } = useAuth();
++  const [appointment, setAppointment] = useState<Appointment | null>(null);
++  const [dismissedId, setDismissedId] = useState<string | null>(null);
++  const eligible = membership?.role === 'mechanic' || membership?.role === 'owner_mechanic';
++
++  const load = useCallback(async () => {
++    if (!eligible || !workshop?.id || !membership?.user_id) return setAppointment(null);
++    const from = new Date(); from.setHours(0, 0, 0, 0);
++    const to = new Date(from); to.setDate(to.getDate() + 90);
++    const { data } = await supabase.rpc('staff_get_appointments', {
++      p_workshop_id: workshop.id, p_from: from.toISOString(), p_to: to.toISOString(), p_mechanic_id: membership.user_id,
++    });
++    const next = ((data as Appointment[] | null) ?? [])
++      .filter((item) => item.source === 'customer' && item.status === 'pending' && item.mechanic_id === membership.user_id)
++      .sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at))[0] ?? null;
++    setAppointment(next);
++    if (!next || next.id !== dismissedId) setDismissedId(null);
++  }, [dismissedId, eligible, membership?.user_id, workshop?.id]);
++
++  useEffect(() => { load(); }, [load]);
++  useEffect(() => {
++    if (!workshop?.id || !eligible) return;
++    const channel = supabase.channel(`appointment-action-popup-${workshop.id}-${membership?.user_id}`)
++      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `workshop_id=eq.${workshop.id}` }, () => load())
++      .subscribe();
++    const appState = AppState.addEventListener('change', (state) => { if (state === 'active') { setDismissedId(null); load(); } });
++    return () => { appState.remove(); supabase.removeChannel(channel); };
++  }, [eligible, load, membership?.user_id, workshop?.id]);
++
++  const visible = Boolean(appointment && appointment.id !== dismissedId);
++  if (!appointment) return null;
++  return <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setDismissedId(appointment.id)}>
++    <View style={styles.backdrop}>
++      <View style={[styles.card, { backgroundColor: colors.cardStrong, borderColor: `${colors.orange}75`, shadowColor: colors.orange }]}> 
++        <LinearGradient colors={[`${colors.orange}30`, `${colors.primary}18`, 'transparent']} style={StyleSheet.absoluteFill} />
++        <View style={[styles.icon, { backgroundColor: `${colors.orange}22`, borderColor: `${colors.orange}55` }]}><Ionicons name="calendar" size={30} color={colors.orange} /></View>
++        <Text style={[styles.eyebrow, { color: colors.orange }]}>YENİ RANDEVU AKSİYONU</Text>
++        <Text style={[styles.title, { color: colors.text }]}>Randevu onayını bekliyor</Text>
++        <Text style={[styles.body, { color: colors.textMuted }]}>{appointment.customer_name} • {appointment.service_title}</Text>
++        <View style={[styles.detail, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}><Ionicons name="time" size={20} color={colors.cyan} /><Text style={[styles.detailText, { color: colors.text }]}>{formatAppointmentDate(appointment.scheduled_start)} • {formatAppointmentTime(appointment.scheduled_start)}\n{appointment.brand} {appointment.model}{appointment.plate ? ` • ${appointment.plate}` : ''}</Text></View>
++        <AnimatedPressable onPress={() => { setDismissedId(appointment.id); onOpen(appointment); }} style={styles.primary}><LinearGradient colors={[colors.orange, colors.red]} style={styles.primaryGradient}><Ionicons name="arrow-forward-circle" size={21} color="#fff" /><Text style={styles.primaryText}>Randevuyu Aç ve İşlem Yap</Text></LinearGradient></AnimatedPressable>
++        <AnimatedPressable onPress={() => setDismissedId(appointment.id)} style={[styles.secondary, { borderColor: colors.border }]}><Text style={[styles.secondaryText, { color: colors.textMuted }]}>Şimdi Değil</Text></AnimatedPressable>
++      </View>
++    </View>
++  </Modal>;
++}
++
++const styles = StyleSheet.create({
++  backdrop: { flex: 1, backgroundColor: 'rgba(2,5,14,0.78)', alignItems: 'center', justifyContent: 'center', padding: 22 },
++  card: { width: '100%', maxWidth: 440, borderWidth: 1.5, borderRadius: 30, padding: 22, alignItems: 'center', overflow: 'hidden', shadowOpacity: 0.55, shadowRadius: 28, elevation: 20 },
++  icon: { width: 68, height: 68, borderRadius: 23, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 13 },
++  eyebrow: { fontSize: 11, fontWeight: '900', letterSpacing: 1.3 }, title: { fontSize: 24, fontWeight: '900', textAlign: 'center', marginTop: 7 },
++  body: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 8 }, detail: { width: '100%', borderWidth: 1, borderRadius: 18, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 17 },
++  detailText: { flex: 1, fontSize: 13, fontWeight: '800', lineHeight: 19 }, primary: { width: '100%', borderRadius: 17, overflow: 'hidden', marginTop: 16 },
++  primaryGradient: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, primaryText: { color: '#fff', fontSize: 14, fontWeight: '900' },
++  secondary: { width: '100%', minHeight: 48, borderWidth: 1, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 9 }, secondaryText: { fontSize: 13, fontWeight: '900' },
++});
++diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/components/ReportsDashboard.tsx DraBornGarage-v115-src/src/components/ReportsDashboard.tsx
++--- v115-orig/src/components/ReportsDashboard.tsx	2026-07-16 21:27:34.000000000 +0000
+++++ DraBornGarage-v115-src/src/components/ReportsDashboard.tsx	2026-07-16 21:49:47.569926660 +0000
++@@ -155,8 +155,8 @@
++     </View>
++ 
++     {isOwner && isMechanic && <View style={styles.modeSwitch}>
++-      <ModeButton active={viewMode === 'business'} title="İşletme Raporu" subtitle="Ekip, tahsilat ve servis özeti" icon="business" accent={colors.cyan} onPress={() => setViewMode('business')} />
++       <ModeButton active={viewMode === 'personal'} title="Usta Raporu" subtitle="Kendi işlerin ve kayıtların" icon="person" accent={colors.orange} onPress={() => setViewMode('personal')} />
+++      <ModeButton active={viewMode === 'business'} title="İşletme Raporu" subtitle="Ekip, tahsilat ve servis özeti" icon="business" accent={colors.cyan} onPress={() => setViewMode('business')} />
++     </View>}
++ 
++     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periods}>
++diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/notifications/NotificationContext.tsx DraBornGarage-v115-src/src/notifications/NotificationContext.tsx
++--- v115-orig/src/notifications/NotificationContext.tsx	2026-07-16 21:27:34.000000000 +0000
+++++ DraBornGarage-v115-src/src/notifications/NotificationContext.tsx	2026-07-16 21:49:47.569607640 +0000
++@@ -1 +1 @@
++-export * from './NotificationContextV114';
+++export * from './NotificationContextV115';
