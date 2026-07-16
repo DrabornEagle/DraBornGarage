@@ -42,25 +42,34 @@ jobs:
           sed -i 's/v0\.6 Rapor Merkezi/Rapor Merkezi/g' src/components/ReportsDashboard.tsx
           sed -i 's/v0\.4 SERVİS TAKİBİ/SERVİS TAKİBİ/g' src/customer/CustomerServicesScreen.tsx
 
-      - name: Normalize bundled notification sounds
+      - name: Upgrade and normalize bundled notification sounds
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import struct, wave
+          target_rate=44100
           for path in map(Path, ['assets/sounds/garage_chime.wav','assets/sounds/garage_pulse.wav','assets/sounds/garage_alert.wav']):
               with wave.open(str(path),'rb') as src:
-                  params=src.getparams(); raw=src.readframes(src.getnframes())
-              if params.sampwidth != 2:
-                  raise SystemExit(f'{path}: only 16-bit PCM supported')
-              values=list(struct.unpack('<'+'h'*(len(raw)//2),raw))
-              peak=max(1,max(abs(v) for v in values))
-              gain=min(5.0, 32000/peak)
-              boosted=[max(-32767,min(32767,round(v*gain))) for v in values]
+                  channels=src.getnchannels(); width=src.getsampwidth(); rate=src.getframerate(); frames=src.getnframes(); raw=src.readframes(frames)
+              if channels != 1 or width not in (1,2):
+                  raise SystemExit(f'{path}: unsupported WAV format')
+              if width == 1:
+                  source=[(byte-128)*256 for byte in raw]
+              else:
+                  source=list(struct.unpack('<'+'h'*(len(raw)//2),raw))
+              target_count=max(1,round(len(source)*target_rate/rate))
+              converted=[]
+              for index in range(target_count):
+                  position=index*(len(source)-1)/max(1,target_count-1)
+                  left=int(position); right=min(len(source)-1,left+1); fraction=position-left
+                  converted.append(round(source[left]*(1-fraction)+source[right]*fraction))
+              peak=max(1,max(abs(value) for value in converted)); gain=min(8.0,32000/peak)
+              boosted=[max(-32767,min(32767,round(value*gain))) for value in converted]
               with wave.open(str(path),'wb') as dst:
-                  dst.setparams(params)
+                  dst.setnchannels(1); dst.setsampwidth(2); dst.setframerate(target_rate)
                   dst.writeframes(struct.pack('<'+'h'*len(boosted),*boosted))
-              print(path, 'peak', max(abs(v) for v in boosted), 'gain', round(gain,2))
+              print(path,'rate',target_rate,'peak',max(abs(value) for value in boosted),'gain',round(gain,2))
           PY
 
       - name: Install locked dependencies
@@ -82,7 +91,7 @@ jobs:
           if(p.version!==a.version||l.version!==a.version||l.packages[''].version!==a.version) throw new Error('Package versions mismatch');
           const notification=a.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-notifications')?.[1];
           if(notification?.defaultChannel!=='draborngarage-system-loud-v4'||notification?.sounds?.length!==3) throw new Error('Notification plugin invalid');
-          for(const file of notification.sounds) if(fs.statSync(file).size<20000) throw new Error(`${file} is invalid`);
+          for(const file of notification.sounds) if(fs.statSync(file).size<80000) throw new Error(`${file} is invalid`);
           NODE
           grep -q 'Tamir Başladı • Ücreti Belirle' src/screens/WorkOrderDetailV04.tsx
           grep -q 'Ücret Kaydedildi' src/screens/WorkOrderDetailV04.tsx
