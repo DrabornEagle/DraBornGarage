@@ -56,7 +56,26 @@ jobs:
           for file in assets/sounds/garage_voice_*.wav; do test -s "$file"; test "$(stat -c %s "$file")" -gt 12000; done
 
       - name: Apply v1.1.5 patch
-        run: python3 scripts/apply_v115_live_notifications_refresh.py
+        id: apply_patch
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p docs
+          python3 scripts/apply_v115_live_notifications_refresh.py 2>&1 | tee docs/V115_PATCH_FAILURE.log
+
+      - name: Persist patch failure
+        if: steps.apply_patch.outcome == 'failure'
+        shell: bash
+        run: |
+          git reset --hard HEAD
+          test -f docs/V115_PATCH_FAILURE.log || echo 'Patch failed without log' > docs/V115_PATCH_FAILURE.log
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/V115_PATCH_FAILURE.log
+          git commit -m 'ci: record v1.1.5 patch failure' || true
+          git push origin HEAD:feature/v1.1.5-live-notifications-refresh || true
+          exit 1
 
       - name: Refresh package lock
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
@@ -111,7 +130,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -f scripts/apply_v115_live_notifications_refresh.py
+          rm -f scripts/apply_v115_live_notifications_refresh.py docs/V115_PATCH_FAILURE.log
           rm -rf node_modules dist
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
