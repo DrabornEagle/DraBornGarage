@@ -1,4 +1,4 @@
-name: Temporary Watch DraBornGarage v1.1.6 APK
+name: Temporary Final Watch DraBornGarage v1.1.6 APK
 
 on:
   push:
@@ -35,12 +35,12 @@ jobs:
         run: |
           set -euo pipefail
           run_id="${{ steps.release.outputs.run_id }}"
-          gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,url,headSha,createdAt,updatedAt > docs/APK_RUN_QUERY_V116.json
+          gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,url,headSha,createdAt,updatedAt > docs/APK_RUN_QUERY_V116_FINAL.json
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add docs/APK_RUN_QUERY_V116.json
-          git commit -m 'build: record final v1.1.6 Release APK run'
+          git add docs/APK_RUN_QUERY_V116_FINAL.json
+          git commit -m 'build: record final patched v1.1.6 Release APK run'
           git pull --rebase origin main
           git push origin HEAD:main
-          conclusion="$(jq -r '.conclusion // "unknown"' docs/APK_RUN_QUERY_V116.json)"
+          conclusion="$(jq -r '.conclusion // "unknown"' docs/APK_RUN_QUERY_V116_FINAL.json)"
           [ "$conclusion" = "success" ] || exit 1
