@@ -1,13 +1,13 @@
 # DraBornGarage — Teslim ve Devam Dosyası
 
 **Son güncelleme:** 16 Temmuz 2026  
-**Güncel geliştirme sürümü:** `v1.1.5`  
+**Güncel geliştirme sürümü:** `v1.1.6`  
 **Android test versionCode:** `1`  
 **İlk Google Play sürümü:** `v1.0 / versionCode 1`  
 **GitHub:** `DrabornEagle/DraBornGarage`  
 **Supabase:** `xpdiwyxnnrmyvpcqwuyb`
 
-> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.5 ile günceldir.
+> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.6 ile günceldir.
 
 ## Sürüm standardı
 
@@ -90,12 +90,12 @@
 6. Native değişiklikte Release APK workflow’unu çalıştır.
 7. Supabase değişikliği varsa migration ve rollback dosyasını birlikte sakla.
 
-## v1.1.5 Termux yedek + kurulum
+## v1.1.6 Termux yedek + kurulum
 
 ```bash
 cd "$HOME"
-KURULAN_SURUM="v1.1.5"
-YEDEKLENEN_SURUM="v1.1.4"
+KURULAN_SURUM="v1.1.6"
+YEDEKLENEN_SURUM="v1.1.5"
 TARIH="$(date +%Y%m%d-%H%M%S)"
 YEDEK_KLASORU="$HOME/DraBornGarage-${YEDEKLENEN_SURUM}-local-backup-${TARIH}"
 ZIP_DOSYASI="$HOME/DraBornGarage-${KURULAN_SURUM}.zip"

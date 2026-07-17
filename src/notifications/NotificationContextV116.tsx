@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { createAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
+import * as Network from 'expo-network';
 import getDevicePushTokenAsync from 'expo-notifications/build/getDevicePushTokenAsync';
 import getExpoPushTokenAsync from 'expo-notifications/build/getExpoPushTokenAsync';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -35,7 +36,7 @@ import { NotificationPreferences, NotificationSoundKey, PushRegistrationStatus }
 export const NotificationProvider = BaseNotificationProvider;
 export { NOTIFICATION_SOUND_OPTIONS };
 
-const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-uuid-v115';
+const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-uuid-v116';
 const LEGACY_DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PUSH_TOKEN_STORAGE_KEY = '@draborngarage/expo-push-token';
@@ -96,6 +97,15 @@ function readableError(error: unknown, stage: string) {
   if (raw.includes('undefined is not a function')) {
     return `${stage}: native bildirim köprüsündeki gerekli fonksiyon bulunamadı`;
   }
+  if (raw.includes('AIRPLANE_MODE_ENABLED')) {
+    return `${stage}: Uçak modu açık. İlk FCM cihaz kaydı için uçak modunu kapat, interneti açık bırak ve yeniden dene.`;
+  }
+  if (raw.includes('NETWORK_OFFLINE')) {
+    return `${stage}: internet bağlantısı kullanılamıyor. Wi-Fi veya mobil veriyi kontrol et.`;
+  }
+  if (raw.includes('SERVICE_NOT_AVAILABLE')) {
+    return `${stage}: Google Play Hizmetleri FCM servisine şu an ulaşılamıyor. Uçak modunu kapat, Google Play Hizmetlerini güncelle ve birkaç saniye sonra tekrar dene.`;
+  }
   return `${stage}: ${raw}`;
 }
 
@@ -115,6 +125,37 @@ async function getDeviceId() {
     await AsyncStorage.removeItem(LEGACY_DEVICE_ID_STORAGE_KEY);
   }
   return id;
+}
+
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function isTransientFcmError(error: unknown) {
+  const raw = error instanceof Error ? error.message : String(error || '');
+  return raw.includes('SERVICE_NOT_AVAILABLE')
+    || raw.includes('INTERNAL_SERVER_ERROR')
+    || raw.includes('TIMEOUT')
+    || raw.includes('NETWORK_ERROR')
+    || raw.includes('ExecutionException');
+}
+
+async function getDevicePushTokenWithRetry() {
+  const delays = [0, 1800, 4200, 8500];
+  let lastError: unknown = new Error('FCM tokenı alınamadı');
+  for (const delay of delays) {
+    if (delay > 0) await wait(delay);
+    try {
+      const result = await getDevicePushTokenAsync();
+      const raw = (result as { data?: unknown }).data;
+      if (typeof raw !== 'string' || raw.trim().length < 20) throw new Error('Geçerli Android FCM tokenı alınamadı');
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (!isTransientFcmError(error)) throw error;
+    }
+  }
+  throw lastError;
 }
 
 export function useNotifications() {
@@ -164,12 +205,16 @@ export function useNotifications() {
           return false;
         }
 
-        stage = 'Android FCM tokenı alınamadı';
-        const devicePushToken = await getDevicePushTokenAsync();
-        const rawDeviceToken = (devicePushToken as { data?: unknown }).data;
-        if (typeof rawDeviceToken !== 'string' || rawDeviceToken.trim().length < 20) {
-          throw new Error('Geçerli Android FCM tokenı alınamadı');
+        stage = 'Telefon bağlantısı doğrulanamadı';
+        const network = await Network.getNetworkStateAsync();
+        if (!network.isConnected || network.isInternetReachable === false) throw new Error('NETWORK_OFFLINE');
+        if (Platform.OS === 'android') {
+          const airplaneMode = await Network.isAirplaneModeEnabledAsync();
+          if (airplaneMode) throw new Error('AIRPLANE_MODE_ENABLED');
         }
+
+        stage = 'Android FCM tokenı alınamadı';
+        const devicePushToken = await getDevicePushTokenWithRetry();
 
         stage = 'Expo push tokenı oluşturulamadı';
         const deviceId = await getDeviceId();
@@ -301,7 +346,15 @@ export function useNotifications() {
     const listener = AppState.addEventListener('change', (state) => {
       if (state === 'active') { void registerPushNotifications(); void refreshPushHealth(); }
     });
-    return () => listener.remove();
+    const networkListener = Network.addNetworkStateListener((state) => {
+      if (state.isConnected && state.isInternetReachable !== false && AppState.currentState === 'active') {
+        void registerPushNotifications();
+      }
+    });
+    const retryTimer = setInterval(() => {
+      if (AppState.currentState === 'active' && pushStatus !== 'registered') void registerPushNotifications();
+    }, 60000);
+    return () => { listener.remove(); networkListener.remove(); clearInterval(retryTimer); };
   }, [base.preferences.push_notifications_enabled, refreshPushHealth, registerPushNotifications, session?.user]);
 
   return useMemo(() => ({

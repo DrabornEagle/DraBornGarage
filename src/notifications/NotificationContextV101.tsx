@@ -46,7 +46,7 @@ export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: str
   { key: 'garage_metal', label: 'Metal Vuruş', subtitle: 'Atölye karakterli sert vuruş', icon: 'musical-notes' },
   { key: 'garage_digital', label: 'Dijital Uyarı', subtitle: 'Kısa ve net dijital dizi', icon: 'musical-notes' },
   { key: 'garage_retro', label: 'Retro Oyun', subtitle: 'Klasik oyun konsolu melodisi', icon: 'musical-notes' },
-  { key: 'turkish_voice', label: 'Türkçe Sesli Uyarı', subtitle: 'Bildirim türüne göre Türkçe konuşan sabit uyarı', icon: 'musical-notes' },
+  { key: 'turkish_voice', label: 'Türkçe Sesli Uyarı', subtitle: 'Yavaş, net ve kategoriye özel Türkçe konuşma', icon: 'musical-notes' },
   { key: 'silent', label: 'Sessiz', subtitle: 'Ses olmadan güçlü titreşim', icon: 'volume-mute' },
 ];
 
@@ -130,6 +130,7 @@ interface NotificationContextValue {
   markAllRead: () => Promise<void>;
   archive: (notificationId: string) => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
+  clearAllNotifications: () => Promise<number>;
   openNotification: (notification: GarageNotification) => Promise<void>;
   updatePreferences: (patch: Partial<NotificationPreferences>) => Promise<string | null>;
   requestLocalNotifications: () => Promise<boolean>;
@@ -461,7 +462,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return;
     }
     refresh();
-    registerPushNotifications();
+    if (NATIVE_PUSH_ENABLED) registerPushNotifications();
     const channel = supabase
       .channel(`garage-notifications-v101-${session.user.id}`)
       .on('postgres_changes', {
@@ -475,7 +476,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       .subscribe();
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        registerPushNotifications();
+        if (NATIVE_PUSH_ENABLED) registerPushNotifications();
         refresh();
       }
     });
@@ -593,6 +594,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const clearAllNotifications = useCallback(async () => {
+    const { data, error } = await supabase.rpc('notification_clear_all');
+    if (error) throw error;
+    setNotifications([]);
+    setUpcoming([]);
+    setUnreadCount(0);
+    setUpcomingCount(0);
+    await cancelGarageSchedules();
+    await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
+    await Notifications.setBadgeCountAsync(0).catch(() => false);
+    await Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+    if (session?.user) await AsyncStorage.removeItem(`${DELIVERED_STORAGE_PREFIX}${session.user.id}`);
+    return Number(data || 0);
+  }, [cancelGarageSchedules, session?.user]);
+
   const openNotification = useCallback(async (notification: GarageNotification) => {
     if (!notification.read_at) await markRead(notification.id);
     const targetTab = typeof notification.data?.target_tab === 'string' ? notification.data.target_tab : undefined;
@@ -646,9 +662,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<NotificationContextValue>(() => ({
     open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, pushError, navigationTarget,
-    openCenter: () => setOpen(true), closeCenter: () => setOpen(false), refresh, markRead, markAllRead, archive, deleteNotification,
+    openCenter: () => setOpen(true), closeCenter: () => setOpen(false), refresh, markRead, markAllRead, archive, deleteNotification, clearAllNotifications,
     openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, sendClosedAppTestNotification, consumeNavigationTarget,
-  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, pushError, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, sendClosedAppTestNotification, consumeNavigationTarget]);
+  }), [open, loading, notifications, upcoming, unreadCount, upcomingCount, preferences, permissionStatus, pushStatus, pushError, navigationTarget, refresh, markRead, markAllRead, archive, deleteNotification, clearAllNotifications, openNotification, updatePreferences, requestLocalNotifications, registerPushNotifications, sendTestNotification, sendClosedAppTestNotification, consumeNavigationTarget]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
