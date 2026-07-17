@@ -4,6 +4,7 @@ dist/
 web-build/
 .env
 *.log
+!docs/V115_PATCH_FAILURE.log
 .DS_Store
 credentials.json
 android/keystores/

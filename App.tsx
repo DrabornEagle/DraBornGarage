@@ -6,6 +6,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { NotificationCenterScreen } from './src/notifications/NotificationCenterScreen';
 import { NotificationProvider } from './src/notifications/NotificationContext';
+import { NotificationActionPopup } from './src/notifications/NotificationActionPopup';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 
 function StatusBarBridge() {
@@ -22,6 +23,7 @@ export default function App() {
             <NotificationProvider>
               <StatusBarBridge />
               <AppRoot />
+              <NotificationActionPopup />
               <NotificationCenterScreen />
             </NotificationProvider>
           </AppErrorBoundary>

@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { createAudioPlayer } from 'expo-audio';
+import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import getDevicePushTokenAsync from 'expo-notifications/build/getDevicePushTokenAsync';
 import getExpoPushTokenAsync from 'expo-notifications/build/getExpoPushTokenAsync';
@@ -21,6 +23,7 @@ import {
   SIREN_NOTIFICATION_CHANNEL_ID,
   SYSTEM_NOTIFICATION_CHANNEL_ID,
   TURBO_NOTIFICATION_CHANNEL_ID,
+  VOICE_GENERIC_CHANNEL_ID,
 } from './notificationPermissions';
 import {
   NotificationProvider as BaseNotificationProvider,
@@ -32,7 +35,7 @@ import { NotificationPreferences, NotificationSoundKey, PushRegistrationStatus }
 export const NotificationProvider = BaseNotificationProvider;
 export { NOTIFICATION_SOUND_OPTIONS };
 
-const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-uuid-v114';
+const DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-uuid-v115';
 const LEGACY_DEVICE_ID_STORAGE_KEY = '@draborngarage/push-device-id';
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PUSH_TOKEN_STORAGE_KEY = '@draborngarage/expo-push-token';
@@ -56,6 +59,7 @@ function soundFile(sound: NotificationSoundKey): string | false {
     garage_metal: 'garage_metal.wav',
     garage_digital: 'garage_digital.wav',
     garage_retro: 'garage_retro.wav',
+    turkish_voice: 'garage_voice_generic.wav',
   };
   return files[sound] ?? 'default';
 }
@@ -72,6 +76,7 @@ function channelId(sound: NotificationSoundKey) {
     garage_metal: METAL_NOTIFICATION_CHANNEL_ID,
     garage_digital: DIGITAL_NOTIFICATION_CHANNEL_ID,
     garage_retro: RETRO_NOTIFICATION_CHANNEL_ID,
+    turkish_voice: VOICE_GENERIC_CHANNEL_ID,
     silent: SILENT_NOTIFICATION_CHANNEL_ID,
   };
   return channels[sound];
@@ -117,6 +122,7 @@ export function useNotifications() {
   const { session } = useAuth();
   const [pushStatus, setPushStatus] = useState<PushRegistrationStatus>('idle');
   const [pushError, setPushError] = useState<string | null>(null);
+  const [pushDeliveryError, setPushDeliveryError] = useState<string | null>(null);
   const errorRef = useRef<string | null>(null);
   const activeRegistration = useRef<Promise<boolean> | null>(null);
   const lastRegisteredAt = useRef(0);
@@ -212,17 +218,35 @@ export function useNotifications() {
 
   const previewNotificationSound = useCallback(async (sound: NotificationSoundKey) => {
     try {
+      if (sound === 'silent') {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return true;
+      }
+      const sources: Partial<Record<NotificationSoundKey, number>> = {
+        garage_chime: require('../../assets/sounds/garage_chime.wav'),
+        garage_pulse: require('../../assets/sounds/garage_pulse.wav'),
+        garage_alert: require('../../assets/sounds/garage_alert.wav'),
+        garage_bell: require('../../assets/sounds/garage_bell.wav'),
+        garage_siren: require('../../assets/sounds/garage_siren.wav'),
+        garage_turbo: require('../../assets/sounds/garage_turbo.wav'),
+        garage_metal: require('../../assets/sounds/garage_metal.wav'),
+        garage_digital: require('../../assets/sounds/garage_digital.wav'),
+        garage_retro: require('../../assets/sounds/garage_retro.wav'),
+        turkish_voice: require('../../assets/sounds/garage_voice_generic.wav'),
+      };
+      const source = sources[sound];
+      if (source) {
+        const player = createAudioPlayer(source);
+        player.volume = 1;
+        player.play();
+        setTimeout(() => player.remove(), sound === 'turkish_voice' ? 6000 : 3500);
+        return true;
+      }
       await ensureDraBornNotificationChannels();
       const permission = await Notifications.getPermissionsAsync();
       if (permission.status !== 'granted') return false;
-      const option = NOTIFICATION_SOUND_OPTIONS.find((item) => item.key === sound);
       await Notifications.scheduleNotificationAsync({
-        content: {
-          title: option?.label || 'Bildirim sesi seçildi',
-          body: sound === 'silent' ? 'Sessiz bildirim önizlemesi.' : 'Seçtiğin bildirim sesi aktif.',
-          sound: soundFile(sound),
-          data: { source: 'draborngarage', soundPreview: true },
-        },
+        content: { title: 'Telefonun Varsayılan Sesi', body: 'Android sistem bildirim sesi önizlemesi.', sound: soundFile(sound), data: { source: 'draborngarage', soundPreview: true } },
         trigger: Platform.OS === 'android'
           ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1, channelId: channelId(sound) }
           : null,
@@ -232,6 +256,14 @@ export function useNotifications() {
       return false;
     }
   }, []);
+
+  const refreshPushHealth = useCallback(async () => {
+    if (!session?.user) return setPushDeliveryError(null);
+    const { data, error } = await supabase.rpc('notification_get_push_health');
+    if (error) return;
+    const health = data as { status?: string; error_code?: string | null; error_message?: string | null } | null;
+    setPushDeliveryError(health?.status === 'error' ? [health.error_code, health.error_message].filter(Boolean).join(' • ') : null);
+  }, [session?.user]);
 
   const updatePreferences = useCallback(async (patch: Partial<NotificationPreferences>) => {
     const error = await base.updatePreferences(patch);
@@ -265,20 +297,22 @@ export function useNotifications() {
   useEffect(() => {
     if (!session?.user || !base.preferences.push_notifications_enabled) return;
     void registerPushNotifications();
+    void refreshPushHealth();
     const listener = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void registerPushNotifications();
+      if (state === 'active') { void registerPushNotifications(); void refreshPushHealth(); }
     });
     return () => listener.remove();
-  }, [base.preferences.push_notifications_enabled, registerPushNotifications, session?.user]);
+  }, [base.preferences.push_notifications_enabled, refreshPushHealth, registerPushNotifications, session?.user]);
 
   return useMemo(() => ({
     ...base,
     pushStatus,
     pushError,
+    pushDeliveryError,
     updatePreferences,
     requestLocalNotifications,
     registerPushNotifications,
     previewNotificationSound,
     sendClosedAppTestNotification,
-  }), [base, previewNotificationSound, pushError, pushStatus, registerPushNotifications, requestLocalNotifications, sendClosedAppTestNotification, updatePreferences]);
+  }), [base, previewNotificationSound, pushDeliveryError, pushError, pushStatus, registerPushNotifications, requestLocalNotifications, sendClosedAppTestNotification, updatePreferences]);
 }

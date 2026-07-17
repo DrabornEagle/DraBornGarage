@@ -44,6 +44,8 @@ export function AppShellV102() {
   const [staffPanelMode, setStaffPanelMode] = useState<PanelMode>(initialPanelMode);
   const [customerInitialTab, setCustomerInitialTab] = useState<'customers' | 'claims'>('customers');
   const [customerNavigationKey, setCustomerNavigationKey] = useState(0);
+  const [appointmentFocusId, setAppointmentFocusId] = useState<string | undefined>();
+  const [appointmentNavigationKey, setAppointmentNavigationKey] = useState(0);
   const [adminInitialSection, setAdminInitialSection] = useState<'management' | 'reports' | 'platform'>('management');
   const [adminFocusPaymentReportId, setAdminFocusPaymentReportId] = useState<string | undefined>();
   const [adminNavigationKey, setAdminNavigationKey] = useState(0);
@@ -63,7 +65,7 @@ export function AppShellV102() {
 
   useEffect(() => {
     if (isAdmin && tab !== 'team' && tab !== 'settings') setTab('team');
-    else if (businessRestricted && !['home', 'team', 'settings'].includes(tab)) setTab('home');
+    else if (businessRestricted && !['home', 'team', 'customers', 'settings'].includes(tab)) setTab('home');
   }, [businessRestricted, isAdmin, tab]);
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export function AppShellV102() {
         return;
       }
       const allowedForApprentice = !isApprentice || ['home', 'orders', 'settings'].includes(target);
-      const allowedForBusiness = !businessRestricted || ['home', 'team', 'settings'].includes(target);
+      const allowedForBusiness = !businessRestricted || ['home', 'team', 'customers', 'settings'].includes(target);
       if (isAdmin && target === 'team' && navigationTarget.targetSection === 'platform') {
         const data = navigationTarget.data || {};
         const reportId = typeof data.focus_payment_report_id === 'string' ? data.focus_payment_report_id : typeof data.payment_report_id === 'string' ? data.payment_report_id : undefined;
@@ -86,6 +88,12 @@ export function AppShellV102() {
         setAdminFocusPaymentReportId(reportId);
         setAdminNavigationKey((value) => value + 1);
         if (workshopId && workshopId !== workshop?.id) selectWorkshop(workshopId).catch(() => undefined);
+      }
+      if (target === 'appointments' && allowedForBusiness) {
+        const data = navigationTarget.data || {};
+        const appointmentId = typeof data.appointment_id === 'string' ? data.appointment_id : typeof data.entity_id === 'string' ? data.entity_id : undefined;
+        setAppointmentFocusId(appointmentId);
+        setAppointmentNavigationKey((value) => value + 1);
       }
       if (target === 'customers' && navigationTarget.targetSection === 'claims' && allowedForBusiness) {
         setCustomerInitialTab('claims');
@@ -101,7 +109,7 @@ export function AppShellV102() {
     : tab === 'orders'
       ? <WorkOrdersScreen onNewOrder={() => openNew('dropoff')} allowNewOrder={canWork && staffPanelMode === 'mechanic'} />
       : tab === 'appointments'
-        ? <AppointmentsScreen />
+        ? <AppointmentsScreen key={`appointments-${appointmentNavigationKey}`} focusAppointmentId={appointmentFocusId} />
         : tab === 'customers'
           ? <CustomerMemoryScreen key={`customers-memory-${customerNavigationKey}`} initialTab={customerInitialTab} />
           : tab === 'receivables'
@@ -123,7 +131,7 @@ export function AppShellV102() {
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
     if (isAdmin) return all.filter((item) => ['team', 'settings'].includes(item.key));
-    if (businessRestricted) return all.filter((item) => ['home', 'team', 'settings'].includes(item.key));
+    if (businessRestricted) return all.filter((item) => ['home', 'team', 'customers', 'settings'].includes(item.key));
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
   }, [colors, isAdmin, isOwner, isApprentice, businessRestricted]);
 

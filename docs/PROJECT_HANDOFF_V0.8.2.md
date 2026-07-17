@@ -1,23 +1,35 @@
 # DraBornGarage — Teslim ve Devam Dosyası
 
 **Son güncelleme:** 16 Temmuz 2026  
-**Güncel geliştirme sürümü:** `v1.1.4`  
+**Güncel geliştirme sürümü:** `v1.1.5`  
 **Android test versionCode:** `1`  
 **İlk Google Play sürümü:** `v1.0 / versionCode 1`  
 **GitHub:** `DrabornEagle/DraBornGarage`  
 **Supabase:** `xpdiwyxnnrmyvpcqwuyb`
 
-> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.4 ile günceldir.
+> Dosya adı geçmiş bağlantıları bozmamak için korunmuştur; içerik v1.1.5 ile günceldir.
 
 ## Sürüm standardı
 
-- Geliştirme sürümleri `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4` şeklinde ilerler.
+- Geliştirme sürümleri `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4`, `v1.1.5` şeklinde ilerler.
 - İlk AAB alınana kadar Android `versionCode=1` sabit kalır.
 - Küçük testler Expo Go ile yapılır.
 - Native bildirim ve gerçek cihaz testleri **DraBornGarage Release APK** workflow’u ile yapılır.
 - Google Play paketi **DraBornGarage Release AAB** workflow’u ile oluşturulur.
 - İlk Play paketi `versionName=1.0`, `versionCode=1` ile başlar.
 - İlk mağaza yayınından sonra sürüm adı ve versionCode birlikte artırılır.
+
+## v1.1.5 — Gerçek bildirim ve canlı veri düzenlemesi
+
+- Expo push ticket yanıtları doğrulanır; gerçek teslim olmadan `push_sent_at` yazılmaz.
+- Atanmış Ustaya bekleyen müşteri randevusu için 5 dakikalık aksiyon hatırlatması hazırlanır.
+- Randevu ve müşteri bağlantı talepleri uygulama açılış popup'ından ilgili ekrana yönlenir.
+- Bildirim sesi önizlemesi doğrudan ses oynatıcıyla çalışır.
+- Türkçe konuşan kategori sesleri eklendi.
+- Hemen Başla servisinde başlangıç tarih-saat bilgisi ilk kayıtta oluşturulur.
+- Ortak veri yenileme sinyali servis, randevu, müşteri, motor ve eşleştirme akışlarında kullanılır.
+- FCM V1 Service Account anahtarı Expo/EAS'e ayrıca yüklenmelidir: `docs/FCM_V1_SETUP.md`.
+- Geri alma dalı: `backup/v1.1.4-final-before-v1.1.5-20260717-02`.
 
 ## v1.1.4 — Yayın öncesi son düzenlemeler
 
@@ -78,12 +90,12 @@
 6. Native değişiklikte Release APK workflow’unu çalıştır.
 7. Supabase değişikliği varsa migration ve rollback dosyasını birlikte sakla.
 
-## v1.1.4 Termux yedek + kurulum
+## v1.1.5 Termux yedek + kurulum
 
 ```bash
 cd "$HOME"
-KURULAN_SURUM="v1.1.4"
-YEDEKLENEN_SURUM="v1.1.3"
+KURULAN_SURUM="v1.1.5"
+YEDEKLENEN_SURUM="v1.1.4"
 TARIH="$(date +%Y%m%d-%H%M%S)"
 YEDEK_KLASORU="$HOME/DraBornGarage-${YEDEKLENEN_SURUM}-local-backup-${TARIH}"
 ZIP_DOSYASI="$HOME/DraBornGarage-${KURULAN_SURUM}.zip"
@@ -117,4 +129,4 @@ npx expo start -c --go
 
 ## Yerel geri alma
 
-Yeni klasörü silmek yerine hata durumunda ayrı bir adla taşı ve oluşturulan `v1.1.3` yedek klasörünü tekrar `DraBornGarage` adına getir. Ardından `npm ci` ve `npx expo start -c --go` çalıştır.
+Yeni klasörü silmek yerine hata durumunda ayrı bir adla taşı ve oluşturulan `v1.1.4` yedek klasörünü tekrar `DraBornGarage` adına getir. Ardından `npm ci` ve `npx expo start -c --go` çalıştır.

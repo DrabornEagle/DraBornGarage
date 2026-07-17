@@ -6,7 +6,7 @@ import { AppState, Platform } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { APP_VERSION } from '../lib/appVersion';
-import { ALERT_NOTIFICATION_CHANNEL_ID, BELL_NOTIFICATION_CHANNEL_ID, CHIME_NOTIFICATION_CHANNEL_ID, DIGITAL_NOTIFICATION_CHANNEL_ID, ensureDraBornNotificationChannels, METAL_NOTIFICATION_CHANNEL_ID, PULSE_NOTIFICATION_CHANNEL_ID, requestDeviceNotificationPermission, RETRO_NOTIFICATION_CHANNEL_ID, SILENT_NOTIFICATION_CHANNEL_ID, SIREN_NOTIFICATION_CHANNEL_ID, SYSTEM_NOTIFICATION_CHANNEL_ID, TURBO_NOTIFICATION_CHANNEL_ID } from './notificationPermissions';
+import { ALERT_NOTIFICATION_CHANNEL_ID, BELL_NOTIFICATION_CHANNEL_ID, CHIME_NOTIFICATION_CHANNEL_ID, DIGITAL_NOTIFICATION_CHANNEL_ID, ensureDraBornNotificationChannels, METAL_NOTIFICATION_CHANNEL_ID, PULSE_NOTIFICATION_CHANNEL_ID, requestDeviceNotificationPermission, RETRO_NOTIFICATION_CHANNEL_ID, SILENT_NOTIFICATION_CHANNEL_ID, SIREN_NOTIFICATION_CHANNEL_ID, SYSTEM_NOTIFICATION_CHANNEL_ID, TURBO_NOTIFICATION_CHANNEL_ID, VOICE_APPOINTMENT_CHANNEL_ID, VOICE_CUSTOMER_LINK_CHANNEL_ID, VOICE_GENERIC_CHANNEL_ID, VOICE_PAYMENT_CHANNEL_ID, VOICE_SERVICE_CHANNEL_ID } from './notificationPermissions';
 import {
   GarageNotification,
   NotificationCenterPayload,
@@ -46,38 +46,52 @@ export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: str
   { key: 'garage_metal', label: 'Metal Vuruş', subtitle: 'Atölye karakterli sert vuruş', icon: 'musical-notes' },
   { key: 'garage_digital', label: 'Dijital Uyarı', subtitle: 'Kısa ve net dijital dizi', icon: 'musical-notes' },
   { key: 'garage_retro', label: 'Retro Oyun', subtitle: 'Klasik oyun konsolu melodisi', icon: 'musical-notes' },
+  { key: 'turkish_voice', label: 'Türkçe Sesli Uyarı', subtitle: 'Bildirim türüne göre Türkçe konuşan sabit uyarı', icon: 'musical-notes' },
   { key: 'silent', label: 'Sessiz', subtitle: 'Ses olmadan güçlü titreşim', icon: 'volume-mute' },
 ];
 
-function soundFile(sound: NotificationSoundKey): string | false {
+function voiceKind(item?: Pick<GarageNotification, 'category'> | null) {
+  if (item?.category === 'appointments') return 'appointment';
+  if (item?.category === 'customer_links') return 'customer_link';
+  if (item?.category === 'service') return 'service';
+  if (item && ['payments', 'receivables', 'platform'].includes(item.category)) return 'payment';
+  return 'generic';
+}
+
+function soundFile(sound: NotificationSoundKey, item?: Pick<GarageNotification, 'category'> | null): string | false {
   if (sound === 'silent') return false;
   if (sound === 'system_loud') return 'default';
+  if (sound === 'turkish_voice') {
+    const kind = voiceKind(item);
+    return kind === 'appointment' ? 'garage_voice_appointment.wav'
+      : kind === 'customer_link' ? 'garage_voice_customer_link.wav'
+        : kind === 'service' ? 'garage_voice_service.wav'
+          : kind === 'payment' ? 'garage_voice_payment.wav'
+            : 'garage_voice_generic.wav';
+  }
   const files: Partial<Record<NotificationSoundKey, string>> = {
-    garage_chime: 'garage_chime.wav',
-    garage_pulse: 'garage_pulse.wav',
-    garage_alert: 'garage_alert.wav',
-    garage_bell: 'garage_bell.wav',
-    garage_siren: 'garage_siren.wav',
-    garage_turbo: 'garage_turbo.wav',
-    garage_metal: 'garage_metal.wav',
-    garage_digital: 'garage_digital.wav',
-    garage_retro: 'garage_retro.wav',
+    garage_chime: 'garage_chime.wav', garage_pulse: 'garage_pulse.wav', garage_alert: 'garage_alert.wav',
+    garage_bell: 'garage_bell.wav', garage_siren: 'garage_siren.wav', garage_turbo: 'garage_turbo.wav',
+    garage_metal: 'garage_metal.wav', garage_digital: 'garage_digital.wav', garage_retro: 'garage_retro.wav',
   };
   return files[sound] ?? 'default';
 }
 
-function channelId(sound: NotificationSoundKey) {
-  const channels: Record<NotificationSoundKey, string> = {
-    system_loud: SYSTEM_NOTIFICATION_CHANNEL_ID,
-    garage_chime: CHIME_NOTIFICATION_CHANNEL_ID,
-    garage_pulse: PULSE_NOTIFICATION_CHANNEL_ID,
-    garage_alert: ALERT_NOTIFICATION_CHANNEL_ID,
-    garage_bell: BELL_NOTIFICATION_CHANNEL_ID,
-    garage_siren: SIREN_NOTIFICATION_CHANNEL_ID,
-    garage_turbo: TURBO_NOTIFICATION_CHANNEL_ID,
-    garage_metal: METAL_NOTIFICATION_CHANNEL_ID,
-    garage_digital: DIGITAL_NOTIFICATION_CHANNEL_ID,
-    garage_retro: RETRO_NOTIFICATION_CHANNEL_ID,
+function channelId(sound: NotificationSoundKey, item?: Pick<GarageNotification, 'category'> | null) {
+  if (sound === 'turkish_voice') {
+    const kind = voiceKind(item);
+    return kind === 'appointment' ? VOICE_APPOINTMENT_CHANNEL_ID
+      : kind === 'customer_link' ? VOICE_CUSTOMER_LINK_CHANNEL_ID
+        : kind === 'service' ? VOICE_SERVICE_CHANNEL_ID
+          : kind === 'payment' ? VOICE_PAYMENT_CHANNEL_ID
+            : VOICE_GENERIC_CHANNEL_ID;
+  }
+  const channels: Record<Exclude<NotificationSoundKey, 'turkish_voice'>, string> = {
+    system_loud: SYSTEM_NOTIFICATION_CHANNEL_ID, garage_chime: CHIME_NOTIFICATION_CHANNEL_ID,
+    garage_pulse: PULSE_NOTIFICATION_CHANNEL_ID, garage_alert: ALERT_NOTIFICATION_CHANNEL_ID,
+    garage_bell: BELL_NOTIFICATION_CHANNEL_ID, garage_siren: SIREN_NOTIFICATION_CHANNEL_ID,
+    garage_turbo: TURBO_NOTIFICATION_CHANNEL_ID, garage_metal: METAL_NOTIFICATION_CHANNEL_ID,
+    garage_digital: DIGITAL_NOTIFICATION_CHANNEL_ID, garage_retro: RETRO_NOTIFICATION_CHANNEL_ID,
     silent: SILENT_NOTIFICATION_CHANNEL_ID,
   };
   return channels[sound];
@@ -220,14 +234,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           content: {
             title: item.title,
             body: item.body,
-            sound: soundFile(nextPreferences.notification_sound),
+            sound: soundFile(nextPreferences.notification_sound, item),
             badge: Math.max(1, badge),
             data: { ...notificationData(item), deliverAt: item.deliver_at },
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: new Date(item.deliver_at),
-            channelId: Platform.OS === 'android' ? channelId(nextPreferences.notification_sound) : undefined,
+            channelId: Platform.OS === 'android' ? channelId(nextPreferences.notification_sound, item) : undefined,
           },
         });
       }
@@ -268,12 +282,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           content: {
             title: item.title,
             body: item.body,
-            sound: soundFile(nextPreferences.notification_sound),
+            sound: soundFile(nextPreferences.notification_sound, item),
             badge: Math.max(1, badge),
             data: notificationData(item),
           },
           trigger: Platform.OS === 'android'
-            ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1, channelId: channelId(nextPreferences.notification_sound) }
+            ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1, channelId: channelId(nextPreferences.notification_sound, item) }
             : null,
         });
         nextDelivered.push(item.id);
@@ -465,6 +479,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         refresh();
       }
     });
+    const activePoll = setInterval(() => {
+      if (AppState.currentState === 'active') refresh();
+    }, 20000);
     let tokenListener: { remove: () => void } | null = null;
     if (NATIVE_PUSH_ENABLED && !IS_EXPO_GO) {
       try {
@@ -475,6 +492,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
     return () => {
       appState.remove();
+      clearInterval(activePoll);
       tokenListener?.remove();
       supabase.removeChannel(channel);
     };
