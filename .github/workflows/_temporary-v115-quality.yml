@@ -107,10 +107,48 @@ jobs:
           exit 1
 
       - name: TypeScript
-        run: npm run typecheck
+        id: typecheck
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p docs
+          npm run typecheck 2>&1 | tee docs/V115_TYPESCRIPT_FAILURE.txt
+
+      - name: Persist TypeScript failure
+        if: steps.typecheck.outcome == 'failure'
+        shell: bash
+        run: |
+          git reset --hard HEAD
+          test -f docs/V115_TYPESCRIPT_FAILURE.txt || echo 'TypeScript failed without output' > docs/V115_TYPESCRIPT_FAILURE.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -f docs/V115_TYPESCRIPT_FAILURE.txt
+          git commit -m 'ci: record v1.1.5 TypeScript failure' || true
+          git push origin HEAD:feature/v1.1.5-live-notifications-refresh || true
+          exit 1
 
       - name: Android JavaScript bundle
-        run: npm run test:bundle
+        id: android_bundle
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p docs
+          npm run test:bundle 2>&1 | tee docs/V115_BUNDLE_FAILURE.txt
+
+      - name: Persist bundle failure
+        if: steps.android_bundle.outcome == 'failure'
+        shell: bash
+        run: |
+          git reset --hard HEAD
+          test -f docs/V115_BUNDLE_FAILURE.txt || echo 'Android bundle failed without output' > docs/V115_BUNDLE_FAILURE.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -f docs/V115_BUNDLE_FAILURE.txt
+          git commit -m 'ci: record v1.1.5 bundle failure' || true
+          git push origin HEAD:feature/v1.1.5-live-notifications-refresh || true
+          exit 1
 
       - name: Verify v1.1.5 contract
         shell: bash
@@ -123,7 +161,7 @@ jobs:
           const lock=require('./package-lock.json');
           if(app.version!=='1.1.5'||pkg.version!=='1.1.5'||lock.version!=='1.1.5'||lock.packages?.['']?.version!=='1.1.5') throw new Error('v1.1.5 metadata uyuşmuyor');
           if(app.android.versionCode!==1||app.ios.buildNumber!=='1') throw new Error('Test versionCode/buildNumber bozuldu');
-          if(!pkg.dependencies['expo-audio']) throw new Error('expo-audio eksik');
+          if(!pkg.dependencies['expo-audio']||!pkg.dependencies['expo-asset']) throw new Error('Expo audio/asset eksik');
           for(const file of [
             'src/notifications/NotificationContextV115.tsx',
             'src/notifications/NotificationActionPopup.tsx',
@@ -150,7 +188,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -f scripts/apply_v115_live_notifications_refresh.py scripts/prepare_v115_patch_inputs.py docs/V115_PATCH_FAILURE.log docs/V115_DOCTOR_FAILURE.txt
+          rm -f scripts/apply_v115_live_notifications_refresh.py scripts/prepare_v115_patch_inputs.py docs/V115_PATCH_FAILURE.log docs/V115_DOCTOR_FAILURE.txt docs/V115_TYPESCRIPT_FAILURE.txt docs/V115_BUNDLE_FAILURE.txt
           rm -rf node_modules dist
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
