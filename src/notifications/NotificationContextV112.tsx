@@ -19,6 +19,7 @@ import {
   SIREN_NOTIFICATION_CHANNEL_ID,
   SYSTEM_NOTIFICATION_CHANNEL_ID,
   TURBO_NOTIFICATION_CHANNEL_ID,
+  VOICE_GENERIC_CHANNEL_ID,
 } from './notificationPermissions';
 import {
   NotificationProvider as BaseNotificationProvider,
@@ -52,6 +53,7 @@ function soundFile(sound: NotificationSoundKey): string | false {
     garage_metal: 'garage_metal.wav',
     garage_digital: 'garage_digital.wav',
     garage_retro: 'garage_retro.wav',
+    turkish_voice: 'garage_voice_generic.wav',
   };
   return files[sound] ?? 'default';
 }
@@ -68,6 +70,7 @@ function channelId(sound: NotificationSoundKey) {
     garage_metal: METAL_NOTIFICATION_CHANNEL_ID,
     garage_digital: DIGITAL_NOTIFICATION_CHANNEL_ID,
     garage_retro: RETRO_NOTIFICATION_CHANNEL_ID,
+    turkish_voice: VOICE_GENERIC_CHANNEL_ID,
     silent: SILENT_NOTIFICATION_CHANNEL_ID,
   };
   return channels[sound];
@@ -111,7 +114,7 @@ export function useNotifications() {
       setPushError(null);
       errorRef.current = null;
       if (IS_EXPO_GO) {
-        fail('expo_go', 'Expo Go uzaktan push alamaz. Release APK kullanmalısın.');
+        fail('expo_go', 'Expo Go uzaktan push alamaz. DraBornGarage Release APK kullanmalısın.');
         return false;
       }
       if (!EAS_PROJECT_ID) {
@@ -121,36 +124,22 @@ export function useNotifications() {
 
       let stage = 'Bildirim kanalları hazırlanamadı';
       try {
-        const api = Notifications as typeof Notifications & Record<string, unknown>;
         await ensureDraBornNotificationChannels();
         stage = 'Bildirim izni okunamadı';
-        if (typeof api.getPermissionsAsync !== 'function') throw new Error('getPermissionsAsync kullanılamıyor');
         const current = await Notifications.getPermissionsAsync();
-        const permission = current.status === 'granted'
-          ? current
-          : await Notifications.requestPermissionsAsync();
+        const permission = current.status === 'granted' ? current : await Notifications.requestPermissionsAsync();
         if (permission.status !== 'granted') {
-          fail('denied', 'Android bildirim izni verilmedi.');
+          fail('denied', 'Android bildirim izni verilmedi. Telefon ayarlarından DraBornGarage bildirimlerini aç.');
           return false;
         }
 
-        stage = 'Android FCM tokenı alınamadı';
-        if (typeof api.getDevicePushTokenAsync !== 'function') throw new Error('getDevicePushTokenAsync kullanılamıyor');
-        if (typeof api.getExpoPushTokenAsync !== 'function') throw new Error('getExpoPushTokenAsync kullanılamıyor');
+        stage = 'Expo push tokenı oluşturulamadı';
         const deviceId = await getDeviceId();
-        const devicePushToken = await Notifications.getDevicePushTokenAsync();
-        const result = await Notifications.getExpoPushTokenAsync({
-          projectId: EAS_PROJECT_ID,
-          deviceId,
-          devicePushToken,
-          applicationId: APPLICATION_ID,
-        });
+        const result = await Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID });
         const token = result.data?.trim();
-        if (!token || !/^Expo(nent)?PushToken\[[^\]]+\]$/.test(token)) {
-          throw new Error('Geçerli Expo push tokenı alınamadı');
-        }
+        if (!token || !/^Expo(nent)?PushToken\[[^\]]+\]$/.test(token)) throw new Error('Geçerli Expo push tokenı alınamadı');
 
-        stage = 'Push tokenı sunucuya kaydedilemedi';
+        stage = 'Push tokenı DraBornGarage sunucusuna kaydedilemedi';
         const { data, error } = await supabase.rpc('notification_register_push_token', {
           p_expo_push_token: token,
           p_device_id: deviceId,
