@@ -20,7 +20,9 @@ export function emitDataRefresh(scopes: DataRefreshScope | DataRefreshScope[]) {
 
 export function subscribeDataRefresh(listener: RefreshListener) {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 export function useDataRefresh(scopes: DataRefreshScope[], refresh: () => void | Promise<void>) {
