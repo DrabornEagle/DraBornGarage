@@ -1,0 +1,102 @@
+name: Temporary DraBornGarage v1.1.8 Quality
+
+on:
+  push:
+    branches:
+      - feature/v1.1.8-qr-customer-mechanic-attribution
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draborngarage-v1-1-8-quality
+  cancel-in-progress: false
+
+jobs:
+  validate-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout v1.1.8 branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/v1.1.8-qr-customer-mechanic-attribution
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply guarded v1.1.8 integration
+        run: python3 scripts/apply_v1_1_8_patch.py
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+
+      - name: Validate v1.1.8 contracts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          app = json.loads((root / 'app.json').read_text())
+          package = json.loads((root / 'package.json').read_text())
+          lock = json.loads((root / 'package-lock.json').read_text())
+          assert app['expo']['version'] == '1.1.8'
+          assert app['expo']['android']['versionCode'] == 1
+          assert package['version'] == '1.1.8'
+          assert lock['version'] == '1.1.8'
+          assert lock['packages']['']['version'] == '1.1.8'
+
+          auth = (root / 'src/screens/AuthScreen.tsx').read_text()
+          context = (root / 'src/context/AuthContext.tsx').read_text()
+          customers = (root / 'src/screens/CustomersScreen.tsx').read_text()
+          migration = (root / 'supabase/migrations/20260717193000_v1_1_8_signup_link_and_mechanic_report_ownership.sql').read_text()
+          assert 'RegistrationCodeField' in auth
+          assert 'public_validate_customer_registration_link' in auth
+          assert 'customer_registration_code' in context
+          assert 'CustomerRegistrationAccessCard' in customers
+          assert 'customer_registration_links' in migration
+          assert 'assigned_mechanic_id is distinct from p_mechanic_id' in migration
+
+          names = sorted(p.name for p in (root / '.github/workflows').glob('*.*ml'))
+          assert names == ['release-aab.yml', 'release-apk.yml', 'temp-v1-1-8-quality.yml'], names
+          print('v1.1.8 contract checks passed')
+          PY
+          git diff --check
+
+      - name: Remove temporary quality files
+        run: |
+          rm -f scripts/apply_v1_1_8_patch.py
+          rm -f .github/workflows/temp-v1-1-8-quality.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          names = sorted(p.name for p in Path('.github/workflows').glob('*.*ml'))
+          assert names == ['release-aab.yml', 'release-apk.yml'], names
+          print('Permanent workflow inventory:', names)
+          PY
+
+      - name: Commit verified v1.1.8 source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No source changes to commit"
+            exit 0
+          fi
+          git commit -m "feat: integrate DraBornGarage v1.1.8 customer signup and mechanic reports"
+          git push origin HEAD:feature/v1.1.8-qr-customer-mechanic-attribution
