@@ -59,33 +59,43 @@ jobs:
           app = json.loads((root / 'app.json').read_text())
           package = json.loads((root / 'package.json').read_text())
           lock = json.loads((root / 'package-lock.json').read_text())
-          assert app['expo']['version'] == '1.1.8'
-          assert app['expo']['android']['versionCode'] == 1
-          assert package['version'] == '1.1.8'
-          assert lock['version'] == '1.1.8'
-          assert lock['packages']['']['version'] == '1.1.8'
+          checks = {
+              'app version': app['expo']['version'] == '1.1.8',
+              'android versionCode': app['expo']['android']['versionCode'] == 1,
+              'package version': package['version'] == '1.1.8',
+              'lock version': lock['version'] == '1.1.8',
+              'lock root version': lock['packages']['']['version'] == '1.1.8',
+          }
 
           auth = (root / 'src/screens/AuthScreen.tsx').read_text()
           context = (root / 'src/context/AuthContext.tsx').read_text()
           customers = (root / 'src/screens/CustomersScreen.tsx').read_text()
           migration = (root / 'supabase/migrations/20260717193000_v1_1_8_signup_link_and_mechanic_report_ownership.sql').read_text()
-          assert 'RegistrationCodeField' in auth
-          assert 'public_validate_customer_registration_link' in auth
-          assert 'customer_registration_code' in context
-          assert 'CustomerRegistrationAccessCard' in customers
-          assert 'customer_registration_links' in migration
-          assert 'assigned_mechanic_id is distinct from p_mechanic_id' in migration
+          checks.update({
+              'registration field': 'RegistrationCodeField' in auth,
+              'public code validation': 'public_validate_customer_registration_link' in auth,
+              'signup metadata': 'customer_registration_code' in context,
+              'staff registration card': 'CustomerRegistrationAccessCard' in customers,
+              'registration link schema': 'customer_registration_links' in migration,
+              'selected mechanic ownership': 'assigned_mechanic_id is distinct from p_mechanic_id' in migration,
+          })
 
           names = sorted(p.name for p in (root / '.github/workflows').glob('*.*ml'))
-          assert names == ['release-aab.yml', 'release-apk.yml', 'temp-v1-1-8-quality.yml'], names
+          checks['workflow inventory'] = names == ['release-aab.yml', 'release-apk.yml', 'temp-v1-1-8-quality.yml']
+          print('Workflow inventory:', names)
+          for label, passed in checks.items():
+              print(f"{label}: {'PASS' if passed else 'FAIL'}")
+          failed = [label for label, passed in checks.items() if not passed]
+          if failed:
+              raise SystemExit('Contract failures: ' + ', '.join(failed))
           print('v1.1.8 contract checks passed')
           PY
-          git diff --check
 
       - name: Remove temporary quality files
         run: |
           rm -f scripts/apply_v1_1_8_patch.py
           rm -f .github/workflows/temp-v1-1-8-quality.yml
+          rm -f docs/.v1.1.8-*
           python3 - <<'PY'
           from pathlib import Path
           names = sorted(p.name for p in Path('.github/workflows').glob('*.*ml'))
