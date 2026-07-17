@@ -4,15 +4,28 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel geliştirme sürümü
 
-**v1.1.4 — Yayın Öncesi Bildirim, Rol ve Liste Düzenlemesi**
+**v1.1.5 — Gerçek Push Teslimi, Aksiyon Popup ve Canlı Yenileme**
 
-- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, ardından `v1.1.4`…
+- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4`, ardından `v1.1.5`…
 - AAB alınana kadar Android `versionCode` sabit: `1`
 - Expo: küçük arayüz ve işlev testleri
 - Native bildirim ve gerçek cihaz testleri: **DraBornGarage Release APK**
 - Google Play paketi: **DraBornGarage Release AAB**
 - İlk Google Play yayını: uygulama `versionName` **1.0**, `versionCode` **1**
 - İlk Play yayınından sonra her mağaza güncellemesinde hem sürüm hem `versionCode` artırılır.
+
+## v1.1.5 düzeltmeleri
+
+- Expo push HTTP isteğinin yalnız kuyruğa alınması artık teslim edildi sayılmaz; Expo ticket yanıtları ayrı tabloda doğrulanır.
+- `InvalidCredentials` gibi FCM V1 hataları Bildirim Merkezi'nde görünür ve sahte `push_sent_at` kaydı oluşturmaz.
+- Atanmış Ustaya müşteri randevusu beklediği sürece 5 dakikada bir aksiyon bildirimi hazırlanır.
+- Uygulama açıldığında yeni randevu ve müşteri eşleştirme talebi için modern yönlendirme popup'ı açılır.
+- Zil önizlemesi Android bildirim kanalına bağlı kalmadan `expo-audio` ile doğrudan çalınır.
+- Türkçe Sesli Uyarı seçeneği eklendi; randevu, müşteri bağlantısı, servis ve ödeme için ayrı sabit Türkçe ses dosyaları kullanılır.
+- Rapor Merkezi'nde Usta Raporu ve İşletme Raporu kartlarının sırası değiştirildi.
+- Hemen Başla servis kayıtlarında `started_at` ilk kayıtta yazılır.
+- Servis, randevu, müşteri, motosiklet ve eşleştirme işlemlerinden sonra ortak veri yenileme olayı gönderilir.
+- Geri alma dalı: `backup/v1.1.4-final-before-v1.1.5-20260717-02`.
 
 ## v1.1.4 düzeltmeleri
 
@@ -86,5 +99,6 @@ Native test APK ve Google Play AAB yalnız GitHub Actions içindeki iki manuel w
 
 - [Güncel teslim ve devam belgesi](docs/PROJECT_HANDOFF_V0.8.2.md)
 - [Google Play politika kontrolü](docs/GOOGLE_PLAY_POLICY_CHECKLIST.md)
+- [Android FCM V1 kurulumu](docs/FCM_V1_SETUP.md)
 - [Gizlilik Politikası](docs/PRIVACY_POLICY.md)
 - [Hesap ve Veri Silme](docs/ACCOUNT_DELETION.md)

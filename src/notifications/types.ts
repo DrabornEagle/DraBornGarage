@@ -11,6 +11,7 @@ export type NotificationSoundKey =
   | 'garage_metal'
   | 'garage_digital'
   | 'garage_retro'
+  | 'turkish_voice'
   | 'silent';
 export type PushRegistrationStatus = 'idle' | 'registered' | 'expo_go' | 'missing_project' | 'denied' | 'error';
 

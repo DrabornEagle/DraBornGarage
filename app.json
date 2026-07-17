@@ -3,7 +3,7 @@
     "name": "DraBornGarage",
     "slug": "draborngarage",
     "scheme": "draborngarage",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "icon": "./assets/draborngarage-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -37,7 +37,12 @@
             "./assets/sounds/garage_turbo.wav",
             "./assets/sounds/garage_metal.wav",
             "./assets/sounds/garage_digital.wav",
-            "./assets/sounds/garage_retro.wav"
+            "./assets/sounds/garage_retro.wav",
+            "./assets/sounds/garage_voice_appointment.wav",
+            "./assets/sounds/garage_voice_customer_link.wav",
+            "./assets/sounds/garage_voice_service.wav",
+            "./assets/sounds/garage_voice_payment.wav",
+            "./assets/sounds/garage_voice_generic.wav"
           ]
         }
       ],
@@ -48,6 +53,13 @@
             "parentTheme": "Default",
             "enforceNavigationBarContrast": false
           }
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ]
     ],

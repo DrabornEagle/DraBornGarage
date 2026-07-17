@@ -13,7 +13,12 @@ export const METAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-metal-v7';
 export const DIGITAL_NOTIFICATION_CHANNEL_ID = 'draborngarage-digital-v7';
 export const RETRO_NOTIFICATION_CHANNEL_ID = 'draborngarage-retro-v7';
 export const SILENT_NOTIFICATION_CHANNEL_ID = 'draborngarage-silent-v7';
-export const NOTIFICATION_INTRO_STORAGE_KEY = '@draborngarage/notification-intro-v114';
+export const VOICE_APPOINTMENT_CHANNEL_ID = 'draborngarage-voice-appointment-v8';
+export const VOICE_CUSTOMER_LINK_CHANNEL_ID = 'draborngarage-voice-customer-link-v8';
+export const VOICE_SERVICE_CHANNEL_ID = 'draborngarage-voice-service-v8';
+export const VOICE_PAYMENT_CHANNEL_ID = 'draborngarage-voice-payment-v8';
+export const VOICE_GENERIC_CHANNEL_ID = 'draborngarage-voice-generic-v8';
+export const NOTIFICATION_INTRO_STORAGE_KEY = '@draborngarage/notification-intro-v115';
 
 const LEGACY_CHANNELS = [
   'draborngarage-system-loud-v4',
@@ -88,6 +93,11 @@ export async function ensureDraBornNotificationChannels() {
     [METAL_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Metal Vuruş', description: 'Atölye karakterli sert metal vuruş.', sound: 'garage_metal.wav', vibrationPattern: [0, 360, 80, 620] }],
     [DIGITAL_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Dijital Uyarı', description: 'Kısa ve net dijital bildirim dizisi.', sound: 'garage_digital.wav', vibrationPattern: [0, 110, 70, 110, 70, 260] }],
     [RETRO_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Retro Oyun', description: 'Klasik oyun konsolu tarzında melodi.', sound: 'garage_retro.wav', vibrationPattern: [0, 100, 60, 100, 60, 320] }],
+    [VOICE_APPOINTMENT_CHANNEL_ID, { ...common, name: 'Türkçe Ses • Randevu', description: 'Randevu geldi. Lütfen kontrol edin.', sound: 'garage_voice_appointment.wav', vibrationPattern: [0, 240, 90, 240, 90, 520] }],
+    [VOICE_CUSTOMER_LINK_CHANNEL_ID, { ...common, name: 'Türkçe Ses • Müşteri Talebi', description: 'Müşteri bağlantı talebi geldi. Lütfen kontrol edin.', sound: 'garage_voice_customer_link.wav', vibrationPattern: [0, 240, 90, 240, 90, 520] }],
+    [VOICE_SERVICE_CHANNEL_ID, { ...common, name: 'Türkçe Ses • Servis', description: 'Servis bildirimi geldi. Lütfen kontrol edin.', sound: 'garage_voice_service.wav', vibrationPattern: [0, 240, 90, 240, 90, 520] }],
+    [VOICE_PAYMENT_CHANNEL_ID, { ...common, name: 'Türkçe Ses • Ödeme', description: 'Ödeme bildirimi geldi. Lütfen kontrol edin.', sound: 'garage_voice_payment.wav', vibrationPattern: [0, 240, 90, 240, 90, 520] }],
+    [VOICE_GENERIC_CHANNEL_ID, { ...common, name: 'Türkçe Sesli Uyarı', description: 'DraBornGarage bildirimi geldi. Lütfen kontrol edin.', sound: 'garage_voice_generic.wav', vibrationPattern: [0, 240, 90, 240, 90, 520] }],
     [SILENT_NOTIFICATION_CHANNEL_ID, { ...common, name: 'Sessiz', description: 'Ses olmadan titreşim ve bildirim alanı uyarısı.', importance: Notifications.AndroidImportance.HIGH, sound: null, vibrationPattern: [0, 220, 120, 220] }],
   ];
 

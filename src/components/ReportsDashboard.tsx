@@ -155,8 +155,8 @@ export function ReportsDashboard() {
     </View>
 
     {isOwner && isMechanic && <View style={styles.modeSwitch}>
-      <ModeButton active={viewMode === 'business'} title="İşletme Raporu" subtitle="Ekip, tahsilat ve servis özeti" icon="business" accent={colors.cyan} onPress={() => setViewMode('business')} />
-      <ModeButton active={viewMode === 'personal'} title="Usta Raporu" subtitle="Kendi işlerin ve kayıtların" icon="person" accent={colors.orange} onPress={() => setViewMode('personal')} />
+      <ModeButton active={viewMode === 'personal'} title="Usta Raporu" subtitle="Yalnız kendi işlerin" icon="person" accent={colors.cyan} onPress={() => setViewMode('personal')} />
+      <ModeButton active={viewMode === 'business'} title="İşletme Raporu" subtitle="Toplam gelir ve tüm Ustalar" icon="business" accent={colors.primary} onPress={() => setViewMode('business')} />
     </View>}
 
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.periods}>

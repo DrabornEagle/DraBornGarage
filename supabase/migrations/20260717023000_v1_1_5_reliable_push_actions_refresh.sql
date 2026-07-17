@@ -402,27 +402,43 @@ language plpgsql
 set search_path=public
 as $$
 begin
+  if tg_op='INSERT' then
+    if new.status in ('repair_started'::public.work_order_status,'in_progress'::public.work_order_status)
+       and new.started_at is null then
+      new.started_at=now();
+    end if;
+    if new.status='testing'::public.work_order_status and new.testing_started_at is null then
+      new.testing_started_at=now();
+    end if;
+    if new.status in ('ready'::public.work_order_status,'completed'::public.work_order_status) then
+      new.ready_at=coalesce(new.ready_at,now());
+      new.completed_at=coalesce(new.completed_at,now());
+    end if;
+    if new.status='delivered'::public.work_order_status and new.delivered_at is null then
+      new.delivered_at=now();
+    end if;
+    new.queue_updated_at=coalesce(new.queue_updated_at,now());
+    return new;
+  end if;
+
   if new.status in ('repair_started'::public.work_order_status,'in_progress'::public.work_order_status)
-     and (tg_op='INSERT' or old.status is distinct from new.status)
-     and new.started_at is null then
+     and old.status is distinct from new.status and new.started_at is null then
     new.started_at=now();
   end if;
   if new.status='testing'::public.work_order_status
-     and (tg_op='INSERT' or old.status is distinct from new.status)
-     and new.testing_started_at is null then
+     and old.status is distinct from new.status and new.testing_started_at is null then
     new.testing_started_at=now();
   end if;
   if new.status in ('ready'::public.work_order_status,'completed'::public.work_order_status)
-     and (tg_op='INSERT' or old.status is distinct from new.status) then
+     and old.status is distinct from new.status then
     new.ready_at=coalesce(new.ready_at,now());
     new.completed_at=coalesce(new.completed_at,now());
   end if;
   if new.status='delivered'::public.work_order_status
-     and (tg_op='INSERT' or old.status is distinct from new.status)
-     and new.delivered_at is null then
+     and old.status is distinct from new.status and new.delivered_at is null then
     new.delivered_at=now();
   end if;
-  if tg_op='INSERT' or old.status is distinct from new.status then
+  if old.status is distinct from new.status then
     new.queue_updated_at=now();
   end if;
   return new;
@@ -455,7 +471,7 @@ select cron.schedule(
   $job$select public.notification_enqueue_pending_appointment_actions();$job$
 );
 
-perform public.notification_enqueue_pending_appointment_actions();
+select public.notification_enqueue_pending_appointment_actions();
 
 revoke all on function public.notification_reconcile_push_requests(integer) from public,anon,authenticated;
 revoke all on function public.notification_enqueue_pending_appointment_actions() from public,anon,authenticated;

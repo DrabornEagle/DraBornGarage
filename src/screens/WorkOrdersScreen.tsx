@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { useDataRefresh } from '../lib/dataRefreshEvents';
 import { useSmartAutoRefresh } from '../hooks/useSmartAutoRefresh';
 import { WorkOrderListItem, WorkOrderStatus } from '../types';
 import { WorkOrderDetailV04 } from './WorkOrderDetailV04';
@@ -53,6 +54,7 @@ export function WorkOrdersScreen({ onNewOrder, allowNewOrder }: { onNewOrder: ()
   }, [workshop, membership, isApprentice]);
 
   useEffect(() => { load(); }, [load]);
+  useDataRefresh(['work_orders','customers','motorcycles'], () => load(true));
   useSmartAutoRefresh(() => load(true), 55000, Boolean(workshop && membership && !selected));
   useEffect(() => {
     if (!workshop?.id || selected) return;

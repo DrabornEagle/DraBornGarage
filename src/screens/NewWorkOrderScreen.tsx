@@ -9,6 +9,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { emitDataRefresh } from '../lib/dataRefreshEvents';
 import { Customer, CustomerWaitingStatus, Motorcycle, PaymentMethod, PriceType, ServiceType, WORKER_ROLES } from '../types';
 
 export function NewWorkOrderScreen({
@@ -151,6 +152,7 @@ export function NewWorkOrderScreen({
       estimated_price_min: priceType === 'estimated' && priceComplete ? min : null,
       estimated_price_max: priceType === 'estimated' && priceComplete ? max : null,
       status: startImmediately ? 'repair_started' : priceComplete ? 'price_entered' : 'queued',
+      started_at: startImmediately ? new Date().toISOString() : null,
     }).select('id').single();
 
     if (orderError || !orderData) {
@@ -187,6 +189,7 @@ export function NewWorkOrderScreen({
     }
 
     setSaving(false);
+    emitDataRefresh(['work_orders','customers','motorcycles','reports']);
     Alert.alert('Servis kaydı hazır', startImmediately ? 'Motor tamire başlandı durumunda açıldı.' : 'Motor atölye sırasına eklendi.');
     onCreated();
   };

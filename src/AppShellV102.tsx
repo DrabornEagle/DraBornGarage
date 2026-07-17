@@ -44,6 +44,8 @@ export function AppShellV102() {
   const [staffPanelMode, setStaffPanelMode] = useState<PanelMode>(initialPanelMode);
   const [customerInitialTab, setCustomerInitialTab] = useState<'customers' | 'claims'>('customers');
   const [customerNavigationKey, setCustomerNavigationKey] = useState(0);
+  const [appointmentFocusId, setAppointmentFocusId] = useState<string | undefined>();
+  const [appointmentNavigationKey, setAppointmentNavigationKey] = useState(0);
   const [adminInitialSection, setAdminInitialSection] = useState<'management' | 'reports' | 'platform'>('management');
   const [adminFocusPaymentReportId, setAdminFocusPaymentReportId] = useState<string | undefined>();
   const [adminNavigationKey, setAdminNavigationKey] = useState(0);
@@ -87,6 +89,12 @@ export function AppShellV102() {
         setAdminNavigationKey((value) => value + 1);
         if (workshopId && workshopId !== workshop?.id) selectWorkshop(workshopId).catch(() => undefined);
       }
+      if (target === 'appointments' && allowedForBusiness) {
+        const data = navigationTarget.data || {};
+        const appointmentId = typeof data.appointment_id === 'string' ? data.appointment_id : typeof data.entity_id === 'string' ? data.entity_id : undefined;
+        setAppointmentFocusId(appointmentId);
+        setAppointmentNavigationKey((value) => value + 1);
+      }
       if (target === 'customers' && navigationTarget.targetSection === 'claims' && allowedForBusiness) {
         setCustomerInitialTab('claims');
         setCustomerNavigationKey((value) => value + 1);
@@ -101,7 +109,7 @@ export function AppShellV102() {
     : tab === 'orders'
       ? <WorkOrdersScreen onNewOrder={() => openNew('dropoff')} allowNewOrder={canWork && staffPanelMode === 'mechanic'} />
       : tab === 'appointments'
-        ? <AppointmentsScreen />
+        ? <AppointmentsScreen key={`appointments-${appointmentNavigationKey}`} focusAppointmentId={appointmentFocusId} />
         : tab === 'customers'
           ? <CustomerMemoryScreen key={`customers-memory-${customerNavigationKey}`} initialTab={customerInitialTab} />
           : tab === 'receivables'

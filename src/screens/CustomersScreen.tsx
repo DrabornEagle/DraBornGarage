@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { money, shortDate } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { emitDataRefresh, useDataRefresh } from '../lib/dataRefreshEvents';
 import { useNotifications } from '../notifications/NotificationContext';
 import { Customer, Motorcycle, StaffCustomerClaim, StaffRegisteredCustomerMatch, WorkOrderStatus } from '../types';
 
@@ -57,6 +58,7 @@ export function CustomersScreen({ initialTab = 'customers' }: { initialTab?: Tab
     setCustomers((c.data as Customer[]) ?? []); setMotorcycles((m.data as Motorcycle[]) ?? []); setOrders((o.data as Order[]) ?? []); setClaims((cl.data as StaffCustomerClaim[] | null) ?? []);
   }, [workshop]);
   useEffect(() => { load(); }, [load]);
+  useDataRefresh(['customers','motorcycles','work_orders','customer_claims'], load);
   useEffect(() => { setTab(initialTab); }, [initialTab]);
   useEffect(() => { setVisibleCustomerCount(INITIAL_CUSTOMER_COUNT); }, [query, workshop?.id, tab]);
   useEffect(() => {
@@ -103,7 +105,7 @@ export function CustomersScreen({ initialTab = 'customers' }: { initialTab?: Tab
   const attentionScale = claimPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
   const attentionOpacity = claimPulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] });
 
-  const addCustomer = async () => { if (!workshop || !name.trim()) return Alert.alert('Müşteri adı gerekli'); setSaving(true); const { error } = await supabase.from('customers').insert({ workshop_id: workshop.id, full_name: name.trim(), phone: phone.trim() || null, note: note.trim() || null }); setSaving(false); if (error) return Alert.alert('Eklenemedi', error.message); setName(''); setPhone(''); setNote(''); setShowNew(false); await load(); };
+  const addCustomer = async () => { if (!workshop || !name.trim()) return Alert.alert('Müşteri adı gerekli'); setSaving(true); const { error } = await supabase.from('customers').insert({ workshop_id: workshop.id, full_name: name.trim(), phone: phone.trim() || null, note: note.trim() || null }); setSaving(false); if (error) return Alert.alert('Eklenemedi', error.message); setName(''); setPhone(''); setNote(''); setShowNew(false); emitDataRefresh(['customers']); await load(); };
   const addBike = async () => {
     if (!workshop || !selected || !brand.trim() || !model.trim()) return Alert.alert('Marka ve model gerekli');
     const odometerText = bikeOdometer.replace(/\D/g, '');
@@ -113,7 +115,7 @@ export function CustomersScreen({ initialTab = 'customers' }: { initialTab?: Tab
     const { error } = await supabase.from('motorcycles').insert({ workshop_id: workshop.id, customer_id: selected, brand: brand.trim(), model: model.trim(), plate: plate.trim().toUpperCase() || null, odometer: odometerValue });
     setSaving(false);
     if (error) return Alert.alert('Eklenemedi', error.message);
-    setBrand(''); setModel(''); setPlate(''); setBikeOdometer(''); setShowBike(false); await load();
+    setBrand(''); setModel(''); setPlate(''); setBikeOdometer(''); setShowBike(false); emitDataRefresh(['motorcycles','customers']); await load();
   };
 
   const openAccess = async (bikeId: string) => {
@@ -127,7 +129,7 @@ export function CustomersScreen({ initialTab = 'customers' }: { initialTab?: Tab
 
   const review = (claim: StaffCustomerClaim, approve: boolean) => Alert.alert(approve ? 'Eşleşmeyi onayla' : 'Talebi reddet', `${claim.claimant_name} • ${claim.plate}`, [
     { text: 'Vazgeç', style: 'cancel' },
-    { text: approve ? 'Onayla' : 'Reddet', style: approve ? 'default' : 'destructive', onPress: async () => { const { error } = await supabase.rpc('staff_review_customer_claim', { p_claim_id: claim.id, p_approve: approve, p_note: null }); if (error) return Alert.alert('İşlem başarısız', error.message); await load(); } },
+    { text: approve ? 'Onayla' : 'Reddet', style: approve ? 'default' : 'destructive', onPress: async () => { const { error } = await supabase.rpc('staff_review_customer_claim', { p_claim_id: claim.id, p_approve: approve, p_note: null }); if (error) return Alert.alert('İşlem başarısız', error.message); emitDataRefresh(['customer_claims','customers','motorcycles']); await load(); } },
   ]);
 
   const findRegisteredAccount = async () => {
@@ -150,7 +152,7 @@ export function CustomersScreen({ initialTab = 'customers' }: { initialTab?: Tab
         const { error } = await supabase.rpc('staff_link_registered_customer_by_plate', { p_workshop_id: workshop.id, p_user_id: match.user_id, p_plate: match.registered_plate });
         setAccountLoading(false);
         if (error) return Alert.alert('Eşleştirme yapılamadı', error.message);
-        setAccountMatches([]); setAccountPlate(''); await load();
+        setAccountMatches([]); setAccountPlate(''); emitDataRefresh(['customers','motorcycles','customer_claims']); await load();
         Alert.alert('Hesap eşleştirildi', 'Müşteri hesabı ve motosiklet bu işletmeye güvenle bağlandı.');
       } },
     ]);

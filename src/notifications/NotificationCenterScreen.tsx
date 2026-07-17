@@ -67,6 +67,7 @@ export function NotificationCenterScreen() {
     permissionStatus,
     pushStatus,
     pushError,
+    pushDeliveryError,
     closeCenter,
     refresh,
     markAllRead,
@@ -216,6 +217,7 @@ export function NotificationCenterScreen() {
               {NOTIFICATION_SOUND_OPTIONS.map((option) => <SoundChoice key={option.key} active={preferences.notification_sound === option.key} label={option.label} subtitle={option.subtitle} icon={option.icon} onPress={() => selectSound(option.key)} />)}
             </View>
             <Text style={[styles.soundHint, { color: colors.textMuted }]}>{IS_EXPO_GO_TEXT(pushStatus)}</Text>
+            {pushDeliveryError && <GlassCard style={styles.permissionCard}><Ionicons name="cloud-offline" size={24} color={colors.red} /><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>Kapalı uygulama sunucu teslimi hazır değil</Text><Text style={[styles.cardText, { color: colors.textMuted }]}>{pushDeliveryError}</Text></View></GlassCard>}
             {pushError && <GlassCard style={styles.permissionCard}><Ionicons name="warning" size={24} color={colors.orange} /><View style={styles.copy}><Text style={[styles.cardTitle, { color: colors.text }]}>Telefon push kaydı tamamlanmadı</Text><Text style={[styles.cardText, { color: colors.textMuted }]}>{pushError}</Text></View></GlassCard>}
             {pushStatus !== 'registered' && pushStatus !== 'expo_go' && <PrimaryButton title="Telefonu Push Sistemine Kaydet" onPress={enablePush} loading={saving} secondary />}
             </>}

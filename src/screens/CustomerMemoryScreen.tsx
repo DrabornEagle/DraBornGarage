@@ -13,6 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { money } from '../lib/format';
 import { supabase } from '../lib/supabase';
 import { useSmartAutoRefresh } from '../hooks/useSmartAutoRefresh';
+import { useDataRefresh } from '../lib/dataRefreshEvents';
 import { Customer, Motorcycle, WorkOrderStatus } from '../types';
 import { CustomersScreen as LegacyCustomersScreen } from './CustomersScreen';
 
@@ -180,6 +181,7 @@ export function CustomerMemoryScreen({ initialTab = 'customers' }: { initialTab?
   }, [workshop]);
 
   useEffect(() => { load(); }, [load]);
+  useDataRefresh(['customers','motorcycles','work_orders'], () => load(true));
   useSmartAutoRefresh(() => load(true), 60000, Boolean(workshop));
   useEffect(() => {
     if (!workshop?.id) return;
