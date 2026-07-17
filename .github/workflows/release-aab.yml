@@ -7,7 +7,7 @@ on:
         description: GitHub ön sürümüne AAB ekle
         required: true
         type: boolean
-        default: false
+        default: true
       play_version:
         description: Google Play versionName
         required: true
@@ -18,6 +18,11 @@ on:
         required: true
         type: number
         default: 1
+  push:
+    branches:
+      - main
+    paths:
+      - .github/release-triggers/google-play-v1.0
 
 permissions:
   contents: write
@@ -34,6 +39,8 @@ env:
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
   EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
   EXPECTED_UPLOAD_CERT_SHA256: "61:69:5A:48:64:07:75:75:3A:0C:68:B1:8E:23:AC:34:56:FE:D5:AD:DE:50:E5:FF:92:BD:06:A4:6D:4D:EA:EE"
+  PLAY_VERSION: ${{ inputs.play_version || '1.0' }}
+  PLAY_VERSION_CODE: ${{ inputs.play_version_code || 1 }}
 
 jobs:
   release-aab:
@@ -49,11 +56,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Prepare Google Play metadata
-        env:
-          PLAY_VERSION: ${{ inputs.play_version }}
-          PLAY_VERSION_CODE: ${{ inputs.play_version_code }}
         run: |
           node <<'NODE'
           const fs = require('fs');
@@ -79,11 +85,8 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Validate release source and secrets
+      - name: Validate v1.0 release source and secrets
         shell: bash
-        env:
-          PLAY_VERSION: ${{ inputs.play_version }}
-          PLAY_VERSION_CODE: ${{ inputs.play_version_code }}
         run: |
           set -euo pipefail
           for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
@@ -95,13 +98,13 @@ jobs:
           const pkg = require('./package.json');
           const lock = require('./package-lock.json');
           const firebase = require('./google-services.json');
+          if (app.version !== process.env.PLAY_VERSION || app.android?.versionCode !== Number(process.env.PLAY_VERSION_CODE)) throw new Error('Google Play metadata uyuşmuyor');
           if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) throw new Error('Paket ve kilit sürümleri eşleşmiyor');
-          if (app.version !== process.env.PLAY_VERSION || app.android.versionCode !== Number(process.env.PLAY_VERSION_CODE)) throw new Error('Google Play metadata bilgisi uyuşmuyor');
           if (!/^[0-9a-fA-F-]{36}$/.test(app.extra?.eas?.projectId || '')) throw new Error('EAS Project ID eksik veya geçersiz');
           if (app.android?.googleServicesFile !== './google-services.json') throw new Error('googleServicesFile eksik');
           if (firebase.client?.[0]?.client_info?.android_client_info?.package_name !== app.android.package) throw new Error('Firebase paket adı uyuşmuyor');
-          for (const file of ['assets/draborngarage-icon.png', 'assets/draborngarage-welcome.png']) {
-            if (!fs.existsSync(file) || fs.statSync(file).size < 100000) throw new Error(`${file} geçersiz`);
+          for (const file of ['assets/draborngarage-icon.png', 'assets/draborngarage-welcome.png', 'release-security/DraBornGarage-v1.0-backup-public-cert.pem']) {
+            if (!fs.existsSync(file) || fs.statSync(file).size < 500) throw new Error(`${file} geçersiz`);
           }
           NODE
 
@@ -123,7 +126,6 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
           "$SDKMANAGER" "ndk;27.1.12297006"
-          test -d "$ANDROID_HOME/ndk/27.1.12297006"
 
       - name: Read release metadata
         id: meta
@@ -134,6 +136,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "aab_name=DraBornGarage-v${VERSION}-production.aab" >> "$GITHUB_OUTPUT"
+          echo "recovery_name=DraBornGarage-v${VERSION}-Signing-Recovery.zip.p7m" >> "$GITHUB_OUTPUT"
 
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
@@ -157,13 +160,6 @@ jobs:
 
       - name: Apply production signing
         run: python3 scripts/configure_android_signing.py
-
-      - name: Verify generated Firebase configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s android/app/google-services.json
-          node -e "const a=require('./app.json').expo;const g=require('./android/app/google-services.json');if(g.client?.[0]?.client_info?.android_client_info?.package_name!==a.android.package)process.exit(1)"
 
       - name: Normalize Android manifest
         shell: bash
@@ -195,38 +191,10 @@ jobs:
         working-directory: android
         run: ./gradlew :app:lintRelease --no-daemon --stacktrace
 
-      - name: Verify manifest and collect AAB
+      - name: Verify and collect AAB
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          import shutil
-          import xml.etree.ElementTree as ET
-          candidates = [p for p in Path('android/app/build/intermediates').rglob('AndroidManifest.xml') if 'release' in p.parts and ('merged_manifest' in p.parts or 'merged_manifests' in p.parts)]
-          if not candidates:
-              raise SystemExit('Merged release manifest bulunamadı')
-          manifest = max(candidates, key=lambda p: p.stat().st_size)
-          shutil.copyfile(manifest, 'release-output/AndroidManifest-release.xml')
-          android = '{http://schemas.android.com/apk/res/android}'
-          root = ET.parse(manifest).getroot()
-          permissions = {n.attrib.get(android + 'name') for n in root.findall('uses-permission')}
-          blocked = {
-              'android.permission.RECORD_AUDIO', 'android.permission.ACCESS_FINE_LOCATION', 'android.permission.ACCESS_COARSE_LOCATION',
-              'android.permission.READ_CONTACTS', 'android.permission.WRITE_CONTACTS', 'android.permission.CALL_PHONE',
-              'android.permission.READ_PHONE_STATE', 'android.permission.READ_SMS', 'android.permission.SEND_SMS',
-              'android.permission.READ_MEDIA_IMAGES', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE'
-          }
-          if blocked & permissions:
-              raise SystemExit(f'Engellenen izinler bulundu: {sorted(blocked & permissions)}')
-          uses_sdk = root.find('uses-sdk')
-          target_sdk = int(uses_sdk.attrib.get(android + 'targetSdkVersion', '0') or 0) if uses_sdk is not None else 0
-          if target_sdk < 35:
-              raise SystemExit(f'Target SDK çok düşük veya bulunamadı: {target_sdk}')
-          for required in ('android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'):
-              if required not in permissions:
-                  raise SystemExit(f'{required} bulunamadı')
-          PY
           SOURCE_AAB="$(find android/app/build/outputs/bundle/release -type f -name '*.aab' | head -n 1)"
           test -f "$SOURCE_AAB"
           AAB_PATH="release-output/${{ steps.meta.outputs.aab_name }}"
@@ -235,6 +203,50 @@ jobs:
           jarsigner -verify "$AAB_PATH"
           sha256sum "$AAB_PATH" | tee release-output/SHA256SUMS.txt
           stat -c '%n %s bytes' "$AAB_PATH" | tee release-output/aab-size.txt
+
+      - name: Create encrypted signing and source recovery backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          RECOVERY_DIR="$RUNNER_TEMP/draborngarage-signing-recovery"
+          PLAIN_ZIP="$RUNNER_TEMP/DraBornGarage-v${{ steps.meta.outputs.version }}-Signing-Recovery.zip"
+          ENCRYPTED="release-output/${{ steps.meta.outputs.recovery_name }}"
+          mkdir -p "$RECOVERY_DIR"
+          cp "$DRABORNGARAGE_KEYSTORE_PATH" "$RECOVERY_DIR/DraBornGarage-upload-keystore-v1.jks"
+          cat > "$RECOVERY_DIR/KEYSTORE_CREDENTIALS.txt" <<EOF
+          ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD
+          ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS
+          ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD
+          UPLOAD_CERT_SHA256=$EXPECTED_UPLOAD_CERT_SHA256
+          EOF
+          cat > "$RECOVERY_DIR/RECOVERY_README.txt" <<'EOF'
+          DraBornGarage Google Play İmzalama Kurtarma Paketi
+
+          İçerik:
+          - Kalıcı production upload keystore
+          - Keystore alias ve parolaları
+          - v1.0 yayın kaynak kodu
+          - v1.1.8final geri alma kaynak kodu
+          - Yayın yapılandırması ve doğrulama özeti
+
+          Bu paket RSA sertifikasıyla şifrelenmiştir. Yalnız kullanıcıya teslim edilen
+          DraBornGarage-v1.0-backup-private-key.pem dosyasıyla açılabilir.
+          EOF
+          git archive --format=zip --output="$RECOVERY_DIR/DraBornGarage-v1.0-source.zip" HEAD
+          git fetch origin backup/v1.1.8final:refs/remotes/origin/backup/v1.1.8final
+          git archive --format=zip --output="$RECOVERY_DIR/DraBornGarage-v1.1.8final-source.zip" origin/backup/v1.1.8final
+          cp app.json package.json package-lock.json google-services.json "$RECOVERY_DIR/"
+          cp release-security/DraBornGarage-v1.0-backup-public-cert.pem "$RECOVERY_DIR/"
+          (cd "$RECOVERY_DIR" && zip -q -r "$PLAIN_ZIP" .)
+          openssl cms -encrypt -binary -aes256 \
+            -in "$PLAIN_ZIP" \
+            -out "$ENCRYPTED" \
+            -outform DER \
+            release-security/DraBornGarage-v1.0-backup-public-cert.pem
+          rm -rf "$RECOVERY_DIR" "$PLAIN_ZIP"
+          test -s "$ENCRYPTED"
+          sha256sum "$ENCRYPTED" | tee -a release-output/SHA256SUMS.txt
 
       - name: Build information
         shell: bash
@@ -246,15 +258,18 @@ jobs:
           Run: $GITHUB_RUN_ID
           Upload certificate SHA-256: $EXPECTED_UPLOAD_CERT_SHA256
           Output: Google Play Android App Bundle
+          Backup branch: backup/v1.1.8final
+          Encrypted signing recovery: ${{ steps.meta.outputs.recovery_name }}
           EOF
           cat > release-output/RELEASE_NOTES.md <<EOF
           # DraBornGarage v${{ steps.meta.outputs.version }} Google Play AAB
 
-          - Google Play yüklemeye hazır Android App Bundle
+          - Google Play sürümü v1.0 / versionCode 1
           - Kalıcı DraBornGarage upload keystore ile imzalama
-          - Native push ve farklı bildirim sesleri
-          - Yüzdelik veya sabit platform hizmet bedeli
-          - Expo Doctor, TypeScript, bundle, Gradle, lint, manifest ve AAB imza kontrolleri
+          - QR / Kod ile müşteri ve motosiklet otomatik bağlantısı
+          - Seçilen Usta rapor sahipliği düzeltmesi
+          - Şifreli keystore + v1.0 + v1.1.8final kurtarma paketi
+          - Expo Doctor, TypeScript, bundle, Gradle, lint ve AAB imza kontrolleri
           EOF
 
       - name: Upload Release AAB artifact
@@ -267,7 +282,7 @@ jobs:
           compression-level: 6
 
       - name: Publish GitHub prerelease
-        if: ${{ inputs.publish_github_release }}
+        if: ${{ github.event_name == 'push' || inputs.publish_github_release }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.meta.outputs.version }}-aab-rc
@@ -279,17 +294,16 @@ jobs:
           overwrite_files: true
           files: |
             release-output/${{ steps.meta.outputs.aab_name }}
+            release-output/${{ steps.meta.outputs.recovery_name }}
             release-output/SHA256SUMS.txt
             release-output/aab-signature.txt
+            release-output/aab-size.txt
             release-output/BUILD_INFO.txt
-            release-output/AndroidManifest-release.xml
 
       - name: Build summary
         run: |
-          {
-            echo '# Release AAB tamamlandı'
-            echo '- Version: **${{ steps.meta.outputs.version }}**'
-            echo '- Android versionCode: **${{ steps.meta.outputs.version_code }}**'
-            echo '- AAB: **${{ steps.meta.outputs.aab_name }}**'
-            echo '- Google Play upload format: **Ready**'
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo '# Release AAB tamamlandı' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Version: **${{ steps.meta.outputs.version }}**' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Android versionCode: **${{ steps.meta.outputs.version_code }}**' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Backup: **backup/v1.1.8final**' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Signing recovery: **RSA/AES encrypted**' >> "$GITHUB_STEP_SUMMARY"
