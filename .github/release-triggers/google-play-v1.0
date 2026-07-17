@@ -2,4 +2,5 @@ DraBornGarage Google Play production release trigger
 versionName=1.0
 versionCode=1
 backup=backup/v1.1.8final
-triggered_at=2026-07-17
+triggered_at=2026-07-17T20:15:00Z
+build_request=APK+AAB

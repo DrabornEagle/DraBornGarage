@@ -1,0 +1,6 @@
+DraBornGarage v1.0 controlled production verification
+APK workflow=DraBornGarage Release APK
+AAB workflow=DraBornGarage Release AAB
+versionName=1.0
+versionCode=1
+backup=backup/v1.1.8final
