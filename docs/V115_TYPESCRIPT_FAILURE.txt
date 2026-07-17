@@ -1,0 +1,11 @@
+
+> draborngarage@1.1.5 typecheck
+> tsc --noEmit
+
+src/lib/dataRefreshEvents.ts(30,19): error TS2322: Type '() => boolean' is not assignable to type 'void | Destructor'.
+  Type '() => boolean' is not assignable to type 'Destructor'.
+    Type 'boolean' is not assignable to type 'void | { [UNDEFINED_VOID_ONLY]: never; }'.
+src/notifications/NotificationContextV112.tsx(60,9): error TS2741: Property 'turkish_voice' is missing in type '{ system_loud: string; garage_chime: string; garage_pulse: string; garage_alert: string; garage_bell: string; garage_siren: string; garage_turbo: string; garage_metal: string; garage_digital: string; garage_retro: string; silent: string; }' but required in type 'Record<NotificationSoundKey, string>'.
+src/screens/AppointmentsScreen.tsx(103,68): error TS2322: Type 'Promise<[void, void, void, void]>' is not assignable to type 'void | Promise<void>'.
+  Type 'Promise<[void, void, void, void]>' is not assignable to type 'Promise<void>'.
+    Type '[void, void, void, void]' is not assignable to type 'void'.
