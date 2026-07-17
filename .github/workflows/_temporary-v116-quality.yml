@@ -41,8 +41,14 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends espeak ffmpeg
 
-      - name: Apply v1.1.6 patch
-        run: python3 scripts/apply_v116_notification_reliability.py
+      - name: Apply v1.1.6 patch when staging script exists
+        shell: bash
+        run: |
+          if [ -f scripts/apply_v116_notification_reliability.py ]; then
+            python3 scripts/apply_v116_notification_reliability.py
+          else
+            echo 'Tested v1.1.6 source is already present on the feature branch.'
+          fi
 
       - name: Generate clearer Turkish voices
         run: bash scripts/generate_turkish_voice_sounds.sh
@@ -87,8 +93,9 @@ jobs:
           NODE
           test -f supabase/migrations/20260717113000_v1_1_6_notification_cleanup_push_retry.sql
           test -f supabase/rollback/20260717113000_v1_1_6_notification_cleanup_push_retry_rollback.sql
+          ! grep -q 'notification_clear_all_unused' supabase/rollback/20260717113000_v1_1_6_notification_cleanup_push_retry_rollback.sql
 
-      - name: Persist tested source to feature branch
+      - name: Persist tested source when changed
         shell: bash
         run: |
           set -euo pipefail
@@ -97,6 +104,10 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
-          git commit -m 'feat: prepare DraBornGarage v1.1.6 notification reliability'
+          if git diff --cached --quiet; then
+            echo 'No source changes to persist.'
+            exit 0
+          fi
+          git commit -m 'feat: verify DraBornGarage v1.1.6 notification reliability'
           git pull --rebase origin feature/v1.1.6-push-retry-notification-cleanup
           git push origin HEAD:feature/v1.1.6-push-retry-notification-cleanup
