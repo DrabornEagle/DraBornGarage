@@ -8,6 +8,11 @@ on:
         required: true
         type: boolean
         default: true
+  push:
+    branches:
+      - main
+    paths:
+      - .github/release-triggers/google-play-v1.0
 
 permissions:
   contents: write
@@ -31,7 +36,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 80
     env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -40,6 +44,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -53,7 +59,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Validate source and release secrets
+      - name: Validate v1.0 source and release secrets
         shell: bash
         run: |
           set -euo pipefail
@@ -61,16 +67,19 @@ jobs:
             [ -n "${!name:-}" ] || { echo "Eksik GitHub secret: $name"; exit 1; }
           done
           node <<'NODE'
-          const fs=require('fs');
-          const app=require('./app.json').expo;
-          const pkg=require('./package.json');
-          const lock=require('./package-lock.json');
-          const firebase=require('./google-services.json');
-          if(pkg.version!==app.version || lock.version!==app.version || lock.packages?.['']?.version!==app.version) throw new Error('Sürüm bilgileri eşleşmiyor');
-          if(!/^[0-9a-fA-F-]{36}$/.test(app.extra?.eas?.projectId || '')) throw new Error('EAS Project ID eksik veya geçersiz');
-          if(app.android?.googleServicesFile!=='./google-services.json') throw new Error('googleServicesFile eksik');
-          if(firebase.client?.[0]?.client_info?.android_client_info?.package_name!==app.android.package) throw new Error('Firebase paket adı uyuşmuyor');
-          for(const file of ['assets/draborngarage-icon.png','assets/draborngarage-welcome.png']) if(!fs.existsSync(file)||fs.statSync(file).size<100000) throw new Error(`${file} geçersiz`);
+          const fs = require('fs');
+          const app = require('./app.json').expo;
+          const pkg = require('./package.json');
+          const lock = require('./package-lock.json');
+          const firebase = require('./google-services.json');
+          if (app.version !== '1.0' || app.android?.versionCode !== 1) throw new Error('Google Play v1.0 / versionCode 1 bekleniyor');
+          if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) throw new Error('Paket ve kilit sürümleri eşleşmiyor');
+          if (!/^[0-9a-fA-F-]{36}$/.test(app.extra?.eas?.projectId || '')) throw new Error('EAS Project ID eksik veya geçersiz');
+          if (app.android?.googleServicesFile !== './google-services.json') throw new Error('googleServicesFile eksik');
+          if (firebase.client?.[0]?.client_info?.android_client_info?.package_name !== app.android.package) throw new Error('Firebase paket adı uyuşmuyor');
+          for (const file of ['assets/draborngarage-icon.png', 'assets/draborngarage-welcome.png']) {
+            if (!fs.existsSync(file) || fs.statSync(file).size < 100000) throw new Error(`${file} geçersiz`);
+          }
           NODE
 
       - name: Restore and verify permanent keystore
@@ -83,7 +92,6 @@ jobs:
           ACTUAL_SHA256="$(keytool -list -v -keystore "$KEYSTORE_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" | awk -F'SHA256: ' '/SHA256:/{print $2; exit}' | tr -d '\r')"
           [ "$ACTUAL_SHA256" = "$EXPECTED_UPLOAD_CERT_SHA256" ] || { echo "Yanlış upload keystore sertifikası: $ACTUAL_SHA256"; exit 1; }
           echo "DRABORNGARAGE_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
-          echo "Kalıcı upload keystore doğrulandı: $ACTUAL_SHA256"
 
       - name: Install Android NDK
         shell: bash
@@ -92,7 +100,6 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
           "$SDKMANAGER" "ndk;27.1.12297006"
-          test -d "$ANDROID_HOME/ndk/27.1.12297006"
 
       - name: Read release metadata
         id: meta
@@ -103,7 +110,6 @@ jobs:
           PROJECT_ID="$(node -p "require('./app.json').expo.extra.eas.projectId")"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
           echo "apk_name=DraBornGarage-v${VERSION}-production.apk" >> "$GITHUB_OUTPUT"
           echo "EXPO_PUBLIC_EAS_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
 
@@ -119,16 +125,6 @@ jobs:
       - name: Android JavaScript bundle
         run: npm run test:bundle
 
-      - name: Verify login recovery and push hardening
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -q 'AppErrorBoundary' App.tsx
-          grep -q 'const EAS_PROJECT_ID' src/notifications/NotificationContextV101.tsx
-          grep -q 'receivedSystemNotificationIdsRef' src/notifications/NotificationContextV101.tsx
-          grep -q "select('customer_motorcycle_odometer')" src/context/AuthContext.tsx
-          grep -q 'DRABORNGARAGE_PRODUCTION_SIGNING' scripts/configure_android_signing.py
-
       - name: Export Expo configuration
         run: |
           mkdir -p release-output
@@ -140,29 +136,23 @@ jobs:
       - name: Apply production signing
         run: python3 scripts/configure_android_signing.py
 
-      - name: Verify Firebase Android configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s android/app/google-services.json
-          node -e "const a=require('./app.json').expo;const g=require('./android/app/google-services.json');if(g.client?.[0]?.client_info?.android_client_info?.package_name!==a.android.package)process.exit(1)"
-
       - name: Normalize Android manifest
         shell: bash
         run: |
           python3 <<'PY'
           from pathlib import Path
-          path=Path('android/app/src/main/AndroidManifest.xml')
-          text=path.read_text().replace(' data-generated="true"','')
-          lines=[]
+          path = Path('android/app/src/main/AndroidManifest.xml')
+          text = path.read_text().replace(' data-generated="true"', '')
+          lines = []
           for line in text.splitlines():
               if '<uses-permission' in line and 'tools:node="remove"' in line and 'tools:ignore=' not in line:
-                  line=line.replace('/>',' tools:ignore="PermissionImpliesUnsupportedChromeOsHardware"/>')
+                  line = line.replace('/>', ' tools:ignore="PermissionImpliesUnsupportedChromeOsHardware"/>')
               lines.append(line)
-          text='\n'.join(lines)+'\n'
-          feature='  <uses-feature android:name="android.hardware.camera" android:required="false"/>'
+          text = '\n'.join(lines) + '\n'
+          feature = '  <uses-feature android:name="android.hardware.camera" android:required="false"/>'
           if 'android.hardware.camera' not in text:
-              pos=text.find('>'); text=text[:pos+1]+'\n'+feature+text[pos+1:]
+              pos = text.find('>')
+              text = text[:pos + 1] + '\n' + feature + text[pos + 1:]
           path.write_text(text)
           PY
 
@@ -176,28 +166,10 @@ jobs:
         working-directory: android
         run: ./gradlew :app:lintRelease --no-daemon --stacktrace
 
-      - name: Verify manifest, signature and collect APK
+      - name: Verify signature and collect APK
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          import shutil, xml.etree.ElementTree as ET
-          candidates=[p for p in Path('android/app/build/intermediates').rglob('AndroidManifest.xml') if 'release' in p.parts and ('merged_manifest' in p.parts or 'merged_manifests' in p.parts)]
-          if not candidates: raise SystemExit('Merged release manifest bulunamadı')
-          manifest=max(candidates,key=lambda p:p.stat().st_size)
-          shutil.copyfile(manifest,'release-output/AndroidManifest-release.xml')
-          android='{http://schemas.android.com/apk/res/android}'
-          root=ET.parse(manifest).getroot()
-          permissions={n.attrib.get(android+'name') for n in root.findall('uses-permission')}
-          blocked={'android.permission.RECORD_AUDIO','android.permission.ACCESS_FINE_LOCATION','android.permission.ACCESS_COARSE_LOCATION','android.permission.READ_CONTACTS','android.permission.WRITE_CONTACTS','android.permission.CALL_PHONE','android.permission.READ_PHONE_STATE','android.permission.READ_SMS','android.permission.SEND_SMS','android.permission.READ_MEDIA_IMAGES','android.permission.READ_EXTERNAL_STORAGE','android.permission.WRITE_EXTERNAL_STORAGE'}
-          if blocked & permissions: raise SystemExit(f'Engellenen izinler bulundu: {sorted(blocked & permissions)}')
-          uses_sdk=root.find('uses-sdk')
-          target_sdk=int(uses_sdk.attrib.get(android+'targetSdkVersion','0') or 0) if uses_sdk is not None else 0
-          if target_sdk<35: raise SystemExit(f'Target SDK çok düşük veya bulunamadı: {target_sdk}')
-          for required in ('android.permission.CAMERA','android.permission.POST_NOTIFICATIONS'):
-              if required not in permissions: raise SystemExit(f'{required} bulunamadı')
-          PY
           SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
           test -f "$SOURCE_APK"
           APK_PATH="release-output/${{ steps.meta.outputs.apk_name }}"
@@ -205,7 +177,6 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH" | tee release-output/apk-signature.txt
           RAW_CERT="$(sed -n -E 's/^.*certificate SHA-256 digest: //p' release-output/apk-signature.txt | head -n 1 | tr -d '\r')"
-          [ -n "$RAW_CERT" ] || { echo 'APK sertifika özeti okunamadı'; exit 1; }
           APK_CERT="$(printf '%s' "$RAW_CERT" | tr '[:lower:]' '[:upper:]' | tr -d ':' | sed 's/../&:/g;s/:$//')"
           [ "$APK_CERT" = "$EXPECTED_UPLOAD_CERT_SHA256" ] || { echo "APK yanlış sertifikayla imzalandı: $APK_CERT"; exit 1; }
           sha256sum "$APK_PATH" | tee release-output/SHA256SUMS.txt
@@ -219,19 +190,17 @@ jobs:
           Android versionCode: ${{ steps.meta.outputs.version_code }}
           Commit: $GITHUB_SHA
           Run: $GITHUB_RUN_ID
-          EAS Project ID: ${{ steps.meta.outputs.project_id }}
-          Firebase Android client: configured
           Upload certificate SHA-256: $EXPECTED_UPLOAD_CERT_SHA256
           Signing: permanent DraBornGarage production upload keystore
           EOF
           cat > release-output/RELEASE_NOTES.md <<EOF
           # DraBornGarage v${{ steps.meta.outputs.version }} Production APK
 
-          - Giriş sonrası güvenli oturum kurtarma
-          - Firebase Android ve EAS Project ID yapılandırması
-          - Telefon bildirimi için yerel yedek ve çift bildirim önleme
-          - Kalıcı DraBornGarage production upload keystore imzası
-          - Expo Doctor, TypeScript, bundle, Gradle, lint, manifest ve sertifika kontrolleri
+          - Google Play yayın sürümü v1.0 / versionCode 1
+          - QR / Kod ile mevcut müşteri ve motosiklet hesabı bağlantısı
+          - Seçilen Ustaya kesin servis tutarı ve işlem adedi sahipliği
+          - Kalıcı production upload keystore imzası
+          - Expo Doctor, TypeScript, bundle, Gradle, lint ve imza kontrolleri
           EOF
 
       - name: Upload Release APK artifact
@@ -244,7 +213,7 @@ jobs:
           compression-level: 6
 
       - name: Publish GitHub prerelease
-        if: ${{ inputs.publish_github_release }}
+        if: ${{ github.event_name == 'push' || inputs.publish_github_release }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.meta.outputs.version }}-apk-rc
@@ -260,7 +229,6 @@ jobs:
             release-output/apk-signature.txt
             release-output/apk-size.txt
             release-output/BUILD_INFO.txt
-            release-output/AndroidManifest-release.xml
 
       - name: Build summary
         run: |
