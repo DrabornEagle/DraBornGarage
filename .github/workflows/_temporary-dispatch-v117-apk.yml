@@ -1,0 +1,81 @@
+name: Temporary Dispatch DraBornGarage v1.1.7 APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-dispatch-v117-apk.yml
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: draborngarage-v117-apk-dispatch
+  cancel-in-progress: true
+
+jobs:
+  dispatch-watch-record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Dispatch current main Release APK
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          gh workflow run release-apk.yml --repo "$GITHUB_REPOSITORY" --ref main -f publish_github_release=false
+          run_id=""
+          for attempt in $(seq 1 60); do
+            sleep 5
+            run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --event workflow_dispatch --branch main --limit 10 --json databaseId,createdAt,headSha --jq --arg started "$started_at" '[.[] | select(.createdAt >= $started)] | sort_by(.createdAt) | last | .databaseId // empty')"
+            [ -n "$run_id" ] && break
+          done
+          [ -n "$run_id" ] || { echo 'Yeni Release APK run bulunamadı'; exit 1; }
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Release APK run: $run_id"
+
+      - name: Wait for production APK
+        run: gh run watch "${{ steps.release.outputs.run_id }}" --repo "$GITHUB_REPOSITORY" --exit-status --interval 10
+
+      - name: Record verified result
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="${{ steps.release.outputs.run_id }}"
+          run_json="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json status,conclusion,url,headSha,createdAt,updatedAt)"
+          status="$(printf '%s' "$run_json" | jq -r '.status')"
+          conclusion="$(printf '%s' "$run_json" | jq -r '.conclusion // "unknown"')"
+          url="$(printf '%s' "$run_json" | jq -r '.url')"
+          head_sha="$(printf '%s' "$run_json" | jq -r '.headSha')"
+          artifacts="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" --jq '[.artifacts[] | {id,name,size_in_bytes,digest,expired,created_at,expires_at}]')"
+          mkdir -p docs
+          cat > docs/APK_RUN_QUERY_V117.md <<EOF
+          # DraBornGarage v1.1.7 Release APK Run
+
+          - Run ID: \`$run_id\`
+          - Durum: \`$status\`
+          - Sonuç: \`$conclusion\`
+          - Commit: \`$head_sha\`
+          - URL: $url
+
+          ## Artifacts
+
+          \`\`\`json
+          $artifacts
+          \`\`\`
+          EOF
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/APK_RUN_QUERY_V117.md
+          git commit -m 'build: record v1.1.7 Release APK run'
+          git pull --rebase origin main
+          git push origin HEAD:main
+          [ "$conclusion" = "success" ]
