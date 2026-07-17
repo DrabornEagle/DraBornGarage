@@ -1,0 +1,146 @@
+name: Temporary DraBornGarage v1.1.7 Notification Hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/v1.1.7-notification-dedup-clear-natural-voice
+    paths:
+      - .github/workflows/_temporary-v117-notification-hotfix.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draborngarage-v117-notification-hotfix
+  cancel-in-progress: true
+
+jobs:
+  apply-generate-test-persist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_NO_GIT_STATUS: "1"
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://xpdiwyxnnrmyvpcqwuyb.supabase.co' }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_cu71JQGPiRusMw_YeZzUbg_6r9r13TG' }}
+      EXPO_PUBLIC_NATIVE_PUSH_ENABLED: "true"
+
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: hotfix/v1.1.7-notification-dedup-clear-natural-voice
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install natural Turkish voice tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          python -m pip install --disable-pip-version-check edge-tts==7.2.8
+
+      - name: Apply v1.1.7 source patch
+        run: python scripts/apply_v117_notification_hotfix.py
+
+      - name: Generate natural Türkiye Turkish notification voices
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .voice-build assets/sounds
+
+          generate_voice() {
+            local filename="$1"
+            local text="$2"
+            python -m edge_tts \
+              --voice tr-TR-EmelNeural \
+              --rate=-5% \
+              --volume=+10% \
+              --pitch=+0Hz \
+              --text "$text" \
+              --write-media ".voice-build/${filename%.wav}.mp3"
+            ffmpeg -hide_banner -loglevel error -y \
+              -i ".voice-build/${filename%.wav}.mp3" \
+              -af "silenceremove=start_periods=1:start_silence=0.04:start_threshold=-48dB:stop_periods=-1:stop_silence=0.18:stop_threshold=-48dB,loudnorm=I=-14:TP=-1.5:LRA=7,aresample=44100" \
+              -ac 1 -ar 44100 -c:a pcm_s16le "assets/sounds/$filename"
+          }
+
+          generate_voice garage_voice_appointment.wav "Yeni randevu bildirimi var. Lütfen kontrol edin."
+          generate_voice garage_voice_customer_link.wav "Yeni müşteri bağlantı talebi var. Lütfen kontrol edin."
+          generate_voice garage_voice_service.wav "Yeni servis bildirimi var. Lütfen kontrol edin."
+          generate_voice garage_voice_payment.wav "Yeni ödeme bildirimi var. Lütfen kontrol edin."
+          generate_voice garage_voice_generic.wav "Yeni bir bildiriminiz var. Lütfen kontrol edin."
+          rm -rf .voice-build
+
+      - name: Refresh package lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Android JavaScript bundle
+        run: npm run test:bundle
+
+      - name: Verify v1.1.7 notification contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const app = require('./app.json').expo;
+          const pkg = require('./package.json');
+          const lock = require('./package-lock.json');
+          if (app.version !== '1.1.7' || pkg.version !== '1.1.7' || lock.version !== '1.1.7' || lock.packages?.['']?.version !== '1.1.7') throw new Error('v1.1.7 metadata uyuşmuyor');
+          if (app.android.versionCode !== 1 || app.ios.buildNumber !== '1') throw new Error('Test build kodu değişmiş');
+          const base = fs.readFileSync('src/notifications/NotificationContextV101.tsx', 'utf8');
+          if (!base.includes("if (!IS_EXPO_GO && nextPreferences.push_notifications_enabled) return;")) throw new Error('Native/local tekil teslim koruması eksik');
+          if (!base.includes("typeof clearLastResponse === 'function'")) throw new Error('Toplu silme native API koruması eksik');
+          const center = fs.readFileSync('src/notifications/NotificationCenterScreen.tsx', 'utf8');
+          if (!center.includes('Tümünü Sil') || center.includes('Bütün Bildirimleri Temizle')) throw new Error('Tümünü Sil konumu/metni hatalı');
+          const permissions = fs.readFileSync('src/notifications/notificationPermissions.ts', 'utf8');
+          if (!permissions.includes('draborngarage-voice-generic-v10') || !permissions.includes('Doğal Türkçe Ses')) throw new Error('Doğal Türkçe v10 kanalları eksik');
+          const migration = fs.readFileSync('supabase/migrations/20260717124500_v1_1_7_notification_dedup_clear_natural_voice.sql', 'utf8');
+          if (!migration.includes("'turkish_voice','silent'") || !migration.includes('distinct on (platform)')) throw new Error('Supabase ses/token düzeltmesi eksik');
+          NODE
+
+          for file in garage_voice_appointment.wav garage_voice_customer_link.wav garage_voice_service.wav garage_voice_payment.wav garage_voice_generic.wav; do
+            test -s "assets/sounds/$file"
+            size="$(stat -c%s "assets/sounds/$file")"
+            duration="$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "assets/sounds/$file")"
+            awk -v value="$size" 'BEGIN { if (value < 120000) exit 1 }'
+            awk -v value="$duration" 'BEGIN { if (value < 1.0 || value > 8.0) exit 1 }'
+            echo "$file size=$size duration=$duration"
+          done
+
+          test -f docs/PROJECT_HANDOFF_V1.1.7.md
+          test -f supabase/rollback/20260717124500_v1_1_7_notification_dedup_clear_natural_voice_rollback.sql
+
+      - name: Persist tested v1.1.7 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f scripts/apply_v117_notification_hotfix.py
+          rm -f .github/workflows/_temporary-v117-notification-hotfix.yml
+          rm -rf node_modules dist .expo
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'fix: prepare DraBornGarage v1.1.7 notification delivery'
+          git pull --rebase origin hotfix/v1.1.7-notification-dedup-clear-natural-voice
+          git push origin HEAD:hotfix/v1.1.7-notification-dedup-clear-natural-voice
