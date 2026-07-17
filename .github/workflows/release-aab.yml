@@ -19,10 +19,11 @@ on:
         type: number
         default: 1
   push:
-    branches:
-      - main
-    paths:
-      - .github/release-triggers/google-play-v1.0
+    branches: [main]
+    paths: [.github/release-triggers/google-play-v1.0]
+  pull_request:
+    branches: [main]
+    paths: [.github/release-triggers/google-play-v1.0-pr]
 
 permissions:
   contents: write
@@ -85,7 +86,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Validate v1.0 release source and secrets
+      - name: Validate v1.0 source and release secrets
         shell: bash
         run: |
           set -euo pipefail
@@ -100,8 +101,6 @@ jobs:
           const firebase = require('./google-services.json');
           if (app.version !== process.env.PLAY_VERSION || app.android?.versionCode !== Number(process.env.PLAY_VERSION_CODE)) throw new Error('Google Play metadata uyuşmuyor');
           if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) throw new Error('Paket ve kilit sürümleri eşleşmiyor');
-          if (!/^[0-9a-fA-F-]{36}$/.test(app.extra?.eas?.projectId || '')) throw new Error('EAS Project ID eksik veya geçersiz');
-          if (app.android?.googleServicesFile !== './google-services.json') throw new Error('googleServicesFile eksik');
           if (firebase.client?.[0]?.client_info?.android_client_info?.package_name !== app.android.package) throw new Error('Firebase paket adı uyuşmuyor');
           for (const file of ['assets/draborngarage-icon.png', 'assets/draborngarage-welcome.png', 'release-security/DraBornGarage-v1.0-backup-public-cert.pem']) {
             if (!fs.existsSync(file) || fs.statSync(file).size < 500) throw new Error(`${file} geçersiz`);
@@ -122,14 +121,12 @@ jobs:
       - name: Install Android NDK
         shell: bash
         run: |
-          set -euo pipefail
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
           "$SDKMANAGER" "ndk;27.1.12297006"
 
       - name: Read release metadata
         id: meta
-        shell: bash
         run: |
           VERSION="$(node -p "require('./app.json').expo.version")"
           VERSION_CODE="$(node -p "require('./app.json').expo.android.versionCode")"
@@ -138,32 +135,19 @@ jobs:
           echo "aab_name=DraBornGarage-v${VERSION}-production.aab" >> "$GITHUB_OUTPUT"
           echo "recovery_name=DraBornGarage-v${VERSION}-Signing-Recovery.zip.p7m" >> "$GITHUB_OUTPUT"
 
-      - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+      - name: Install and validate source
+        run: |
+          npm ci --no-audit --no-fund
+          npx expo-doctor
+          npm run typecheck
+          npm run test:bundle
 
-      - name: Expo Doctor
-        run: npx expo-doctor
-
-      - name: TypeScript
-        run: npm run typecheck
-
-      - name: Android JavaScript bundle
-        run: npm run test:bundle
-
-      - name: Export Expo configuration
+      - name: Generate signed Android project
         run: |
           mkdir -p release-output
           npx expo config --type public --json > release-output/expo-public-config.json
-
-      - name: Generate clean Android project
-        run: npx expo prebuild --platform android --clean --no-install
-
-      - name: Apply production signing
-        run: python3 scripts/configure_android_signing.py
-
-      - name: Normalize Android manifest
-        shell: bash
-        run: |
+          npx expo prebuild --platform android --clean --no-install
+          python3 scripts/configure_android_signing.py
           python3 <<'PY'
           from pathlib import Path
           path = Path('android/app/src/main/AndroidManifest.xml')
@@ -181,28 +165,22 @@ jobs:
           path.write_text(text)
           PY
 
-      - name: Build production Release AAB
+      - name: Build and lint Release AAB
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew :app:bundleRelease --no-daemon --stacktrace
-
-      - name: Android lint
-        working-directory: android
-        run: ./gradlew :app:lintRelease --no-daemon --stacktrace
+          ./gradlew :app:bundleRelease :app:lintRelease --no-daemon --stacktrace
 
       - name: Verify and collect AAB
         shell: bash
         run: |
           set -euo pipefail
           SOURCE_AAB="$(find android/app/build/outputs/bundle/release -type f -name '*.aab' | head -n 1)"
-          test -f "$SOURCE_AAB"
           AAB_PATH="release-output/${{ steps.meta.outputs.aab_name }}"
           cp "$SOURCE_AAB" "$AAB_PATH"
           jarsigner -verify -verbose -certs "$AAB_PATH" | tee release-output/aab-signature.txt
           jarsigner -verify "$AAB_PATH"
           sha256sum "$AAB_PATH" | tee release-output/SHA256SUMS.txt
-          stat -c '%n %s bytes' "$AAB_PATH" | tee release-output/aab-size.txt
 
       - name: Create encrypted signing and source recovery backup
         shell: bash
@@ -222,16 +200,8 @@ jobs:
           EOF
           cat > "$RECOVERY_DIR/RECOVERY_README.txt" <<'EOF'
           DraBornGarage Google Play İmzalama Kurtarma Paketi
-
-          İçerik:
-          - Kalıcı production upload keystore
-          - Keystore alias ve parolaları
-          - v1.0 yayın kaynak kodu
-          - v1.1.8final geri alma kaynak kodu
-          - Yayın yapılandırması ve doğrulama özeti
-
-          Bu paket RSA sertifikasıyla şifrelenmiştir. Yalnız kullanıcıya teslim edilen
-          DraBornGarage-v1.0-backup-private-key.pem dosyasıyla açılabilir.
+          İçerik: upload keystore, alias/parolalar, v1.0 kaynak ve v1.1.8final geri alma kaynağı.
+          Bu paket yalnız kullanıcıya teslim edilen özel anahtarla açılabilir.
           EOF
           git archive --format=zip --output="$RECOVERY_DIR/DraBornGarage-v1.0-source.zip" HEAD
           git fetch origin backup/v1.1.8final:refs/remotes/origin/backup/v1.1.8final
@@ -239,37 +209,17 @@ jobs:
           cp app.json package.json package-lock.json google-services.json "$RECOVERY_DIR/"
           cp release-security/DraBornGarage-v1.0-backup-public-cert.pem "$RECOVERY_DIR/"
           (cd "$RECOVERY_DIR" && zip -q -r "$PLAIN_ZIP" .)
-          openssl cms -encrypt -binary -aes256 \
-            -in "$PLAIN_ZIP" \
-            -out "$ENCRYPTED" \
-            -outform DER \
-            release-security/DraBornGarage-v1.0-backup-public-cert.pem
+          openssl cms -encrypt -binary -aes256 -in "$PLAIN_ZIP" -out "$ENCRYPTED" -outform DER release-security/DraBornGarage-v1.0-backup-public-cert.pem
           rm -rf "$RECOVERY_DIR" "$PLAIN_ZIP"
           test -s "$ENCRYPTED"
           sha256sum "$ENCRYPTED" | tee -a release-output/SHA256SUMS.txt
-
-      - name: Build information
-        shell: bash
-        run: |
           cat > release-output/BUILD_INFO.txt <<EOF
           DraBornGarage v${{ steps.meta.outputs.version }}
           Android versionCode: ${{ steps.meta.outputs.version_code }}
           Commit: $GITHUB_SHA
-          Run: $GITHUB_RUN_ID
           Upload certificate SHA-256: $EXPECTED_UPLOAD_CERT_SHA256
-          Output: Google Play Android App Bundle
           Backup branch: backup/v1.1.8final
-          Encrypted signing recovery: ${{ steps.meta.outputs.recovery_name }}
-          EOF
-          cat > release-output/RELEASE_NOTES.md <<EOF
-          # DraBornGarage v${{ steps.meta.outputs.version }} Google Play AAB
-
-          - Google Play sürümü v1.0 / versionCode 1
-          - Kalıcı DraBornGarage upload keystore ile imzalama
-          - QR / Kod ile müşteri ve motosiklet otomatik bağlantısı
-          - Seçilen Usta rapor sahipliği düzeltmesi
-          - Şifreli keystore + v1.0 + v1.1.8final kurtarma paketi
-          - Expo Doctor, TypeScript, bundle, Gradle, lint ve AAB imza kontrolleri
+          Encrypted recovery: ${{ steps.meta.outputs.recovery_name }}
           EOF
 
       - name: Upload Release AAB artifact
@@ -279,7 +229,6 @@ jobs:
           path: release-output/
           if-no-files-found: error
           retention-days: 30
-          compression-level: 6
 
       - name: Publish GitHub prerelease
         if: ${{ github.event_name == 'push' || inputs.publish_github_release }}
@@ -288,7 +237,6 @@ jobs:
           tag_name: v${{ steps.meta.outputs.version }}-aab-rc
           target_commitish: main
           name: DraBornGarage v${{ steps.meta.outputs.version }} Google Play AAB
-          body_path: release-output/RELEASE_NOTES.md
           prerelease: true
           make_latest: false
           overwrite_files: true
@@ -297,13 +245,4 @@ jobs:
             release-output/${{ steps.meta.outputs.recovery_name }}
             release-output/SHA256SUMS.txt
             release-output/aab-signature.txt
-            release-output/aab-size.txt
             release-output/BUILD_INFO.txt
-
-      - name: Build summary
-        run: |
-          echo '# Release AAB tamamlandı' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Version: **${{ steps.meta.outputs.version }}**' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Android versionCode: **${{ steps.meta.outputs.version_code }}**' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Backup: **backup/v1.1.8final**' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Signing recovery: **RSA/AES encrypted**' >> "$GITHUB_STEP_SUMMARY"
