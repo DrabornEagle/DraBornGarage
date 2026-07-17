@@ -49,4 +49,42 @@ as $$
   cross join mechanic_services m;
 $$;
 
+create or replace function public.mechanic_order_service_count(
+  p_work_order_id uuid,
+  p_mechanic_id uuid,
+  p_completed_only boolean default false
+)
+returns integer
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with target_order as (
+    select assigned_mechanic_id, status, coalesce(labor_amount, 0) as labor_amount
+    from public.work_orders
+    where id = p_work_order_id
+  ), counts as (
+    select
+      count(*)::integer as all_count,
+      count(*) filter (where completed)::integer as completed_count
+    from public.work_order_services
+    where work_order_id = p_work_order_id
+      and mechanic_id = p_mechanic_id
+  )
+  select coalesce(case
+    when coalesce(p_completed_only, false) then
+      case
+        when o.status in ('ready','completed','delivered') then
+          c.all_count + case when c.all_count = 0 and o.assigned_mechanic_id = p_mechanic_id and o.labor_amount > 0 then 1 else 0 end
+        else c.completed_count
+      end
+    else
+      c.all_count + case when c.all_count = 0 and o.status in ('ready','completed','delivered') and o.assigned_mechanic_id = p_mechanic_id and o.labor_amount > 0 then 1 else 0 end
+  end, 0)
+  from target_order o
+  cross join counts c;
+$$;
+
 revoke all on function public.mechanic_order_recorded_amount(uuid,uuid) from public, anon, authenticated;
+revoke all on function public.mechanic_order_service_count(uuid,uuid,boolean) from public, anon, authenticated;
