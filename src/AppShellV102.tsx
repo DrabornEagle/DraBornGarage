@@ -65,7 +65,7 @@ export function AppShellV102() {
 
   useEffect(() => {
     if (isAdmin && tab !== 'team' && tab !== 'settings') setTab('team');
-    else if (businessRestricted && !['home', 'team', 'settings'].includes(tab)) setTab('home');
+    else if (businessRestricted && !['home', 'team', 'customers', 'settings'].includes(tab)) setTab('home');
   }, [businessRestricted, isAdmin, tab]);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export function AppShellV102() {
         return;
       }
       const allowedForApprentice = !isApprentice || ['home', 'orders', 'settings'].includes(target);
-      const allowedForBusiness = !businessRestricted || ['home', 'team', 'settings'].includes(target);
+      const allowedForBusiness = !businessRestricted || ['home', 'team', 'customers', 'settings'].includes(target);
       if (isAdmin && target === 'team' && navigationTarget.targetSection === 'platform') {
         const data = navigationTarget.data || {};
         const reportId = typeof data.focus_payment_report_id === 'string' ? data.focus_payment_report_id : typeof data.payment_report_id === 'string' ? data.payment_report_id : undefined;
@@ -131,7 +131,7 @@ export function AppShellV102() {
       { key: 'settings', label: 'Ayarlar', icon: 'settings-outline', activeIcon: 'settings', accent: colors.primary, accent2: colors.orange },
     ];
     if (isAdmin) return all.filter((item) => ['team', 'settings'].includes(item.key));
-    if (businessRestricted) return all.filter((item) => ['home', 'team', 'settings'].includes(item.key));
+    if (businessRestricted) return all.filter((item) => ['home', 'team', 'customers', 'settings'].includes(item.key));
     return isApprentice ? all.filter((item) => ['home', 'orders', 'settings'].includes(item.key)) : all;
   }, [colors, isAdmin, isOwner, isApprentice, businessRestricted]);
 
