@@ -14,11 +14,15 @@ elif normalized not in report_text:
     raise SystemExit('report source normalization match not found')
 report_path.write_text(report_text, encoding='utf-8')
 
-# Keep the generated source compatible with Expo SDK 54. The SDK 54
-# expo-audio config plugin supports microphonePermission and
-# recordAudioAndroid; background options are runtime options, not plugin keys.
+# Keep the generated source compatible with Expo SDK 54. expo-audio 1.1.1
+# requires expo-asset as a direct peer; without an explicit SDK 54 pin npm can
+# resolve the latest SDK 57 native package and create duplicate modules.
 patch_path = Path('scripts/apply_v115_live_notifications_refresh.py')
 patch = patch_path.read_text(encoding='utf-8')
+patch = patch.replace(
+    'package.setdefault("dependencies", {})["expo-audio"] = "~1.1.1"',
+    'package.setdefault("dependencies", {})["expo-audio"] = "~1.1.1"\npackage.setdefault("dependencies", {})["expo-asset"] = "~12.0.13"',
+)
 patch = patch.replace(
     '{"microphonePermission": False, "recordAudioAndroid": False, "enableBackgroundPlayback": False, "enableBackgroundRecording": False}',
     '{"microphonePermission": False, "recordAudioAndroid": False}',
