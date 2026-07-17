@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - feature/v1.1.8-qr-customer-mechanic-attribution
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
