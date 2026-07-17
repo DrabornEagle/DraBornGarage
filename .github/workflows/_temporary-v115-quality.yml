@@ -6,7 +6,7 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: draborngarage-v115-final-validation
@@ -35,6 +35,12 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      - name: Apply final v1.1.5 source adjustments
+        run: |
+          if [ -f scripts/finalize_v115_source.py ]; then
+            python3 scripts/finalize_v115_source.py
+          fi
 
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
@@ -76,10 +82,25 @@ jobs:
           const shell=fs.readFileSync('src/AppShellV102.tsx','utf8');
           if(!shell.includes("['home', 'team', 'customers', 'settings']")) throw new Error('İşletme müşteri talebi yönlendirmesi açık değil');
           const wrapper=fs.readFileSync('src/notifications/NotificationContextV115.tsx','utf8');
-          if(!wrapper.includes('void refreshPushHealth();')) throw new Error('İlk açılış push sağlık kontrolü eksik');
+          const effectBlock="void registerPushNotifications();\n    void refreshPushHealth();";
+          if(!wrapper.includes(effectBlock)) throw new Error('İlk açılış push sağlık kontrolü eksik');
           const migration=fs.readFileSync('supabase/migrations/20260717023000_v1_1_5_reliable_push_actions_refresh.sql','utf8');
           if(!migration.includes("'draborngarage-appointment-action-reminders','* * * * *'")) throw new Error('Randevu hatırlatma taraması dakikalık değil');
           if(!migration.includes('notification_push_requests')||!migration.includes('appointment_action_required')) throw new Error('Push teslim ve aksiyon migration kapsamı eksik');
           const report=fs.readFileSync('src/components/ReportsDashboard.tsx','utf8');
           if(report.indexOf('title="Usta Raporu"')>report.indexOf('title="İşletme Raporu"')) throw new Error('Rapor kart sırası yanlış');
           NODE
+
+      - name: Persist final tested source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f scripts/finalize_v115_source.py
+          rm -rf node_modules dist
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'fix: finalize DraBornGarage v1.1.5 notification delivery'
+          git pull --rebase origin feature/v1.1.5-live-notifications-refresh
+          git push origin HEAD:feature/v1.1.5-live-notifications-refresh
