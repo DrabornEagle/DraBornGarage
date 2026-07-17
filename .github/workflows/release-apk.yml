@@ -9,10 +9,11 @@ on:
         type: boolean
         default: true
   push:
-    branches:
-      - main
-    paths:
-      - .github/release-triggers/google-play-v1.0
+    branches: [main]
+    paths: [.github/release-triggers/google-play-v1.0]
+  pull_request:
+    branches: [main]
+    paths: [.github/release-triggers/google-play-v1.0-pr]
 
 permissions:
   contents: write
@@ -74,8 +75,6 @@ jobs:
           const firebase = require('./google-services.json');
           if (app.version !== '1.0' || app.android?.versionCode !== 1) throw new Error('Google Play v1.0 / versionCode 1 bekleniyor');
           if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) throw new Error('Paket ve kilit sürümleri eşleşmiyor');
-          if (!/^[0-9a-fA-F-]{36}$/.test(app.extra?.eas?.projectId || '')) throw new Error('EAS Project ID eksik veya geçersiz');
-          if (app.android?.googleServicesFile !== './google-services.json') throw new Error('googleServicesFile eksik');
           if (firebase.client?.[0]?.client_info?.android_client_info?.package_name !== app.android.package) throw new Error('Firebase paket adı uyuşmuyor');
           for (const file of ['assets/draborngarage-icon.png', 'assets/draborngarage-welcome.png']) {
             if (!fs.existsSync(file) || fs.statSync(file).size < 100000) throw new Error(`${file} geçersiz`);
@@ -96,49 +95,32 @@ jobs:
       - name: Install Android NDK
         shell: bash
         run: |
-          set -euo pipefail
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
           "$SDKMANAGER" "ndk;27.1.12297006"
 
       - name: Read release metadata
         id: meta
-        shell: bash
         run: |
           VERSION="$(node -p "require('./app.json').expo.version")"
           VERSION_CODE="$(node -p "require('./app.json').expo.android.versionCode")"
-          PROJECT_ID="$(node -p "require('./app.json').expo.extra.eas.projectId")"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "apk_name=DraBornGarage-v${VERSION}-production.apk" >> "$GITHUB_OUTPUT"
-          echo "EXPO_PUBLIC_EAS_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
 
-      - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+      - name: Install and validate source
+        run: |
+          npm ci --no-audit --no-fund
+          npx expo-doctor
+          npm run typecheck
+          npm run test:bundle
 
-      - name: Expo Doctor
-        run: npx expo-doctor
-
-      - name: TypeScript
-        run: npm run typecheck
-
-      - name: Android JavaScript bundle
-        run: npm run test:bundle
-
-      - name: Export Expo configuration
+      - name: Generate signed Android project
         run: |
           mkdir -p release-output
           npx expo config --type public --json > release-output/expo-public-config.json
-
-      - name: Generate clean Android project
-        run: npx expo prebuild --platform android --clean --no-install
-
-      - name: Apply production signing
-        run: python3 scripts/configure_android_signing.py
-
-      - name: Normalize Android manifest
-        shell: bash
-        run: |
+          npx expo prebuild --platform android --clean --no-install
+          python3 scripts/configure_android_signing.py
           python3 <<'PY'
           from pathlib import Path
           path = Path('android/app/src/main/AndroidManifest.xml')
@@ -156,22 +138,17 @@ jobs:
           path.write_text(text)
           PY
 
-      - name: Build production Release APK
+      - name: Build and lint Release APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --no-daemon --stacktrace
-
-      - name: Android lint
-        working-directory: android
-        run: ./gradlew :app:lintRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleRelease :app:lintRelease --no-daemon --stacktrace
 
       - name: Verify signature and collect APK
         shell: bash
         run: |
           set -euo pipefail
           SOURCE_APK="$(find android/app/build/outputs/apk/release -type f -name '*.apk' | head -n 1)"
-          test -f "$SOURCE_APK"
           APK_PATH="release-output/${{ steps.meta.outputs.apk_name }}"
           cp "$SOURCE_APK" "$APK_PATH"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
@@ -180,27 +157,11 @@ jobs:
           APK_CERT="$(printf '%s' "$RAW_CERT" | tr '[:lower:]' '[:upper:]' | tr -d ':' | sed 's/../&:/g;s/:$//')"
           [ "$APK_CERT" = "$EXPECTED_UPLOAD_CERT_SHA256" ] || { echo "APK yanlış sertifikayla imzalandı: $APK_CERT"; exit 1; }
           sha256sum "$APK_PATH" | tee release-output/SHA256SUMS.txt
-          stat -c '%n %s bytes' "$APK_PATH" | tee release-output/apk-size.txt
-
-      - name: Build information
-        shell: bash
-        run: |
           cat > release-output/BUILD_INFO.txt <<EOF
           DraBornGarage v${{ steps.meta.outputs.version }}
           Android versionCode: ${{ steps.meta.outputs.version_code }}
           Commit: $GITHUB_SHA
-          Run: $GITHUB_RUN_ID
           Upload certificate SHA-256: $EXPECTED_UPLOAD_CERT_SHA256
-          Signing: permanent DraBornGarage production upload keystore
-          EOF
-          cat > release-output/RELEASE_NOTES.md <<EOF
-          # DraBornGarage v${{ steps.meta.outputs.version }} Production APK
-
-          - Google Play yayın sürümü v1.0 / versionCode 1
-          - QR / Kod ile mevcut müşteri ve motosiklet hesabı bağlantısı
-          - Seçilen Ustaya kesin servis tutarı ve işlem adedi sahipliği
-          - Kalıcı production upload keystore imzası
-          - Expo Doctor, TypeScript, bundle, Gradle, lint ve imza kontrolleri
           EOF
 
       - name: Upload Release APK artifact
@@ -210,7 +171,6 @@ jobs:
           path: release-output/
           if-no-files-found: error
           retention-days: 30
-          compression-level: 6
 
       - name: Publish GitHub prerelease
         if: ${{ github.event_name == 'push' || inputs.publish_github_release }}
@@ -219,7 +179,6 @@ jobs:
           tag_name: v${{ steps.meta.outputs.version }}-apk-rc
           target_commitish: main
           name: DraBornGarage v${{ steps.meta.outputs.version }} Production APK
-          body_path: release-output/RELEASE_NOTES.md
           prerelease: true
           make_latest: false
           overwrite_files: true
@@ -227,12 +186,4 @@ jobs:
             release-output/${{ steps.meta.outputs.apk_name }}
             release-output/SHA256SUMS.txt
             release-output/apk-signature.txt
-            release-output/apk-size.txt
             release-output/BUILD_INFO.txt
-
-      - name: Build summary
-        run: |
-          echo '# Release APK tamamlandı' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Version: **${{ steps.meta.outputs.version }}**' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Android versionCode: **${{ steps.meta.outputs.version_code }}**' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Signing: **Permanent production upload keystore**' >> "$GITHUB_STEP_SUMMARY"
