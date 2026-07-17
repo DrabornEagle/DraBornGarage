@@ -46,7 +46,7 @@ export const NOTIFICATION_SOUND_OPTIONS: { key: NotificationSoundKey; label: str
   { key: 'garage_metal', label: 'Metal Vuruş', subtitle: 'Atölye karakterli sert vuruş', icon: 'musical-notes' },
   { key: 'garage_digital', label: 'Dijital Uyarı', subtitle: 'Kısa ve net dijital dizi', icon: 'musical-notes' },
   { key: 'garage_retro', label: 'Retro Oyun', subtitle: 'Klasik oyun konsolu melodisi', icon: 'musical-notes' },
-  { key: 'turkish_voice', label: 'Türkçe Sesli Uyarı', subtitle: 'Yavaş, net ve kategoriye özel Türkçe konuşma', icon: 'musical-notes' },
+  { key: 'turkish_voice', label: 'Doğal Türkçe Sesli Uyarı', subtitle: 'Türkiye Türkçesiyle doğal kadın sesi', icon: 'musical-notes' },
   { key: 'silent', label: 'Sessiz', subtitle: 'Ses olmadan güçlü titreşim', icon: 'volume-mute' },
 ];
 
@@ -204,6 +204,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const syncFutureSchedules = useCallback(async (items: GarageNotification[], nextPreferences: NotificationPreferences, badge: number) => {
     try {
+      if (!IS_EXPO_GO && nextPreferences.push_notifications_enabled) {
+        await cancelGarageSchedules();
+        return;
+      }
       const permission = await Notifications.getPermissionsAsync();
       if (mountedRef.current) setPermissionStatus(permission.status);
       if (permission.status !== 'granted' || !nextPreferences.local_notifications_enabled) {
@@ -253,6 +257,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const presentDueNotifications = useCallback(async (items: GarageNotification[], nextPreferences: NotificationPreferences, badge: number) => {
     if (!session?.user || !nextPreferences.local_notifications_enabled) return;
+    if (!IS_EXPO_GO && nextPreferences.push_notifications_enabled) return;
     try {
       // Uzaktan push kayıtlıysa önce FCM/Expo bildiriminin gelmesi için kısa süre bekle.
       // Gelmezse uygulama açıkken yerel Android bildirimi güvenli yedek olarak gösterilir.
@@ -602,9 +607,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setUnreadCount(0);
     setUpcomingCount(0);
     await cancelGarageSchedules();
-    await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
+    const notificationApi = Notifications as typeof Notifications & Record<string, unknown>;
+    const dismissAll = notificationApi.dismissAllNotificationsAsync as (() => Promise<void>) | undefined;
+    if (typeof dismissAll === 'function') {
+      await Promise.resolve(dismissAll()).catch(() => undefined);
+    }
     await Notifications.setBadgeCountAsync(0).catch(() => false);
-    await Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+    const clearLastResponse = notificationApi.clearLastNotificationResponseAsync as (() => Promise<void>) | undefined;
+    if (typeof clearLastResponse === 'function') {
+      await Promise.resolve(clearLastResponse()).catch(() => undefined);
+    }
     if (session?.user) await AsyncStorage.removeItem(`${DELIVERED_STORAGE_PREFIX}${session.user.id}`);
     return Number(data || 0);
   }, [cancelGarageSchedules, session?.user]);
