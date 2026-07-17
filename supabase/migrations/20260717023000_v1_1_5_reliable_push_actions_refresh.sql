@@ -467,7 +467,7 @@ select cron.schedule(
   $job$select public.notification_reconcile_push_requests(250);$job$
 );
 select cron.schedule(
-  'draborngarage-appointment-action-reminders','*/5 * * * *',
+  'draborngarage-appointment-action-reminders','* * * * *',
   $job$select public.notification_enqueue_pending_appointment_actions();$job$
 );
 

@@ -297,6 +297,7 @@ export function useNotifications() {
   useEffect(() => {
     if (!session?.user || !base.preferences.push_notifications_enabled) return;
     void registerPushNotifications();
+    void refreshPushHealth();
     const listener = AppState.addEventListener('change', (state) => {
       if (state === 'active') { void registerPushNotifications(); void refreshPushHealth(); }
     });
