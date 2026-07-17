@@ -62,6 +62,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p docs
+          python3 scripts/prepare_v115_patch_inputs.py
           python3 scripts/apply_v115_live_notifications_refresh.py 2>&1 | tee docs/V115_PATCH_FAILURE.log
 
       - name: Persist patch failure
@@ -72,7 +73,7 @@ jobs:
           test -f docs/V115_PATCH_FAILURE.log || echo 'Patch failed without log' > docs/V115_PATCH_FAILURE.log
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add docs/V115_PATCH_FAILURE.log
+          git add -f docs/V115_PATCH_FAILURE.log
           git commit -m 'ci: record v1.1.5 patch failure' || true
           git push origin HEAD:feature/v1.1.5-live-notifications-refresh || true
           exit 1
@@ -130,7 +131,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -f scripts/apply_v115_live_notifications_refresh.py docs/V115_PATCH_FAILURE.log
+          rm -f scripts/apply_v115_live_notifications_refresh.py scripts/prepare_v115_patch_inputs.py docs/V115_PATCH_FAILURE.log
           rm -rf node_modules dist
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
