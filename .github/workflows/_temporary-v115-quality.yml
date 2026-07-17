@@ -85,7 +85,26 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Expo Doctor
-        run: npx expo-doctor
+        id: expo_doctor
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p docs
+          npx expo-doctor 2>&1 | tee docs/V115_DOCTOR_FAILURE.txt
+
+      - name: Persist Expo Doctor failure
+        if: steps.expo_doctor.outcome == 'failure'
+        shell: bash
+        run: |
+          git reset --hard HEAD
+          test -f docs/V115_DOCTOR_FAILURE.txt || echo 'Expo Doctor failed without output' > docs/V115_DOCTOR_FAILURE.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -f docs/V115_DOCTOR_FAILURE.txt
+          git commit -m 'ci: record v1.1.5 Expo Doctor failure' || true
+          git push origin HEAD:feature/v1.1.5-live-notifications-refresh || true
+          exit 1
 
       - name: TypeScript
         run: npm run typecheck
@@ -131,7 +150,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -f scripts/apply_v115_live_notifications_refresh.py scripts/prepare_v115_patch_inputs.py docs/V115_PATCH_FAILURE.log
+          rm -f scripts/apply_v115_live_notifications_refresh.py scripts/prepare_v115_patch_inputs.py docs/V115_PATCH_FAILURE.log docs/V115_DOCTOR_FAILURE.txt
           rm -rf node_modules dist
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
