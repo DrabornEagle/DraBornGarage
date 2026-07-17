@@ -1,0 +1,20 @@
+name: Temporary Dispatch DraBornGarage v1.1.5 APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/_temporary-dispatch-v115-apk.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch real Release APK workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release-apk.yml --repo "${{ github.repository }}" --ref main -f publish_github_release=false
