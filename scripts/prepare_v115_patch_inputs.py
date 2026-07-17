@@ -42,6 +42,12 @@ patch = patch.replace(
     'wrapper.replace("  }, [base.preferences.push_notifications_enabled, fail, pushStatus, session?.user]);", "  }, [base.preferences.push_notifications_enabled, fail, pushStatus, refreshPushHealth, session?.user]);")',
     'wrapper.replace("  }, [base.preferences.push_notifications_enabled, fail, pushStatus, session?.user]);", "  }, [base.preferences.push_notifications_enabled, fail, pushStatus, session?.user]);")',
 )
+# Promise.all resolves to a tuple. Wrap it in an async callback so the shared
+# refresh hook receives Promise<void> rather than Promise<[void, ...]>.
+patch = patch.replace(
+    "useDataRefresh(['appointments','customers','motorcycles'], () => Promise.all([loadBase(), loadAppointments(), loadAttention(), loadHistory()]));",
+    "useDataRefresh(['appointments','customers','motorcycles'], async () => { await Promise.all([loadBase(), loadAppointments(), loadAttention(), loadHistory()]); });",
+)
 patch_path.write_text(patch, encoding='utf-8')
 
 # Correct plain-SQL invocation and make INSERT timestamp handling avoid any
