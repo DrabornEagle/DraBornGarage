@@ -1,34 +1,8 @@
 -- DraBornGarage v1.1.6 rollback
--- Clear all current notifications and move Turkish voice channels to v9.
+-- Remove bulk notification cleanup RPC and restore Turkish voice channel v8 mapping.
 begin;
 
 drop function if exists public.notification_clear_all();
-
--- Previous channel mapping follows.
-create or replace function public.notification_clear_all_unused()
-returns integer
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_user uuid:=auth.uid();
-  v_count integer:=0;
-begin
-  if v_user is null then raise exception 'Oturum gerekli'; end if;
-  delete from public.notification_push_requests r
-  using public.user_notifications n
-  where r.notification_id=n.id and n.user_id=v_user;
-  update public.user_notifications
-  set archived_at=coalesce(archived_at,now()), read_at=coalesce(read_at,now()), push_error='Kullanıcı tarafından temizlendi', updated_at=now()
-  where user_id=v_user and archived_at is null;
-  get diagnostics v_count=row_count;
-  return v_count;
-end;
-$$;
-
-revoke all on function public.notification_clear_all() from public,anon;
-grant execute on function public.notification_clear_all() to authenticated;
 
 create or replace function public.notification_channel_id(p_sound text,p_category text)
 returns text
