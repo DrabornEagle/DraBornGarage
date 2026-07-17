@@ -1,4 +1,4 @@
-name: Temporary Dispatch DraBornGarage v1.1.6 APK
+name: Temporary Watch DraBornGarage v1.1.6 APK
 
 on:
   push:
@@ -7,14 +7,40 @@ on:
       - .github/workflows/_temporary-dispatch-v116-apk.yml
 
 permissions:
-  contents: read
-  actions: write
+  contents: write
+  actions: read
 
 jobs:
-  dispatch:
+  watch:
     runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Dispatch patched DraBornGarage Release APK workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run release-apk.yml --repo "${{ github.repository }}" --ref main -f publish_github_release=false
+      - uses: actions/checkout@v4
+      - name: Find latest Release APK run
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-apk.yml --event workflow_dispatch --branch main --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          [ -n "$run_id" ] || { echo 'Release APK run bulunamadı'; exit 1; }
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Release APK run: $run_id"
+      - name: Watch Release APK
+        continue-on-error: true
+        run: gh run watch "${{ steps.release.outputs.run_id }}" --repo "$GITHUB_REPOSITORY" --exit-status --interval 10
+      - name: Record result
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="${{ steps.release.outputs.run_id }}"
+          gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,url,headSha,createdAt,updatedAt > docs/APK_RUN_QUERY_V116.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/APK_RUN_QUERY_V116.json
+          git commit -m 'build: record final v1.1.6 Release APK run'
+          git pull --rebase origin main
+          git push origin HEAD:main
+          conclusion="$(jq -r '.conclusion // "unknown"' docs/APK_RUN_QUERY_V116.json)"
+          [ "$conclusion" = "success" ] || exit 1
