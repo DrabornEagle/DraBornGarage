@@ -163,10 +163,10 @@ export function NotificationCenterScreen() {
   };
 
   const clearEverything = () => {
-    Alert.alert('Bütün bildirimler temizlensin mi?', 'Okunmuş, okunmamış ve planlanmış mevcut bildirimler Bildirim Merkezi’nden kaldırılacak.', [
+    Alert.alert('Tüm bildirimler silinsin mi?', 'Okunmuş, okunmamış ve planlanmış mevcut bildirimler Bildirim Merkezi’nden ve telefon bildirim alanından kaldırılacak.', [
       { text: 'Vazgeç', style: 'cancel' },
       {
-        text: 'Bütününü Temizle',
+        text: 'Tümünü Sil',
         style: 'destructive',
         onPress: async () => {
           setSaving(true);
@@ -268,10 +268,6 @@ export function NotificationCenterScreen() {
             </GlassCard>
             </>}
 
-            <AnimatedPressable onPress={clearEverything} style={[styles.clearAllButton, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}45` }]}>
-              <Ionicons name="trash-bin" size={21} color={colors.red} />
-              <View style={styles.copy}><Text style={[styles.clearAllTitle, { color: colors.red }]}>Bütün Bildirimleri Temizle</Text><Text style={[styles.clearAllText, { color: colors.textMuted }]}>Bildirim Merkezi geçmişini ve mevcut planlı bildirimleri kaldır.</Text></View>
-            </AnimatedPressable>
 
             <GlassCard style={[styles.infoCard, { borderColor: `${colors.cyan}35` }]}>
               <Ionicons name="information-circle" size={23} color={colors.cyan} />
@@ -280,6 +276,13 @@ export function NotificationCenterScreen() {
           </ScrollView>
         ) : (
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {tab === 'all' && notifications.length > 0 && (
+              <AnimatedPressable onPress={clearEverything} style={[styles.markAll, { backgroundColor: `${colors.red}12`, borderColor: `${colors.red}35` }]}>
+                <Ionicons name="trash-outline" size={19} color={colors.red} />
+                <Text style={[styles.markAllText, { color: colors.red }]}>Tümünü Sil</Text>
+              </AnimatedPressable>
+            )}
+
             {tab === 'unread' && unreadCount > 0 && (
               <AnimatedPressable onPress={markAllRead} style={[styles.markAll, { backgroundColor: `${colors.green}12`, borderColor: `${colors.green}35` }]}>
                 <Ionicons name="checkmark-done" size={19} color={colors.green} />

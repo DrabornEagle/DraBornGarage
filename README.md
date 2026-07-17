@@ -4,15 +4,25 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 
 ## Güncel geliştirme sürümü
 
-**v1.1.5 — Gerçek Push Teslimi, Aksiyon Popup ve Canlı Yenileme**
+**v1.1.7 — Tekil Push Teslimi, Güvenli Toplu Silme ve Doğal Türkçe Ses**
 
-- Geliştirme/test sürümleri: `v1.1.0`, `v1.1.1`, `v1.1.2`, `v1.1.3`, `v1.1.4`, ardından `v1.1.5`…
+- Geliştirme/test sürümleri: `v1.1.0`–`v1.1.7`; ilk Play AAB alınana kadar Android `versionCode=1` korunur.
 - AAB alınana kadar Android `versionCode` sabit: `1`
 - Expo: küçük arayüz ve işlev testleri
 - Native bildirim ve gerçek cihaz testleri: **DraBornGarage Release APK**
 - Google Play paketi: **DraBornGarage Release AAB**
 - İlk Google Play yayını: uygulama `versionName` **1.0**, `versionCode` **1**
 - İlk Play yayınından sonra her mağaza güncellemesinde hem sürüm hem `versionCode` artırılır.
+
+## v1.1.7 düzeltmeleri
+
+- Her kullanıcı/platform için yalnız en güncel push tokenı aktif tutulur; aynı hareketin birden fazla kez gelmesi engellenir.
+- Native APK’da remote push açıkken aynı kaydın yerel yedek bildirim olarak ikinci kez gösterilmesi durdurulur.
+- Toplu silme native yöntemleri cihazda yoksa hata vermeden güvenli biçimde atlanır.
+- **Tümünü Sil** Ayarlar’dan kaldırılarak Bildirimler → Tümü sekmesine taşındı.
+- `turkish_voice` Supabase tercih listesine eklendi ve seçim kalıcı hale getirildi.
+- Türkiye Türkçesi `tr-TR-EmelNeural` doğal kadın sesiyle yeni konuşma dosyaları üretildi; ses kanalları v10’a taşındı.
+- Yedek dalı: `backup/v1.1.6-before-v1.1.7-20260717`.
 
 ## v1.1.6 düzeltmeleri
 
