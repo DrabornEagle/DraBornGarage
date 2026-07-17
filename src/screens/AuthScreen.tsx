@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedMotorcycleIcon } from '../components/AnimatedMotorcycleIcon';
 import { AnimatedPressable } from '../components/AnimatedPressable';
+import { RegistrationCodeField } from '../components/RegistrationCodeField';
 import { FormField } from '../components/FormField';
 import { GlassCard } from '../components/GlassCard';
 import { PremiumBackground } from '../components/PremiumBackground';
@@ -16,6 +17,7 @@ import { PASSWORD_POLICY_SUMMARY, validateRegistrationPassword } from '../lib/pa
 import { AccountMode, WorkshopSearchResult } from '../types';
 
 type BusinessEntryMode = 'new' | 'existing';
+type CustomerEntryMode = 'motor' | 'code';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
@@ -25,6 +27,8 @@ export function AuthScreen() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [registerMode, setRegisterMode] = useState<AccountMode>('customer');
   const [businessEntryMode, setBusinessEntryMode] = useState<BusinessEntryMode>('new');
+  const [customerEntryMode, setCustomerEntryMode] = useState<CustomerEntryMode>('motor');
+  const [registrationCode, setRegistrationCode] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [plate, setPlate] = useState('');
@@ -80,9 +84,11 @@ export function AuthScreen() {
     const normalizedPlate = plate.trim().toUpperCase();
     const normalizedOdometerText = motorcycleOdometer.replace(/\D/g, '');
     const motorcycleOdometerValue = normalizedOdometerText ? Number(normalizedOdometerText) : null;
-    const customerMotorMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer'
+    const customerUsingRegistrationCode = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer' && customerEntryMode === 'code';
+    const customerMotorMissing = mode === 'register' && !isPrimaryAdminEmail && registerMode === 'customer' && customerEntryMode === 'motor'
       && (normalizedPlate.replace(/[^A-Z0-9ÇĞİÖŞÜ]/g, '').length < 5 || !motorcycleBrand.trim() || !motorcycleModel.trim());
-    const customerOdometerInvalid = mode === 'register' && registerMode === 'customer'
+    const customerRegistrationCodeMissing = customerUsingRegistrationCode && registrationCode.trim().length < 6;
+    const customerOdometerInvalid = mode === 'register' && registerMode === 'customer' && customerEntryMode === 'motor'
       && motorcycleOdometerValue !== null && (!Number.isInteger(motorcycleOdometerValue) || motorcycleOdometerValue < 0);
     const normalizedTaxNumber = taxNumber.replace(/\D/g, '');
     const joiningExisting = registerMode === 'staff' && businessEntryMode === 'existing';
@@ -93,11 +99,13 @@ export function AuthScreen() {
     const passwordPolicy = validateRegistrationPassword(password, email);
     const passwordInvalid = mode === 'register' ? !passwordPolicy.valid : password.length < 6;
 
-    if (!email.trim() || passwordInvalid || (mode === 'register' && !fullName.trim()) || customerMotorMissing || customerOdometerInvalid || businessMissing) {
+    if (!email.trim() || passwordInvalid || (mode === 'register' && !fullName.trim()) || customerMotorMissing || customerRegistrationCodeMissing || customerOdometerInvalid || businessMissing) {
       Alert.alert(
         'Eksik bilgi',
         customerMotorMissing
           ? 'Kullanıcı hesabı için plaka, motosiklet markası ve modeli zorunludur.'
+          : customerRegistrationCodeMissing
+            ? 'Ustanın verdiği QR kodunu okut veya manuel kayıt kodunu gir.'
           : customerOdometerInvalid
             ? 'Kilometre sıfır veya daha büyük tam sayı olmalıdır.'
           : businessMissing
@@ -111,6 +119,17 @@ export function AuthScreen() {
       return;
     }
 
+    if (customerUsingRegistrationCode) {
+      setLoading(true);
+      const { data, error } = await supabase.rpc('public_validate_customer_registration_link', { p_credential: registrationCode.trim() });
+      setLoading(false);
+      const validation = ((data as { valid: boolean; workshop_name: string | null; motorcycle_label: string | null }[] | null) ?? [])[0];
+      if (error || !validation?.valid) {
+        Alert.alert('Kayıt kodu kullanılamıyor', error?.message ?? 'Kod geçersiz, kullanılmış veya süresi dolmuş. Ustandan yeni kod iste.');
+        return;
+      }
+    }
+
     setLoading(true);
     const message = mode === 'login'
       ? await signIn(email, password)
@@ -120,7 +139,7 @@ export function AuthScreen() {
           email,
           password,
           registerMode,
-          registerMode === 'customer' && !isPrimaryAdminEmail ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel, odometer: motorcycleOdometerValue } : undefined,
+          registerMode === 'customer' && !isPrimaryAdminEmail && customerEntryMode === 'motor' ? { plate: normalizedPlate, brand: motorcycleBrand, model: motorcycleModel, odometer: motorcycleOdometerValue } : undefined,
           registerMode === 'staff' && !isPrimaryAdminEmail
             ? joiningExisting
               ? {
@@ -142,6 +161,7 @@ export function AuthScreen() {
                   join_existing_workshop: false,
                 }
             : undefined,
+          registerMode === 'customer' && !isPrimaryAdminEmail && customerEntryMode === 'code' ? registrationCode.trim() : undefined,
         );
     setLoading(false);
     if (message) Alert.alert(mode === 'login' ? 'Giriş yapılamadı' : 'Bilgi', message);
@@ -209,12 +229,22 @@ export function AuthScreen() {
                 <FormField label="Telefon" value={phone} onChangeText={setPhone} placeholder="05xx xxx xx xx" keyboardType="phone-pad" />
 
                 {registerMode === 'customer' && (
-                  <View style={[styles.motorCard, { backgroundColor: `${colors.cyan}0D`, borderColor: `${colors.cyan}38` }]}> 
-                    <View style={styles.motorHeader}><AnimatedMotorcycleIcon size={28} color={colors.cyan} /><View style={styles.motorCopy}><Text style={[styles.motorTitle, { color: colors.text }]}>Motosiklet bilgileri</Text><Text style={[styles.motorText, { color: colors.textMuted }]}>İşletmenin hesabını ve motosikletini güvenle eşleştirebilmesi için kullanılır.</Text></View></View>
-                    <FormField label="Plaka" value={plate} onChangeText={(value) => setPlate(value.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" />
-                    <FormField label="Motosiklet Markası" value={motorcycleBrand} onChangeText={setMotorcycleBrand} placeholder="Örn. Honda" autoCapitalize="words" />
-                    <FormField label="Motosiklet Modeli" value={motorcycleModel} onChangeText={setMotorcycleModel} placeholder="Örn. Forza 250" autoCapitalize="words" />
-                    <FormField label="Güncel Kilometre (opsiyonel)" value={motorcycleOdometer} onChangeText={(value) => setMotorcycleOdometer(value.replace(/\D/g, ''))} placeholder="Örn. 24500" keyboardType="number-pad" />
+                  <View style={styles.customerRegistrationArea}>
+                    <View style={styles.businessModeRow}>
+                      <ModeButton active={customerEntryMode === 'motor'} icon="construct" label="Motor Bilgisi" accent={colors.cyan} onPress={() => setCustomerEntryMode('motor')} />
+                      <ModeButton active={customerEntryMode === 'code'} icon="qr-code" label="QR / Kod" accent={colors.green} onPress={() => setCustomerEntryMode('code')} />
+                    </View>
+                    {customerEntryMode === 'motor' ? (
+                      <View style={[styles.motorCard, { backgroundColor: `${colors.cyan}0D`, borderColor: `${colors.cyan}38` }]}> 
+                        <View style={styles.motorHeader}><AnimatedMotorcycleIcon size={28} color={colors.cyan} /><View style={styles.motorCopy}><Text style={[styles.motorTitle, { color: colors.text }]}>Motosiklet bilgileri</Text><Text style={[styles.motorText, { color: colors.textMuted }]}>Motoru kendin ekliyorsan plaka, marka ve modeli yaz. İşletme bağlantısını daha sonra yapabilirsin.</Text></View></View>
+                        <FormField label="Plaka" value={plate} onChangeText={(value) => setPlate(value.toUpperCase())} placeholder="06 ABC 123" autoCapitalize="characters" />
+                        <FormField label="Motosiklet Markası" value={motorcycleBrand} onChangeText={setMotorcycleBrand} placeholder="Örn. Honda" autoCapitalize="words" />
+                        <FormField label="Motosiklet Modeli" value={motorcycleModel} onChangeText={setMotorcycleModel} placeholder="Örn. Forza 250" autoCapitalize="words" />
+                        <FormField label="Güncel Kilometre (opsiyonel)" value={motorcycleOdometer} onChangeText={(value) => setMotorcycleOdometer(value.replace(/\D/g, ''))} placeholder="Örn. 24500" keyboardType="number-pad" />
+                      </View>
+                    ) : (
+                      <RegistrationCodeField value={registrationCode} onChange={setRegistrationCode} />
+                    )}
                   </View>
                 )}
 
@@ -262,7 +292,7 @@ export function AuthScreen() {
                 : isPrimaryAdminEmail
                   ? 'Ana Admin Hesabımı Oluştur'
                   : registerMode === 'customer'
-                    ? 'Kullanıcı Hesabımı Oluştur'
+                    ? customerEntryMode === 'code' ? 'QR / Kod ile Hesabımı Oluştur' : 'Kullanıcı Hesabımı Oluştur'
                     : businessEntryMode === 'existing'
                       ? requestMechanicPanel ? 'Ortak + Usta Başvurumu Gönder' : 'Ortaklık Başvurumu Gönder'
                       : 'İşletme Başvurumu Gönder'}
@@ -319,6 +349,7 @@ const styles = StyleSheet.create({
   segmentButton: { flex: 1, minHeight: 46, borderRadius: 13, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
   segmentText: { fontSize: 13, fontWeight: '900' },
   label: { fontSize: 12, fontWeight: '900', letterSpacing: 0.9 },
+  customerRegistrationArea: { gap: 10 },
   motorCard: { borderWidth: 1, borderRadius: 19, padding: 13, gap: 12 },
   motorHeader: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   motorCopy: { flex: 1 },

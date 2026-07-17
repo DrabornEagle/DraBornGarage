@@ -28,7 +28,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (fullName: string, phone: string, email: string, password: string, accountMode?: AccountMode, customerMotor?: CustomerRegistrationMotor, businessRegistration?: ExtendedBusinessRegistrationData) => Promise<string | null>;
+  signUp: (fullName: string, phone: string, email: string, password: string, accountMode?: AccountMode, customerMotor?: CustomerRegistrationMotor, businessRegistration?: ExtendedBusinessRegistrationData, customerRegistrationCode?: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshWorkspace: (preferredWorkshopId?: string | null, preferredCustomerWorkshopId?: string | null) => Promise<void>;
   selectWorkshop: (workshopId: string) => Promise<void>;
@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await refreshWorkspace();
       return null;
     },
-    signUp: async (fullName, phone, email, password, accountMode = 'customer', customerMotor, businessRegistration) => {
+    signUp: async (fullName, phone, email, password, accountMode = 'customer', customerMotor, businessRegistration, customerRegistrationCode) => {
       const customerData = accountMode === 'customer' && customerMotor ? {
         customer_plate: customerMotor.plate.trim().toUpperCase(),
         customer_motorcycle_brand: customerMotor.brand.trim(),
@@ -234,7 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { full_name: fullName.trim(), phone: phone.trim(), requested_account_mode: accountMode, account_mode: 'customer', ...customerData, ...businessData } },
+        options: { data: { full_name: fullName.trim(), phone: phone.trim(), requested_account_mode: accountMode, account_mode: 'customer', customer_registration_code: accountMode === 'customer' ? customerRegistrationCode?.trim() || null : null, ...customerData, ...businessData } },
       });
       if (error) return error.message;
       if (!data.session) return joiningExisting
