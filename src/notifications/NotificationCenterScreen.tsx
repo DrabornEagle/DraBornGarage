@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Linking, Modal, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedPressable } from '../components/AnimatedPressable';
@@ -12,6 +12,8 @@ import { GarageNotification, NotificationCategory, NotificationPreferences, Noti
 import { APP_VERSION_LABEL } from '../lib/appVersion';
 
 type CenterTab = 'all' | 'unread' | 'upcoming' | 'settings';
+const INITIAL_NOTIFICATION_COUNT = 4;
+const NOTIFICATION_PAGE_INCREMENT = 10;
 
 const CATEGORY_META: Record<NotificationCategory, { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
   service: { label: 'Servis', icon: 'construct' },
@@ -73,6 +75,7 @@ export function NotificationCenterScreen() {
     markAllRead,
     archive,
     deleteNotification,
+    clearAllNotifications,
     openNotification,
     updatePreferences,
     requestLocalNotifications,
@@ -85,12 +88,17 @@ export function NotificationCenterScreen() {
   const [saving, setSaving] = useState(false);
   const [soundSectionOpen, setSoundSectionOpen] = useState(false);
   const [preferencesSectionOpen, setPreferencesSectionOpen] = useState(false);
+  const [visibleNotificationCount, setVisibleNotificationCount] = useState(INITIAL_NOTIFICATION_COUNT);
 
   const visible = useMemo(() => {
     if (tab === 'upcoming') return upcoming;
     const sourceItems = tab === 'unread' ? notifications.filter((item) => !item.read_at) : notifications;
     return [...sourceItems].sort((a, b) => new Date(b.deliver_at).getTime() - new Date(a.deliver_at).getTime());
   }, [tab, notifications, upcoming]);
+  const displayedNotifications = tab === 'all' ? visible.slice(0, visibleNotificationCount) : visible;
+  const remainingNotifications = tab === 'all' ? Math.max(0, visible.length - displayedNotifications.length) : 0;
+
+  useEffect(() => { setVisibleNotificationCount(INITIAL_NOTIFICATION_COUNT); }, [tab]);
 
   if (!open) return null;
 
@@ -152,6 +160,28 @@ export function NotificationCenterScreen() {
     Alert.alert(ok ? 'Kapalı uygulama testi planlandı' : 'Push testi planlanamadı', ok
       ? 'Uygulamayı şimdi tamamen kapat. Yaklaşık 45–90 saniye içinde telefon bildirim alanına yüksek öncelikli test bildirimi gelmeli.'
       : 'Cihaz push kaydı veya FCM V1 bağlantısı henüz hazır değil. Bildirim ayarını açık tutup tekrar dene.');
+  };
+
+  const clearEverything = () => {
+    Alert.alert('Bütün bildirimler temizlensin mi?', 'Okunmuş, okunmamış ve planlanmış mevcut bildirimler Bildirim Merkezi’nden kaldırılacak.', [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: 'Bütününü Temizle',
+        style: 'destructive',
+        onPress: async () => {
+          setSaving(true);
+          try {
+            const count = await clearAllNotifications();
+            setVisibleNotificationCount(INITIAL_NOTIFICATION_COUNT);
+            Alert.alert('Bildirimler temizlendi', `${count} bildirim kaldırıldı.`);
+          } catch (error) {
+            Alert.alert('Bildirimler temizlenemedi', error instanceof Error ? error.message : 'Bilinmeyen hata');
+          } finally {
+            setSaving(false);
+          }
+        },
+      },
+    ]);
   };
 
   return (
@@ -238,6 +268,11 @@ export function NotificationCenterScreen() {
             </GlassCard>
             </>}
 
+            <AnimatedPressable onPress={clearEverything} style={[styles.clearAllButton, { backgroundColor: `${colors.red}10`, borderColor: `${colors.red}45` }]}>
+              <Ionicons name="trash-bin" size={21} color={colors.red} />
+              <View style={styles.copy}><Text style={[styles.clearAllTitle, { color: colors.red }]}>Bütün Bildirimleri Temizle</Text><Text style={[styles.clearAllText, { color: colors.textMuted }]}>Bildirim Merkezi geçmişini ve mevcut planlı bildirimleri kaldır.</Text></View>
+            </AnimatedPressable>
+
             <GlassCard style={[styles.infoCard, { borderColor: `${colors.cyan}35` }]}>
               <Ionicons name="information-circle" size={23} color={colors.cyan} />
               <Text style={[styles.infoText, { color: colors.textMuted }]}>Bildirimler Supabase’de kullanıcıya özel hazırlanır. Native APK içinde uygulama kapalıyken push olarak, yaklaşan kayıtlar ise seçtiğin sesle zamanlı bildirim olarak gönderilir.</Text>
@@ -258,7 +293,7 @@ export function NotificationCenterScreen() {
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>{tab === 'upcoming' ? 'Yaklaşan hatırlatma yok' : tab === 'unread' ? 'Tüm bildirimler okundu' : 'Henüz bildirim yok'}</Text>
                 <Text style={[styles.emptyText, { color: colors.textMuted }]}>Servis ve iş akışı hareketleri oluştuğunda burada görünecek.</Text>
               </GlassCard>
-            ) : visible.map((item) => (
+            ) : displayedNotifications.map((item) => (
               <NotificationCard
                 key={item.id}
                 item={item}
@@ -274,6 +309,12 @@ export function NotificationCenterScreen() {
                 ])}
               />
             ))}
+            {remainingNotifications > 0 && (
+              <AnimatedPressable onPress={() => setVisibleNotificationCount((count) => count + NOTIFICATION_PAGE_INCREMENT)} style={[styles.moreButton, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}45` }]}>
+                <Ionicons name="chevron-down-circle" size={21} color={colors.primary} />
+                <Text style={[styles.moreButtonText, { color: colors.primary }]}>Daha Fazla • {Math.min(NOTIFICATION_PAGE_INCREMENT, remainingNotifications)} bildirim göster</Text>
+              </AnimatedPressable>
+            )}
           </ScrollView>
         )}
       </View>
@@ -386,6 +427,11 @@ function SettingRow({ icon, title, subtitle, value, onChange, disabled, nested, 
 
 const styles = StyleSheet.create({
   page: { flex: 1, paddingHorizontal: 16, overflow: 'hidden' },
+  clearAllButton: { minHeight: 72, borderWidth: 1, borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  clearAllTitle: { fontSize: 15, fontWeight: '900' },
+  clearAllText: { fontSize: 11.5, lineHeight: 16, marginTop: 3 },
+  moreButton: { minHeight: 52, borderWidth: 1, borderRadius: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  moreButtonText: { fontSize: 13, fontWeight: '900' },
   categoryHeader: { minHeight: 76, borderWidth: 1, borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
   categoryIcon: { width: 47, height: 47, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   categoryTitle: { fontSize: 16, fontWeight: '900' },

@@ -14,6 +14,16 @@ Motosiklet ve oto servis işletmeleri için çok işletmeli, rol tabanlı servis
 - İlk Google Play yayını: uygulama `versionName` **1.0**, `versionCode` **1**
 - İlk Play yayınından sonra her mağaza güncellemesinde hem sürüm hem `versionCode` artırılır.
 
+## v1.1.6 düzeltmeleri
+
+- `SERVICE_NOT_AVAILABLE` için bağlantı ve uçak modu kontrolü eklendi.
+- FCM cihaz tokenı kademeli beklemeyle dört kez yeniden denenir; bağlantı geri geldiğinde kayıt otomatik tekrarlanır.
+- Bildirim Ayarlarına Bütün Bildirimleri Temizle eklendi.
+- Tümü sekmesi ilk 4 bildirimi gösterir; her Daha Fazla dokunuşunda 10 bildirim daha açılır.
+- Türkçe konuşma cümleleri kısaltıldı, hız düşürüldü ve ses temizleme/normalizasyon uygulandı.
+- Türkçe ses kanalları v9'a taşındı.
+- Yedek dalı: `backup/v1.1.5-before-v1.1.6-20260717`.
+
 ## v1.1.5 düzeltmeleri
 
 - Expo push HTTP isteğinin yalnız kuyruğa alınması artık teslim edildi sayılmaz; Expo ticket yanıtları ayrı tabloda doğrulanır.
