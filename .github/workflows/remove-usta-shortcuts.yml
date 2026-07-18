@@ -1,0 +1,36 @@
+name: Remove Usta Shortcuts Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/**
+      - .github/workflows/remove-usta-shortcuts.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Locate obsolete Usta Panel shortcuts
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== Exact text matches ==='
+          rg -n -C 14 'Hızlı Servis|Bırakılan Motor' src || true
+          echo '=== Related identifiers ==='
+          rg -n -C 8 -i 'quickAction|quick action|dropped.*motor|left.*motor|hızlı.*servis|bırakılan.*motor' src || true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Android bundle
+        run: npm run test:bundle
