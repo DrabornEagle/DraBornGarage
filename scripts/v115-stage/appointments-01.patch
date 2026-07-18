@@ -1,0 +1,53 @@
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=package-lock.json' '--exclude=voice_*.wav' v115-orig/src/screens/AppointmentsScreen.tsx DraBornGarage-v115-src/src/screens/AppointmentsScreen.tsx
+--- v115-orig/src/screens/AppointmentsScreen.tsx	2026-07-16 21:27:34.000000000 +0000
++++ DraBornGarage-v115-src/src/screens/AppointmentsScreen.tsx	2026-07-16 21:49:47.570832072 +0000
+@@ -23,7 +23,7 @@
+   return { from: start.toISOString(), to: end.toISOString() };
+ }
+ 
+-export function AppointmentsScreen() {
++export function AppointmentsScreen({ focusAppointmentId, focusScheduledStart }: { focusAppointmentId?: string; focusScheduledStart?: string }) {
+   const { colors } = useTheme();
+   const { workshop, membership, isAdmin, refreshWorkspace } = useAuth();
+   const isOwner = isAdmin || membership?.role === 'owner';
+@@ -43,6 +43,13 @@
+ 
+   const dates = useMemo(() => daysFromToday(30), []);
+ 
++  useEffect(() => {
++    if (!focusAppointmentId) return;
++    setTab('calendar');
++    if (focusScheduledStart) setDate(new Date(focusScheduledStart));
++    if (!isOwner && membership?.user_id) setFilterMechanic(membership.user_id);
++  }, [focusAppointmentId, focusScheduledStart, isOwner, membership?.user_id]);
++
+   const loadBase = useCallback(async () => {
+     if (!workshop) return;
+     const [mechanicResult, customerResult, motorcycleResult] = await Promise.all([
+@@ -129,7 +136,7 @@
+       <AppointmentModeCard active={tab === 'schedule'} title="Çalışma Saatleri" subtitle="Müsaitlik, mola ve kapalı zamanları düzenle" icon="time" accent={colors.orange} onPress={() => { setTab('schedule'); setEditing(null); }} />
+     </View>
+ 
+-    {tab === 'calendar' && <CalendarTab dates={dates} date={date} setDate={setDate} mechanics={mechanics} filterMechanic={filterMechanic} setFilterMechanic={setFilterMechanic} isOwner={isOwner} stats={stats} appointments={appointments} reload={async () => { await Promise.all([loadAppointments(), loadAttention(), loadHistory()]); }} onEdit={openEdit} attentionAppointments={attentionAppointments} historyAppointments={historyAppointments} showHistory={showHistory} setShowHistory={setShowHistory} />}
++    {tab === 'calendar' && <CalendarTab focusAppointmentId={focusAppointmentId} dates={dates} date={date} setDate={setDate} mechanics={mechanics} filterMechanic={filterMechanic} setFilterMechanic={setFilterMechanic} isOwner={isOwner} stats={stats} appointments={appointments} reload={async () => { await Promise.all([loadAppointments(), loadAttention(), loadHistory()]); }} onEdit={openEdit} attentionAppointments={attentionAppointments} historyAppointments={historyAppointments} showHistory={showHistory} setShowHistory={setShowHistory} />}
+     {tab === 'new' && <AppointmentForm workshopId={workshop?.id ?? ''} membershipId={membership?.user_id ?? ''} isOwner={isOwner} canWork={canWork} mechanics={mechanics} customers={customers} motorcycles={motorcycles} initialDate={date} editing={editing} onSaved={async () => { setEditing(null); setTab('calendar'); await Promise.all([loadAppointments(), loadAttention(), loadHistory()]); }} onCancel={() => { setEditing(null); setTab('calendar'); }} />}
+     {tab === 'schedule' && <ScheduleTab workshop={workshop} membershipId={membership?.user_id ?? ''} isOwner={isOwner} canWork={canWork} mechanics={mechanics} refreshWorkspace={refreshWorkspace} />}
+   </ScrollView>;
+@@ -145,7 +152,7 @@
+   </AnimatedPressable>;
+ }
+ 
+-function CalendarTab({ dates, date, setDate, mechanics, filterMechanic, setFilterMechanic, isOwner, stats, appointments, reload, onEdit, attentionAppointments, historyAppointments, showHistory, setShowHistory }: { dates: Date[]; date: Date; setDate: (d: Date) => void; mechanics: AppointmentMechanic[]; filterMechanic: string | null; setFilterMechanic: (id: string | null) => void; isOwner: boolean; stats: { total: number; pending: number; confirmed: number; arrived: number }; appointments: Appointment[]; reload: () => Promise<void>; onEdit: (item: Appointment) => void; attentionAppointments: Appointment[]; historyAppointments: Appointment[]; showHistory: boolean; setShowHistory: (value: boolean) => void; }) {
++function CalendarTab({ focusAppointmentId, dates, date, setDate, mechanics, filterMechanic, setFilterMechanic, isOwner, stats, appointments, reload, onEdit, attentionAppointments, historyAppointments, showHistory, setShowHistory }: { focusAppointmentId?: string; dates: Date[]; date: Date; setDate: (d: Date) => void; mechanics: AppointmentMechanic[]; filterMechanic: string | null; setFilterMechanic: (id: string | null) => void; isOwner: boolean; stats: { total: number; pending: number; confirmed: number; arrived: number }; appointments: Appointment[]; reload: () => Promise<void>; onEdit: (item: Appointment) => void; attentionAppointments: Appointment[]; historyAppointments: Appointment[]; showHistory: boolean; setShowHistory: (value: boolean) => void; }) {
+   const { colors } = useTheme();
+   const historyGroups = historyAppointments.reduce<Record<string, Appointment[]>>((groups, item) => { const key = dateKey(new Date(item.scheduled_start)); (groups[key] ||= []).push(item); return groups; }, {});
+   return <View style={styles.sectionGap}>
+@@ -154,7 +161,7 @@
+     {isOwner && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}><FilterChip active={filterMechanic === null} label="Tüm Ustalar" onPress={() => setFilterMechanic(null)} />{mechanics.map((item) => <FilterChip key={item.mechanic_id} active={filterMechanic === item.mechanic_id} label={item.full_name} onPress={() => setFilterMechanic(item.mechanic_id)} />)}</ScrollView>}
+     <View style={styles.statsRow}><MiniStat label="Toplam" value={stats.total} accent={colors.primary} /><MiniStat label="Bekliyor" value={stats.pending} accent={colors.orange} /><MiniStat label="Onaylı" value={stats.confirmed} accent={colors.green} /><MiniStat label="Geldi" value={stats.arrived} accent={colors.cyan} /></View>
+     <Text style={[styles.sectionTitle, { color: colors.text }]}>{formatAppointmentDate(date)}</Text>
+-    {appointments.length === 0 ? <GlassCard style={styles.empty}><Ionicons name="calendar-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Bu gün randevu yok</Text></GlassCard> : appointments.map((item) => <StaffAppointmentCard key={item.id} item={item} reload={reload} onEdit={() => onEdit(item)} />)}
++    {appointments.length === 0 ? <GlassCard style={styles.empty}><Ionicons name="calendar-outline" size={40} color={colors.textMuted} /><Text style={[styles.emptyTitle, { color: colors.text }]}>Bu gün randevu yok</Text></GlassCard> : [...appointments].sort((a, b) => Number(b.id === focusAppointmentId) - Number(a.id === focusAppointmentId)).map((item) => <StaffAppointmentCard key={item.id} item={item} highlighted={item.id === focusAppointmentId} reload={reload} onEdit={() => onEdit(item)} />)}
+     <AnimatedPressable onPress={() => setShowHistory(!showHistory)} style={[styles.historyToggle, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.historyIcon, { backgroundColor: `${colors.primary}16` }]}><Ionicons name="archive" size={21} color={colors.primary} /></View><View style={styles.copy}><Text style={[styles.historyTitle, { color: colors.text }]}>Geçmiş Randevular</Text><Text style={[styles.historyMeta, { color: colors.textMuted }]}>{historyAppointments.length} geçmiş randevu • Günlere göre arşiv</Text></View><Ionicons name={showHistory ? 'chevron-up' : 'chevron-down'} size={22} color={colors.textMuted} /></AnimatedPressable>
+     {showHistory && <View style={styles.historyList}>{Object.entries(historyGroups).map(([key, items]) => <View key={key} style={styles.historyDay}><Text style={[styles.historyDayTitle, { color: colors.text }]}>{formatAppointmentDate(items[0].scheduled_start)}</Text>{items.map((item) => <PastAppointmentCard key={item.id} item={item} />)}</View>)}</View>}
+   </View>;
