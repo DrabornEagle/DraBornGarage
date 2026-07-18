@@ -21,10 +21,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== Exact text matches ==='
-          rg -n -C 14 'Hızlı Servis|Bırakılan Motor' src || true
-          echo '=== Related identifiers ==='
-          rg -n -C 8 -i 'quickAction|quick action|dropped.*motor|left.*motor|hızlı.*servis|bırakılan.*motor' src || true
+          {
+            echo '=== Exact text matches ==='
+            rg -n -C 20 'Hızlı Servis|Bırakılan Motor' src || true
+            echo '=== Related identifiers ==='
+            rg -n -C 12 -i 'quickAction|quick action|dropped.*motor|left.*motor|hızlı.*servis|bırakılan.*motor' src || true
+          } | tee usta-shortcut-matches.txt
+
+      - name: Upload source match report
+        uses: actions/upload-artifact@v4
+        with:
+          name: usta-shortcut-matches
+          path: usta-shortcut-matches.txt
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Install dependencies
         run: npm ci
